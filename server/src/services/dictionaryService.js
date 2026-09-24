@@ -621,10 +621,36 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
     }
   } catch (e) {}
 
-  // Fetch Vietnamese translation via Google GTX
+  // Secondary Fallback: Use Datamuse API for IPA pronunciation & English definitions if needed
+  if (!phonetic || !meaningEn) {
+    try {
+      const dmRes = await fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(cleanWord)}&qe=sp&md=dprf&ipa=1`);
+      if (dmRes.ok) {
+        const dmData = await dmRes.json();
+        if (Array.isArray(dmData) && dmData.length > 0) {
+          const item = dmData[0];
+          if (!phonetic && item.tags) {
+            const ipaTag = item.tags.find(t => t.startsWith('ipa_pron:'));
+            if (ipaTag) phonetic = `/${ipaTag.replace('ipa_pron:', '')}/`;
+          }
+          if (partOfSpeech === 'noun' && item.tags) {
+            if (item.tags.includes('v') && !item.tags.includes('n')) partOfSpeech = 'verb';
+            else if (item.tags.includes('adj')) partOfSpeech = 'adjective';
+            else if (item.tags.includes('adv')) partOfSpeech = 'adverb';
+          }
+          if (!meaningEn && item.defs && item.defs.length > 0) {
+            const firstDef = item.defs[0].replace(/^[a-z]+\t/, '').trim();
+            if (firstDef) meaningEn = firstDef;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Fetch Vietnamese translation via Google GTX or MyMemory
   try {
     const transUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(cleanWord)}`;
-    const transRes = await fetch(transUrl);
+    const transRes = await fetch(transUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     if (transRes.ok) {
       const transData = await transRes.json();
       if (transData && transData[0] && transData[0][0] && transData[0][0][0]) {
@@ -632,6 +658,19 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
       }
     }
   } catch (e) {}
+
+  if (!meaningVi) {
+    try {
+      const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=en|vi`;
+      const mmRes = await fetch(myMemoryUrl);
+      if (mmRes.ok) {
+        const mmData = await mmRes.json();
+        if (mmData?.responseData?.translatedText) {
+          meaningVi = mmData.responseData.translatedText;
+        }
+      }
+    } catch (e) {}
+  }
 
   // Translate example sentences to Vietnamese if present
   const formattedExamples = [];
@@ -660,8 +699,8 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
       formattedExamples.push(`The presentation was very ${cleanWord} and clear. (Bài thuyết trình rất ${cleanWord} và rõ ràng.)`);
       formattedExamples.push(`He maintained a ${cleanWord} attitude throughout the day. (Anh ấy giữ một thái độ ${cleanWord} suốt cả ngày.)`);
     } else {
-      formattedExamples.push(`The importance of ${cleanWord} cannot be overstated. (Tầm quan trọng của ${cleanWord} là không thể bàn cãi.)`);
-      formattedExamples.push(`This is a prominent example of ${cleanWord} in practice. (Đây là một ví dụ nổi bật về ${cleanWord} trong thực tế.)`);
+      formattedExamples.push(`The concept of ${cleanWord} is frequently discussed in literature and law. (Khái niệm ${cleanWord} thường được thảo luận trong văn học và pháp luật.)`);
+      formattedExamples.push(`Understanding ${cleanWord} helps avoid misunderstandings in formal texts. (Hiểu rõ nghĩa của ${cleanWord} giúp tránh nhầm lẫn trong các văn bản trang trọng.)`);
     }
   }
 
