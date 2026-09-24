@@ -36,11 +36,15 @@ export default function SettingsModal({ onClose, onDataRestored }) {
   const [botToken, setBotToken] = useState('');
   const [chatId, setChatId] = useState('');
   const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [telegramAutoBackup, setTelegramAutoBackup] = useState(true);
+  const [telegramBackupTime, setTelegramBackupTime] = useState('23:00');
   const [isSavingTelegram, setIsSavingTelegram] = useState(false);
   const [telegramSaveSuccess, setTelegramSaveSuccess] = useState(false);
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   const [isTriggeringAlarm, setIsTriggeringAlarm] = useState(false);
   const [isTriggeringDue, setIsTriggeringDue] = useState(false);
+  const [isTriggeringBackup, setIsTriggeringBackup] = useState(false);
+  const [telegramBackupResult, setTelegramBackupResult] = useState('');
   const [testResult, setTestResult] = useState('');
   const [showTelegramGuide, setShowTelegramGuide] = useState(false);
 
@@ -63,6 +67,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
         setBotToken(res.data.telegram_bot_token || '');
         setChatId(res.data.telegram_chat_id || '');
         setTelegramEnabled(Boolean(res.data.telegram_enabled));
+        if (res.data.telegram_auto_backup !== undefined) {
+          setTelegramAutoBackup(Boolean(res.data.telegram_auto_backup));
+        }
+        if (res.data.telegram_backup_time) {
+          setTelegramBackupTime(res.data.telegram_backup_time);
+        }
       }
     }).catch(err => console.error(err));
   }, []);
@@ -105,7 +115,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
         discipline_mode: disciplineMode,
         telegram_bot_token: botToken.trim(),
         telegram_chat_id: chatId.trim(),
-        telegram_enabled: telegramEnabled
+        telegram_enabled: telegramEnabled,
+        telegram_auto_backup: telegramAutoBackup,
+        telegram_backup_time: telegramBackupTime
       });
 
       if (res.success) {
@@ -116,6 +128,24 @@ export default function SettingsModal({ onClose, onDataRestored }) {
       alert('Lỗi lưu cấu hình: ' + err.message);
     } finally {
       setIsSavingTelegram(false);
+    }
+  };
+
+  const handleTriggerTelegramBackup = async () => {
+    setIsTriggeringBackup(true);
+    setTelegramBackupResult('');
+    try {
+      const res = await api.triggerTelegramBackup();
+      if (res.success) {
+        setTelegramBackupResult(`✓ Đã gửi file sao lưu (${res.data?.stats?.words || 0} từ) về Telegram!`);
+        setTimeout(() => setTelegramBackupResult(''), 6000);
+      } else {
+        alert('Lỗi gửi sao lưu: ' + (res.error || 'Thao tác thất bại'));
+      }
+    } catch (err) {
+      alert('Lỗi gửi sao lưu: ' + err.message);
+    } finally {
+      setIsTriggeringBackup(false);
     }
   };
 
@@ -623,6 +653,17 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                   >
                     {isTriggeringAlarm ? <Loader2 size={12} className="animate-spin" /> : '🚨 Báo Động (20:00)'}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTriggerTelegramBackup}
+                    disabled={isTriggeringBackup}
+                    className="btn-secondary"
+                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#06b6d4', borderColor: 'rgba(6, 182, 212, 0.4)' }}
+                    title="Đóng gói và gửi ngay file sao lưu .json về Telegram"
+                  >
+                    {isTriggeringBackup ? <Loader2 size={12} className="animate-spin" /> : '📦 Sao Lưu (.json)'}
+                  </button>
                 </div>
               </div>
 
@@ -743,17 +784,29 @@ export default function SettingsModal({ onClose, onDataRestored }) {
               Toàn bộ từ vựng, mẫu câu, ghi chú và lịch sử chu kỳ ôn tập SRS của bạn có thể được xuất ra file JSON để lưu trên Google Drive hoặc chuyển sang máy khác.
             </p>
 
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {/* Telegram Instant Backup Button */}
+              <button
+                type="button"
+                onClick={handleTriggerTelegramBackup}
+                disabled={isTriggeringBackup}
+                className="btn-primary"
+                style={{ padding: '0.75rem 1.25rem', background: '#0284c7', borderColor: '#0284c7' }}
+              >
+                {isTriggeringBackup ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                <span>Gửi Bản Sao Lưu Về Telegram</span>
+              </button>
+
               {/* Export Button */}
-              <button onClick={handleExportBackup} className="btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
+              <button type="button" onClick={handleExportBackup} className="btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
                 <Download size={18} style={{ color: 'var(--accent-primary)' }} />
-                <span>Xuất File Sao Lưu (.JSON)</span>
+                <span>Tải File .JSON Về Máy</span>
               </button>
 
               {/* Import Button */}
               <label className="btn-secondary" style={{ padding: '0.75rem 1.25rem', cursor: 'pointer' }}>
                 <Upload size={18} style={{ color: 'var(--accent-success)' }} />
-                <span>{isImporting ? 'Đang nhập dữ liệu...' : 'Khôi Phục Dữ Liệu (.JSON)'}</span>
+                <span>{isImporting ? 'Đang nhập...' : 'Khôi Phục Dữ Liệu (.JSON)'}</span>
                 <input
                   type="file"
                   accept=".json"
@@ -762,6 +815,57 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 />
               </label>
             </div>
+
+            {/* Auto Backup to Telegram Scheduler Card */}
+            <div style={{
+              background: 'var(--bg-tertiary)',
+              padding: '0.85rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={telegramAutoBackup}
+                    onChange={(e) => setTelegramAutoBackup(e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
+                  />
+                  <span>🤖 Tự động sao lưu và gửi file về Telegram mỗi ngày</span>
+                </label>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Giờ chạy:</span>
+                  <input
+                    type="time"
+                    className="input-control"
+                    value={telegramBackupTime}
+                    onChange={(e) => setTelegramBackupTime(e.target.value)}
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: 'auto' }}
+                  />
+                </div>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                🛡️ Bot sẽ tự động đóng gói toàn bộ từ vựng & SRS gửi vào chat Telegram của bạn. Nếu Render server restart hoặc deploy phiên bản mới, dữ liệu của bạn vẫn an toàn tuyệt đối 100%!
+              </p>
+            </div>
+
+            {telegramBackupResult && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--accent-success)'
+              }}>
+                {telegramBackupResult}
+              </div>
+            )}
 
             {importMessage && (
               <div style={{

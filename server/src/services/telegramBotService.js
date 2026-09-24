@@ -235,9 +235,20 @@ Tôi là trợ lý tiếng Anh cá nhân kết nối trực tiếp với <b>Kho 
 • 🧠 <code>/due</code> : Nhận danh sách các từ cũ đến hạn ôn tập.
 • 🎯 <code>/quiz</code> : Làm bài trắc nghiệm nhanh ngay trong chat.
 • ➕ <code>/add [từ/câu]</code> : Thêm từ mới tự động bóc tách vào kho.
+• 📦 <code>/backup</code> : Tải ngay file sao lưu (.json) toàn bộ kho từ vựng.
 • 💬 <i>Hoặc nhắn bất kỳ câu hỏi nào bằng tiếng Anh / tiếng Việt (Ví dụ: "Giải thích từ resilient", "Trong kho có từ nào level C1 không?").</i>
       `.trim();
       await telegramService.sendMessage(botToken, chatId, welcome);
+      return;
+    }
+
+    if (text === '/backup' || text.toLowerCase() === 'sao lưu' || text.toLowerCase() === 'backup') {
+      await telegramService.sendMessage(botToken, chatId, '⏳ <b>Đang đóng gói dữ liệu và gửi file sao lưu tới bạn... Vui lòng đợi trong giây lát!</b>');
+      try {
+        await telegramService.sendBackupDocument(botToken, chatId);
+      } catch (err) {
+        await telegramService.sendMessage(botToken, chatId, `❌ Lỗi khi tạo bản sao lưu: ${err.message}`);
+      }
       return;
     }
 

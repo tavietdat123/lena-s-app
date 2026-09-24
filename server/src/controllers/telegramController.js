@@ -11,7 +11,7 @@ export const telegramController = {
       const userSettings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
       const rows = db.prepare(`
         SELECT key, value FROM settings 
-        WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_enabled', 'daily_word_goal', 'telegram_reminder_time', 'discipline_mode', 'telegram_morning_time')
+        WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_enabled', 'daily_word_goal', 'telegram_reminder_time', 'discipline_mode', 'telegram_morning_time', 'telegram_auto_backup', 'telegram_backup_time')
       `).all();
 
       const settings = {
@@ -21,11 +21,13 @@ export const telegramController = {
         daily_word_goal: 10,
         telegram_reminder_time: '20:00',
         telegram_morning_time: '08:30',
-        discipline_mode: 'standard'
+        discipline_mode: 'standard',
+        telegram_auto_backup: true,
+        telegram_backup_time: '23:00'
       };
 
       rows.forEach(r => {
-        if (r.key === 'telegram_enabled') {
+        if (r.key === 'telegram_enabled' || r.key === 'telegram_auto_backup') {
           settings[r.key] = r.value === 'true' || r.value === '1';
         } else if (r.key === 'daily_word_goal') {
           settings[r.key] = parseInt(r.value, 10) || 10;
@@ -70,7 +72,9 @@ export const telegramController = {
         daily_word_goal, 
         telegram_reminder_time,
         telegram_morning_time,
-        discipline_mode
+        discipline_mode,
+        telegram_auto_backup,
+        telegram_backup_time
       } = req.body;
       const now = new Date().toISOString();
 
@@ -124,6 +128,8 @@ export const telegramController = {
       if (telegram_reminder_time !== undefined) upsert.run('telegram_reminder_time', String(telegram_reminder_time));
       if (telegram_morning_time !== undefined) upsert.run('telegram_morning_time', String(telegram_morning_time));
       if (discipline_mode !== undefined) upsert.run('discipline_mode', String(discipline_mode));
+      if (telegram_auto_backup !== undefined) upsert.run('telegram_auto_backup', String(telegram_auto_backup));
+      if (telegram_backup_time !== undefined) upsert.run('telegram_backup_time', String(telegram_backup_time));
 
       res.json({ success: true, message: 'Đã lưu cấu hình Mục tiêu & Telegram thành công!' });
     } catch (err) {
@@ -217,6 +223,17 @@ export const telegramController = {
     try {
       const result = await telegramService.sendLeechWordsAlert(true);
       res.json({ success: true, data: result });
+    } catch (err) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  },
+
+  // POST /api/telegram/trigger-backup
+  triggerBackup: async (req, res) => {
+    try {
+      const userId = req.user?.id || 'admin_master_user_id';
+      const result = await telegramService.sendBackupDocument(null, null, userId);
+      res.json({ success: true, message: 'Đã gửi file sao lưu tới Telegram thành công!', data: result });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
     }

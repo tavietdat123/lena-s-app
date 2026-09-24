@@ -8,6 +8,7 @@ let lastLunchSentDate = null;
 let lastEveningSentDate = null;
 let lastStreakSaverSentDate = null;
 let lastWeeklyDigestSentDate = null;
+let lastBackupSentDate = null;
 let hardcoreAlarmCountToday = 0;
 let lastHardcoreAlarmTimestamp = 0;
 
@@ -104,6 +105,23 @@ export const schedulerService = {
           console.log(`📈 [Scheduler] Triggering Sunday Weekly Digest at ${currentTimeStr}...`);
           lastWeeklyDigestSentDate = todayDateStr;
           await telegramService.sendWeeklyDigest();
+        }
+
+        // 6. Nightly Automated Database Backup to Telegram (Default 23:00)
+        const autoBackupRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_auto_backup'").get();
+        const isAutoBackupEnabled = autoBackupRow ? (autoBackupRow.value === 'true' || autoBackupRow.value === '1') : true;
+
+        const backupTimeRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_backup_time'").get();
+        const backupTargetTime = backupTimeRow?.value || '23:00';
+
+        if (isAutoBackupEnabled && currentTimeStr === backupTargetTime && lastBackupSentDate !== todayDateStr) {
+          console.log(`📦 [Scheduler] Triggering Nightly Auto-Backup to Telegram at ${currentTimeStr}...`);
+          lastBackupSentDate = todayDateStr;
+          try {
+            await telegramService.sendBackupDocument();
+          } catch (bErr) {
+            console.error('📦 [Scheduler Backup Error]:', bErr.message);
+          }
         }
 
       } catch (err) {

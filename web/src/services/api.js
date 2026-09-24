@@ -470,6 +470,13 @@ export const api = {
     return res.json();
   },
 
+  triggerTelegramBackup: async () => {
+    const res = await authFetch(`${API_BASE}/telegram/trigger-backup`, {
+      method: 'POST'
+    });
+    return res.json();
+  },
+
   getDailyProgress: async () => {
     try {
       const res = await authFetch(`${API_BASE}/telegram/progress`);

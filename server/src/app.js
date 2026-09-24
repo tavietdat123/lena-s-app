@@ -394,6 +394,7 @@ function buildProtectedRouter() {
   api.post('/telegram/trigger-word-of-day', telegramController.triggerWordOfDay);
   api.post('/telegram/trigger-weekly-digest', telegramController.triggerWeeklyDigest);
   api.post('/telegram/trigger-leech-alert', telegramController.triggerLeechAlert);
+  api.post('/telegram/trigger-backup', telegramController.triggerBackup);
 
   // Speaking lab
   api.get('/speaking/prompts', speakingController.getPrompts);

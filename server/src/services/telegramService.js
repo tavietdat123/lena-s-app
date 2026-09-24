@@ -1,5 +1,6 @@
 import https from 'node:https';
 import { getDb } from '../db/database.js';
+import { backupService } from './backupService.js';
 
 const telegramAgent = new https.Agent({
   keepAlive: true,
@@ -549,6 +550,85 @@ ${wordsText}
 
     const result = await telegramService.sendMessageWithButtons(botToken, chatId, text, buttons);
     return { success: true, sent: true, count: leechWords.length, result };
+  },
+
+  // 10. Generate and Send Vault Backup JSON Document to Telegram
+  sendBackupDocument: async (customToken = null, customChatId = null, userId = 'admin_master_user_id') => {
+    const db = getDb();
+    const tokenRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_bot_token'").get();
+    const chatRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_chat_id'").get();
+
+    const botToken = customToken || tokenRow?.value;
+    const chatId = customChatId || chatRow?.value;
+
+    if (!botToken || !chatId) {
+      throw new Error('Chưa cấu hình Telegram Bot Token hoặc Chat ID.');
+    }
+
+    // 1. Gather backup payload
+    const backup = backupService.buildBackupPayload(userId);
+    const jsonString = JSON.stringify(backup, null, 2);
+    const sizeBytes = Buffer.byteLength(jsonString, 'utf8');
+    const sizeKb = (sizeBytes / 1024).toFixed(1);
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const filename = `lingua_vault_backup_${dateStr}_${hours}h${minutes}.json`;
+
+    const wordsCount = backup.data?.words?.length || 0;
+    const patternsCount = backup.data?.patterns?.length || 0;
+    const notesCount = backup.data?.notes?.length || 0;
+    const logsCount = backup.data?.study_logs?.length || 0;
+
+    const caption = `
+📦 <b>BẢN SAO LƯU DỮ LIỆU • LINGUAVAULT</b> 📦
+
+📅 <b>Thời gian:</b> <code>${dateStr} ${hours}:${minutes}</code>
+📊 <b>Thống kê kho dữ liệu:</b>
+• 📚 Từ vựng: <b>${wordsCount} từ</b>
+• 🧩 Mẫu câu: <b>${patternsCount} mẫu</b>
+• 📝 Ghi chú: <b>${notesCount} bài</b>
+• 📈 Lịch sử ôn tập: <b>${logsCount} ngày</b>
+💾 <b>Kích thước file:</b> <code>${sizeKb} KB</code>
+
+━━━━━━━━━━━━━━━━━━━━
+🛡️ <i>File sao lưu được lưu trữ vĩnh viễn trên Telegram của bạn, bảo toàn dữ liệu ngay cả khi server restart!</i>
+💡 <i>Để khôi phục: Vào Cài Đặt trên Web App ➔ Khôi Phục Dữ Liệu ➔ Chọn file JSON này.</i>
+    `.trim();
+
+    // 2. Post to Telegram sendDocument API
+    const formData = new FormData();
+    formData.append('chat_id', String(chatId));
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    formData.append('document', blob, filename);
+    formData.append('caption', caption);
+    formData.append('parse_mode', 'HTML');
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+    if (!result.ok) {
+      throw new Error(result.description || 'Lỗi gửi file sao lưu tới Telegram');
+    }
+
+    return {
+      success: true,
+      sent: true,
+      filename,
+      stats: {
+        words: wordsCount,
+        patterns: patternsCount,
+        notes: notesCount,
+        study_logs: logsCount,
+        sizeKb
+      },
+      result
+    };
   }
 };
 
