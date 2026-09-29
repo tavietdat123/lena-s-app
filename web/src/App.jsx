@@ -14,6 +14,9 @@ import SRSReviewCenter from './components/review/SRSReviewCenter';
 import QuizCenter from './components/quiz/QuizCenter';
 import SpeakingLab from './components/speaking/SpeakingLab';
 import AILab from './components/ai/AILab';
+import StudyTimerHub from './components/timer/StudyTimerHub';
+import GlobalTimerBar from './components/timer/GlobalTimerBar';
+import { StudyTimerProvider } from './context/StudyTimerContext';
 import SettingsModal from './components/settings/SettingsModal';
 import AlarmModal from './components/alarm/AlarmModal';
 import LevelUpModal from './components/gamification/LevelUpModal';
@@ -429,7 +432,8 @@ export default function App() {
 
   // 3. Authenticated App Workspace Shell
   return (
-    <div className="app-container">
+    <StudyTimerProvider onAddToast={addToast}>
+      <div className="app-container">
       {/* 1. Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
@@ -572,11 +576,25 @@ export default function App() {
                   />
                 } 
               />
+              <Route 
+                path="/timer" 
+                element={
+                  <StudyTimerHub
+                    onSessionFinished={() => {
+                      refreshAllData();
+                    }}
+                    onAddToast={addToast}
+                  />
+                } 
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ErrorBoundary>
         </div>
       </main>
+
+      {/* Persistent Floating Active Study Timer Bar */}
+      <GlobalTimerBar />
 
       {/* 3. Global Command Palette (Cmd + K) */}
       <CommandPalette
@@ -686,5 +704,6 @@ export default function App() {
       {/* 5. Toast Notifications */}
       <Toast toasts={toasts} onDismiss={removeToast} />
     </div>
+  </StudyTimerProvider>
   );
 }

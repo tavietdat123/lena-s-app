@@ -13,7 +13,8 @@ import {
   Command,
   TrendingUp,
   Target,
-  Mic
+  Mic,
+  Timer
 } from 'lucide-react';
 
 export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickAdd, onOpenSettings, onOpenCommandPalette }) {
@@ -61,6 +62,13 @@ export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickA
       icon: Sparkles, 
       dueCount: stats?.total_due_today || 0,
       highlight: true
+    },
+    { 
+      id: 'timer', 
+      path: '/timer',
+      label: 'Bấm Giờ & Thống Kê', 
+      icon: Timer,
+      isNew: true
     },
     { 
       id: 'ai-lab', 

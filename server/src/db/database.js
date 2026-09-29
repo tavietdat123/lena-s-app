@@ -250,6 +250,24 @@ export function initializeDatabase() {
     );
   `);
 
+  // 12. Active Study Timer Sessions Table (Stopwatch & Pomodoro Tracker)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS study_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'admin_master_user_id',
+      activity_type TEXT DEFAULT 'general',
+      activity_title TEXT,
+      duration_seconds INTEGER NOT NULL DEFAULT 0,
+      mode TEXT DEFAULT 'stopwatch',
+      target_seconds INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
+      started_at TEXT NOT NULL,
+      ended_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_study_sessions_user_date ON study_sessions(user_id, started_at);
+  `);
+
   // Migration: Ensure words table has topic_id & user_id column
   try {
     db.exec(`ALTER TABLE words ADD COLUMN topic_id TEXT DEFAULT 'daily';`);

@@ -79,6 +79,15 @@ export const backupService = {
       user_settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId) || null;
     } catch (e) {}
 
+    let study_sessions = [];
+    try {
+      study_sessions = db.prepare(`
+        SELECT * FROM study_sessions 
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        ORDER BY started_at DESC
+      `).all(userId, userId, userId);
+    } catch (e) {}
+
     return {
       app: 'LinguaVault',
       version: '2.0.0',
@@ -89,6 +98,7 @@ export const backupService = {
         patterns,
         notes,
         study_logs,
+        study_sessions,
         topics,
         quiz_history,
         user_settings
@@ -110,11 +120,12 @@ export const backupService = {
     const patterns = Array.isArray(payload.patterns) ? payload.patterns : [];
     const notes = Array.isArray(payload.notes) ? payload.notes : [];
     const study_logs = Array.isArray(payload.study_logs) ? payload.study_logs : [];
+    const study_sessions = Array.isArray(payload.study_sessions) ? payload.study_sessions : [];
     const topics = Array.isArray(payload.topics) ? payload.topics : [];
     const quiz_history = Array.isArray(payload.quiz_history) ? payload.quiz_history : [];
     const user_settings = payload.user_settings || null;
 
-    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0) {
+    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && study_sessions.length === 0) {
       throw new Error('File sao lưu không chứa dữ liệu từ vựng hoặc cấu trúc nào để khôi phục.');
     }
 
@@ -402,6 +413,47 @@ export const backupService = {
         }
       }
 
+      // 8. Restore Study Sessions
+      if (study_sessions.length > 0) {
+        try {
+          const insertSession = db.prepare(`
+            INSERT INTO study_sessions (
+              id, user_id, activity_type, activity_title, duration_seconds,
+              mode, target_seconds, notes, started_at, ended_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              activity_type = excluded.activity_type,
+              activity_title = excluded.activity_title,
+              duration_seconds = excluded.duration_seconds,
+              mode = excluded.mode,
+              target_seconds = excluded.target_seconds,
+              notes = excluded.notes,
+              started_at = excluded.started_at,
+              ended_at = excluded.ended_at,
+              user_id = excluded.user_id
+          `);
+
+          for (const s of study_sessions) {
+            if (!s.id || !s.duration_seconds) continue;
+            insertSession.run(
+              s.id,
+              userId,
+              s.activity_type || 'general',
+              s.activity_title || '',
+              s.duration_seconds || 0,
+              s.mode || 'stopwatch',
+              s.target_seconds || 0,
+              s.notes || '',
+              s.started_at || new Date().toISOString(),
+              s.ended_at || new Date().toISOString(),
+              s.created_at || new Date().toISOString()
+            );
+          }
+        } catch (e) {
+          console.warn('[Import Study Sessions Warning]', e.message);
+        }
+      }
+
       db.exec('COMMIT;');
     } catch (txErr) {
       try { db.exec('ROLLBACK;'); } catch (e) {}
@@ -414,6 +466,7 @@ export const backupService = {
     if (notes.length > 0) summaryParts.push(`${notes.length} ghi chú`);
     if (topics.length > 0) summaryParts.push(`${topics.length} chủ đề`);
     if (study_logs.length > 0) summaryParts.push(`${study_logs.length} ngày lịch sử`);
+    if (study_sessions.length > 0) summaryParts.push(`${study_sessions.length} phiên bấm giờ học`);
 
     return {
       success: true,
@@ -423,7 +476,8 @@ export const backupService = {
         patterns: patterns.length,
         notes: notes.length,
         topics: topics.length,
-        study_logs: study_logs.length
+        study_logs: study_logs.length,
+        study_sessions: study_sessions.length
       }
     };
   }

@@ -11,7 +11,8 @@ import {
   Download, 
   BrainCircuit,
   ArrowRight,
-  Command
+  Command,
+  Timer
 } from 'lucide-react';
 
 export default function CommandPalette({ 
@@ -80,6 +81,12 @@ export default function CommandPalette({
       title: 'Mở AI English Lab (Bóc tách câu & Sửa lỗi)',
       icon: BrainCircuit,
       action: () => { onClose(); onNavigate('ai-lab'); }
+    },
+    {
+      id: 'study-timer',
+      title: 'Bấm giờ học chủ động & Xem bảng thống kê thời gian',
+      icon: Timer,
+      action: () => { onClose(); onNavigate('timer'); }
     },
     {
       id: 'toggle-theme',

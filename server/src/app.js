@@ -25,6 +25,7 @@ import { gamificationController } from './controllers/gamificationController.js'
 import { topicController } from './controllers/topicController.js';
 import { patternCategoryController } from './controllers/patternCategoryController.js';
 import { authController } from './controllers/authController.js';
+import { studyTimerController } from './controllers/studyTimerController.js';
 import { systemAlarmService } from './services/systemAlarmService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -404,6 +405,12 @@ function buildProtectedRouter() {
   // Gamification
   api.get('/gamification/profile', gamificationController.getProfile);
   api.post('/gamification/add-xp', gamificationController.addXp);
+
+  // Study timer & active stopwatch tracking
+  api.get('/study-timer/stats', studyTimerController.getStats);
+  api.get('/study-timer/sessions', studyTimerController.getSessions);
+  api.post('/study-timer/sessions', studyTimerController.saveSession);
+  api.delete('/study-timer/sessions/:id', studyTimerController.deleteSession);
 
   // OS-level alarm. These shell out on the host, so they are admin-only.
   api.post('/alarm/trigger', requireRole('admin'), (req, res) => {

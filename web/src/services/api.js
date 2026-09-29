@@ -486,6 +486,41 @@ export const api = {
     }
   },
 
+  // Active Study Timer & Analytics
+  getStudyTimerStats: async () => {
+    try {
+      const res = await authFetch(`${API_BASE}/study-timer/stats`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, data: null };
+    }
+  },
+
+  getStudyTimerSessions: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/study-timer/sessions${query ? `?${query}` : ''}`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, data: [], total: 0 };
+    }
+  },
+
+  saveStudySession: async (sessionData) => {
+    const res = await authFetch(`${API_BASE}/study-timer/sessions`, {
+      method: 'POST',
+      body: JSON.stringify(sessionData)
+    });
+    return res.json();
+  },
+
+  deleteStudySession: async (id) => {
+    const res = await authFetch(`${API_BASE}/study-timer/sessions/${id}`, {
+      method: 'DELETE'
+    });
+    return res.json();
+  },
+
   // Quiz Hub
   getQuizTopics: async () => {
     try {
