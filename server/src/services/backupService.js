@@ -88,6 +88,18 @@ export const backupService = {
       `).all(userId, userId, userId);
     } catch (e) {}
 
+    let study_schedules = [];
+    try {
+      study_schedules = db.prepare(`
+        SELECT * FROM study_schedules 
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        ORDER BY created_at DESC
+      `).all(userId, userId, userId).map(s => ({
+        ...s,
+        days_of_week: safeParse(s.days_of_week, ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
+      }));
+    } catch (e) {}
+
     return {
       app: 'LinguaVault',
       version: '2.0.0',
@@ -99,6 +111,7 @@ export const backupService = {
         notes,
         study_logs,
         study_sessions,
+        study_schedules,
         topics,
         quiz_history,
         user_settings
@@ -121,11 +134,12 @@ export const backupService = {
     const notes = Array.isArray(payload.notes) ? payload.notes : [];
     const study_logs = Array.isArray(payload.study_logs) ? payload.study_logs : [];
     const study_sessions = Array.isArray(payload.study_sessions) ? payload.study_sessions : [];
+    const study_schedules = Array.isArray(payload.study_schedules) ? payload.study_schedules : [];
     const topics = Array.isArray(payload.topics) ? payload.topics : [];
     const quiz_history = Array.isArray(payload.quiz_history) ? payload.quiz_history : [];
     const user_settings = payload.user_settings || null;
 
-    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && study_sessions.length === 0) {
+    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && study_sessions.length === 0 && study_schedules.length === 0) {
       throw new Error('File sao lưu không chứa dữ liệu từ vựng hoặc cấu trúc nào để khôi phục.');
     }
 
@@ -454,6 +468,57 @@ export const backupService = {
         }
       }
 
+      // 9. Restore Study Schedules
+      if (study_schedules.length > 0) {
+        try {
+          const insertSchedule = db.prepare(`
+            INSERT INTO study_schedules (
+              id, user_id, title, start_time, end_time,
+              study_duration_minutes, break_duration_minutes, long_break_minutes,
+              cycles_before_long_break, days_of_week, is_active, sound_type,
+              auto_start_breaks, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              title = excluded.title,
+              start_time = excluded.start_time,
+              end_time = excluded.end_time,
+              study_duration_minutes = excluded.study_duration_minutes,
+              break_duration_minutes = excluded.break_duration_minutes,
+              long_break_minutes = excluded.long_break_minutes,
+              cycles_before_long_break = excluded.cycles_before_long_break,
+              days_of_week = excluded.days_of_week,
+              is_active = excluded.is_active,
+              sound_type = excluded.sound_type,
+              auto_start_breaks = excluded.auto_start_breaks,
+              updated_at = excluded.updated_at,
+              user_id = excluded.user_id
+          `);
+
+          for (const sch of study_schedules) {
+            if (!sch.id || !sch.title) continue;
+            insertSchedule.run(
+              sch.id,
+              userId,
+              sch.title,
+              sch.start_time || '20:00',
+              sch.end_time || '22:30',
+              sch.study_duration_minutes || 25,
+              sch.break_duration_minutes || 5,
+              sch.long_break_minutes || 15,
+              sch.cycles_before_long_break || 4,
+              safeStringify(sch.days_of_week, '["mon","tue","wed","thu","fri","sat","sun"]'),
+              sch.is_active !== undefined ? (sch.is_active ? 1 : 0) : 1,
+              sch.sound_type || 'melodic',
+              sch.auto_start_breaks !== undefined ? (sch.auto_start_breaks ? 1 : 0) : 1,
+              sch.created_at || new Date().toISOString(),
+              sch.updated_at || new Date().toISOString()
+            );
+          }
+        } catch (e) {
+          console.warn('[Import Study Schedules Warning]', e.message);
+        }
+      }
+
       db.exec('COMMIT;');
     } catch (txErr) {
       try { db.exec('ROLLBACK;'); } catch (e) {}
@@ -467,6 +532,7 @@ export const backupService = {
     if (topics.length > 0) summaryParts.push(`${topics.length} chủ đề`);
     if (study_logs.length > 0) summaryParts.push(`${study_logs.length} ngày lịch sử`);
     if (study_sessions.length > 0) summaryParts.push(`${study_sessions.length} phiên bấm giờ học`);
+    if (study_schedules.length > 0) summaryParts.push(`${study_schedules.length} lịch học dài hạn`);
 
     return {
       success: true,
@@ -477,7 +543,8 @@ export const backupService = {
         notes: notes.length,
         topics: topics.length,
         study_logs: study_logs.length,
-        study_sessions: study_sessions.length
+        study_sessions: study_sessions.length,
+        study_schedules: study_schedules.length
       }
     };
   }

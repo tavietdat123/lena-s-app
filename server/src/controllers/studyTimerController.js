@@ -347,5 +347,168 @@ export const studyTimerController = {
       console.error('[StudyTimer getStats Error]:', err);
       return res.status(500).json({ success: false, error: err.message });
     }
+  },
+
+  // 5. Get Long-term Study Schedules
+  getSchedules: (req, res) => {
+    try {
+      const db = getDb();
+      const userId = req.user?.id || 'admin_master_user_id';
+
+      const rows = db.prepare(`
+        SELECT * FROM study_schedules 
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        ORDER BY created_at DESC
+      `).all(userId, userId, userId);
+
+      const schedules = rows.map(s => {
+        let days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        try { days = JSON.parse(s.days_of_week); } catch (e) {}
+        return {
+          ...s,
+          days_of_week: days,
+          is_active: Boolean(s.is_active),
+          auto_start_breaks: Boolean(s.auto_start_breaks)
+        };
+      });
+
+      return res.json({ success: true, data: schedules });
+    } catch (err) {
+      console.error('[StudyTimer getSchedules Error]:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  // 6. Create or Update Study Schedule
+  saveSchedule: (req, res) => {
+    try {
+      const db = getDb();
+      const userId = req.user?.id || 'admin_master_user_id';
+      const {
+        id,
+        title,
+        start_time = '20:00',
+        end_time = '22:30',
+        study_duration_minutes = 25,
+        break_duration_minutes = 5,
+        long_break_minutes = 15,
+        cycles_before_long_break = 4,
+        days_of_week = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+        is_active = true,
+        sound_type = 'melodic',
+        auto_start_breaks = true
+      } = req.body || {};
+
+      if (!title || !title.trim()) {
+        return res.status(400).json({ success: false, error: 'Tiêu đề lịch học không được để trống.' });
+      }
+
+      const scheduleId = id || crypto.randomUUID();
+      const now = new Date().toISOString();
+      const daysStr = JSON.stringify(days_of_week);
+
+      const existing = db.prepare('SELECT id FROM study_schedules WHERE id = ?').get(scheduleId);
+
+      if (existing) {
+        db.prepare(`
+          UPDATE study_schedules SET
+            title = ?,
+            start_time = ?,
+            end_time = ?,
+            study_duration_minutes = ?,
+            break_duration_minutes = ?,
+            long_break_minutes = ?,
+            cycles_before_long_break = ?,
+            days_of_week = ?,
+            is_active = ?,
+            sound_type = ?,
+            auto_start_breaks = ?,
+            updated_at = ?
+          WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id'))
+        `).run(
+          title.trim(),
+          start_time,
+          end_time,
+          parseInt(study_duration_minutes, 10) || 25,
+          parseInt(break_duration_minutes, 10) || 5,
+          parseInt(long_break_minutes, 10) || 15,
+          parseInt(cycles_before_long_break, 10) || 4,
+          daysStr,
+          is_active ? 1 : 0,
+          sound_type || 'melodic',
+          auto_start_breaks ? 1 : 0,
+          now,
+          scheduleId,
+          userId,
+          userId
+        );
+      } else {
+        db.prepare(`
+          INSERT INTO study_schedules (
+            id, user_id, title, start_time, end_time,
+            study_duration_minutes, break_duration_minutes, long_break_minutes,
+            cycles_before_long_break, days_of_week, is_active, sound_type,
+            auto_start_breaks, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          scheduleId,
+          userId,
+          title.trim(),
+          start_time,
+          end_time,
+          parseInt(study_duration_minutes, 10) || 25,
+          parseInt(break_duration_minutes, 10) || 5,
+          parseInt(long_break_minutes, 10) || 15,
+          parseInt(cycles_before_long_break, 10) || 4,
+          daysStr,
+          is_active ? 1 : 0,
+          sound_type || 'melodic',
+          auto_start_breaks ? 1 : 0,
+          now,
+          now
+        );
+      }
+
+      const saved = db.prepare('SELECT * FROM study_schedules WHERE id = ?').get(scheduleId);
+      let days = [];
+      try { days = JSON.parse(saved.days_of_week); } catch (e) {}
+
+      return res.json({
+        success: true,
+        message: existing ? 'Đã cập nhật lịch học thành công!' : 'Đã tạo lịch học mới thành công!',
+        data: {
+          ...saved,
+          days_of_week: days,
+          is_active: Boolean(saved.is_active),
+          auto_start_breaks: Boolean(saved.auto_start_breaks)
+        }
+      });
+    } catch (err) {
+      console.error('[StudyTimer saveSchedule Error]:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  // 7. Delete Study Schedule
+  deleteSchedule: (req, res) => {
+    try {
+      const db = getDb();
+      const userId = req.user?.id || 'admin_master_user_id';
+      const { id } = req.params;
+
+      const result = db.prepare(`
+        DELETE FROM study_schedules 
+        WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id'))
+      `).run(id, userId, userId);
+
+      if (result.changes === 0) {
+        return res.status(404).json({ success: false, error: 'Không tìm thấy lịch học để xóa.' });
+      }
+
+      return res.json({ success: true, message: 'Đã xóa lịch học thành công.' });
+    } catch (err) {
+      console.error('[StudyTimer deleteSchedule Error]:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
   }
 };

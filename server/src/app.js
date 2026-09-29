@@ -411,6 +411,10 @@ function buildProtectedRouter() {
   api.get('/study-timer/sessions', studyTimerController.getSessions);
   api.post('/study-timer/sessions', studyTimerController.saveSession);
   api.delete('/study-timer/sessions/:id', studyTimerController.deleteSession);
+  api.get('/study-timer/schedules', studyTimerController.getSchedules);
+  api.post('/study-timer/schedules', studyTimerController.saveSchedule);
+  api.put('/study-timer/schedules/:id', studyTimerController.saveSchedule);
+  api.delete('/study-timer/schedules/:id', studyTimerController.deleteSchedule);
 
   // OS-level alarm. These shell out on the host, so they are admin-only.
   api.post('/alarm/trigger', requireRole('admin'), (req, res) => {

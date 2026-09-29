@@ -268,6 +268,28 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_study_sessions_user_date ON study_sessions(user_id, started_at);
   `);
 
+  // 13. Long-term Study Schedules Table (Khung giờ học dài hạn & Thời gian nghỉ giữa giờ)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS study_schedules (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'admin_master_user_id',
+      title TEXT NOT NULL,
+      start_time TEXT NOT NULL DEFAULT '20:00',
+      end_time TEXT NOT NULL DEFAULT '22:30',
+      study_duration_minutes INTEGER NOT NULL DEFAULT 25,
+      break_duration_minutes INTEGER NOT NULL DEFAULT 5,
+      long_break_minutes INTEGER NOT NULL DEFAULT 15,
+      cycles_before_long_break INTEGER NOT NULL DEFAULT 4,
+      days_of_week TEXT DEFAULT '["mon","tue","wed","thu","fri","sat","sun"]',
+      is_active INTEGER DEFAULT 1,
+      sound_type TEXT DEFAULT 'melodic',
+      auto_start_breaks INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_study_schedules_user ON study_schedules(user_id);
+  `);
+
   // Migration: Ensure words table has topic_id & user_id column
   try {
     db.exec(`ALTER TABLE words ADD COLUMN topic_id TEXT DEFAULT 'daily';`);

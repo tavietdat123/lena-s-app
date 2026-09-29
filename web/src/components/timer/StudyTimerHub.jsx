@@ -24,10 +24,18 @@ import {
   Check,
   X,
   Volume2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Coffee,
+  Music,
+  BellRing,
+  CalendarDays,
+  SkipForward,
+  Edit2,
+  Plus
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { useStudyTimer } from '../../context/StudyTimerContext';
+import { useStudyTimer, SOUND_OPTIONS } from '../../context/StudyTimerContext';
+import StudyScheduleModal from './StudyScheduleModal';
 
 const ACTIVITIES = [
   { id: 'vocab', label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7', icon: BookOpen },
@@ -111,6 +119,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
   const {
     timerMode,
     setTimerMode,
+    timerPhase,
+    setTimerPhase,
     selectedActivity,
     setSelectedActivity,
     isRunning,
@@ -120,6 +130,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
     sessionStartedAt,
     soundEnabled,
     setSoundEnabled,
+    soundType,
+    setSoundType,
+    previewSound,
+    scheduleCycle,
+    startScheduleCycle,
+    stopScheduleCycle,
+    skipBreak,
     startTimer,
     pauseTimer,
     resetTimer,
@@ -135,6 +152,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
   const [customMinutesInput, setCustomMinutesInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
 
+  // Long-term Schedules state
+  const [schedules, setSchedules] = useState([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [isSoundPickerOpen, setIsSoundPickerOpen] = useState(false);
+
   // Statistics & History state
   const [stats, setStats] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -142,6 +166,64 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
   const [historyFilter, setHistoryFilter] = useState('all');
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [randomQuote] = useState(() => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
+
+  const loadSchedules = async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const res = await api.getStudySchedules();
+      if (res.success && Array.isArray(res.data)) {
+        setSchedules(res.data);
+      }
+    } catch (e) {
+      console.error('Failed to load study schedules:', e);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSchedules();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'schedules') {
+      loadSchedules();
+    }
+  }, [activeTab]);
+
+  const handleSaveSchedule = async (scheduleData) => {
+    const res = await api.saveStudySchedule(scheduleData);
+    if (res.success) {
+      if (onAddToast) onAddToast(scheduleData.id ? 'Đã cập nhật lịch học!' : 'Đã tạo lịch học mới!');
+      loadSchedules();
+    } else {
+      throw new Error(res.error || 'Thao tác thất bại');
+    }
+  };
+
+  const handleDeleteSchedule = async (id) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa lịch học này?')) return;
+    try {
+      const res = await api.deleteStudySchedule(id);
+      if (res.success) {
+        if (onAddToast) onAddToast('Đã xóa lịch học.');
+        loadSchedules();
+      }
+    } catch (e) {
+      alert('Lỗi xóa lịch học: ' + e.message);
+    }
+  };
+
+  const handleToggleScheduleActive = async (schedule) => {
+    try {
+      const updated = { ...schedule, is_active: !schedule.is_active };
+      const res = await api.saveStudySchedule(updated);
+      if (res.success) {
+        if (onAddToast) onAddToast(updated.is_active ? 'Đã bật lịch học!' : 'Đã tắt lịch học.');
+        loadSchedules();
+      }
+    } catch (e) {}
+  };
 
   const loadStatsAndHistory = async () => {
     setIsLoadingStats(true);
@@ -303,9 +385,11 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
           background: 'var(--bg-secondary)',
           padding: '0.3rem',
           borderRadius: '12px',
-          border: '1px solid var(--border-color)'
+          border: '1px solid var(--border-color)',
+          gap: '0.25rem'
         }}>
           <button
+            type="button"
             onClick={() => setActiveTab('timer')}
             style={{
               display: 'flex',
@@ -329,13 +413,45 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: '#22c55e',
+                background: timerPhase === 'break' ? '#10b981' : '#22c55e',
                 animation: 'pulse 1.5s infinite'
               }} />
             )}
           </button>
 
           <button
+            type="button"
+            onClick={() => setActiveTab('schedules')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 1.1rem',
+              borderRadius: '9px',
+              border: 'none',
+              background: activeTab === 'schedules' ? 'var(--accent-primary)' : 'transparent',
+              color: activeTab === 'schedules' ? '#ffffff' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <CalendarDays size={16} />
+            <span>Lịch Học & Nghỉ Giữa Giờ</span>
+            {scheduleCycle && (
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#0284c7',
+                animation: 'pulse 1.5s infinite'
+              }} />
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('stats')}
             style={{
               display: 'flex',
@@ -384,19 +500,111 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 transform: 'translateX(-50%)',
                 width: '500px',
                 height: '300px',
-                background: 'radial-gradient(circle, rgba(2, 132, 199, 0.12) 0%, transparent 70%)',
+                background: timerPhase === 'break'
+                  ? 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)'
+                  : 'radial-gradient(circle, rgba(2, 132, 199, 0.12) 0%, transparent 70%)',
                 pointerEvents: 'none'
               }} />
             )}
 
-            {/* Top Controls: Mode Switcher & Sound Toggle */}
+            {/* Active Long-Term Schedule Cycle Banner */}
+            {scheduleCycle && (
+              <div style={{
+                width: '100%',
+                maxWidth: '540px',
+                marginBottom: '1.25rem',
+                padding: '0.85rem 1rem',
+                borderRadius: '16px',
+                background: timerPhase === 'break' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(2, 132, 199, 0.1)',
+                border: `1.5px solid ${timerPhase === 'break' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(2, 132, 199, 0.35)'}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.04)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    background: timerPhase === 'break' ? '#10b981' : 'var(--accent-primary)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1rem',
+                    flexShrink: 0
+                  }}>
+                    {timerPhase === 'break' ? <Coffee size={18} /> : <CalendarDays size={18} />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {scheduleCycle.title} • Hiệp {scheduleCycle.currentCycle}/{scheduleCycle.totalCycles}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: timerPhase === 'break' ? '#10b981' : 'var(--accent-primary)', fontWeight: 700 }}>
+                      {timerPhase === 'break'
+                        ? `☕ Giờ nghỉ giữa giờ (${scheduleCycle.breakDurationMinutes} phút)`
+                        : `📚 Đang học hiệp ${scheduleCycle.currentCycle} (${scheduleCycle.studyDurationMinutes} phút)`}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {timerPhase === 'break' && (
+                    <button
+                      type="button"
+                      onClick={skipBreak}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        borderRadius: '8px',
+                        background: '#10b981',
+                        borderColor: '#10b981',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                    >
+                      <SkipForward size={13} />
+                      <span>Vào học ngay</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Bạn có muốn dừng ca học theo lịch này không?')) {
+                        stopScheduleCycle();
+                      }
+                    }}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.35rem 0.7rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      color: 'var(--text-muted)'
+                    }}
+                  >
+                    Dừng ca
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Top Controls: Mode Switcher & Sound Ringtone Picker */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               width: '100%',
-              maxWidth: '520px',
-              marginBottom: '1.5rem'
+              maxWidth: '540px',
+              marginBottom: '1.25rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
             }}>
               <div style={{
                 display: 'flex',
@@ -410,8 +618,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   onClick={() => {
                     if (isRunning && timerMode !== 'stopwatch') {
                       if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
-                      setIsRunning(false);
-                      setElapsedSeconds(0);
+                      resetTimer();
                     }
                     setTimerMode('stopwatch');
                   }}
@@ -433,11 +640,9 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   onClick={() => {
                     if (isRunning && timerMode !== 'pomodoro') {
                       if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
-                      setIsRunning(false);
-                      setElapsedSeconds(0);
+                      resetTimer();
                     }
                     setTimerMode('pomodoro');
-                    setPomodoroRemaining(pomodoroTarget);
                   }}
                   style={{
                     padding: '0.35rem 0.85rem',
@@ -454,24 +659,141 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                title={soundEnabled ? 'Chuông thông báo: BẬT' : 'Chuông thông báo: TẮT'}
-                className="btn-icon"
-                style={{
-                  color: soundEnabled ? 'var(--accent-primary)' : 'var(--text-muted)',
-                  background: 'var(--bg-tertiary)',
-                  width: '34px',
-                  height: '34px'
-                }}
-              >
-                <Volume2 size={16} />
-              </button>
+              {/* Sound Ringtone Picker with Preview */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsSoundPickerOpen(!isSoundPickerOpen)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: 'var(--bg-tertiary)',
+                    color: soundEnabled ? 'var(--text-primary)' : 'var(--text-muted)',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer'
+                  }}
+                  title="Cài đặt nhạc chuông báo hết giờ"
+                >
+                  <BellRing size={14} color={soundEnabled ? 'var(--accent-primary)' : 'var(--text-muted)'} />
+                  <span>{SOUND_OPTIONS.find(s => s.id === soundType)?.label || 'Chuông'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => previewSound(soundType)}
+                  title="Nghe thử nhạc chuông"
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '8px',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--accent-primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <Volume2 size={13} />
+                  <span>Nghe thử</span>
+                </button>
+
+                {isSoundPickerOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '110%',
+                    right: 0,
+                    zIndex: 100,
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                    padding: '0.75rem',
+                    width: '270px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>🔔 Nhạc Chuông Báo Giờ</span>
+                      <button
+                        type="button"
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: soundEnabled ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)',
+                          color: soundEnabled ? '#16a34a' : 'var(--text-muted)',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {soundEnabled ? 'BẬT' : 'TẮT'}
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {SOUND_OPTIONS.map(s => {
+                        const isSelected = soundType === s.id;
+                        return (
+                          <div
+                            key={s.id}
+                            onClick={() => {
+                              setSoundType(s.id);
+                              previewSound(s.id);
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '0.45rem 0.6rem',
+                              borderRadius: '8px',
+                              background: isSelected ? 'rgba(2, 132, 199, 0.12)' : 'transparent',
+                              cursor: 'pointer',
+                              border: isSelected ? '1px solid var(--accent-primary)' : '1px solid transparent'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span>{s.emoji}</span>
+                              <div>
+                                <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                                  {s.label}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                previewSound(s.id);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '2px'
+                              }}
+                              title="Nghe thử"
+                            >
+                              <Volume2 size={13} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pomodoro Preset Chips & Custom Time if Pomodoro mode */}
-            {timerMode === 'pomodoro' && (
+            {timerMode === 'pomodoro' && timerPhase === 'study' && (
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -498,8 +820,6 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         title={p.fullLabel}
                         onClick={() => {
                           setPomodoroTarget(p.seconds);
-                          setPomodoroRemaining(p.seconds);
-                          setElapsedSeconds(0);
                         }}
                         style={{
                           display: 'inline-flex',
@@ -577,8 +897,6 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       }
                       const sec = mins * 60;
                       setPomodoroTarget(sec);
-                      setPomodoroRemaining(sec);
-                      setElapsedSeconds(0);
                       setShowCustomInput(false);
                       setCustomMinutesInput('');
                       if (onAddToast) onAddToast(`⏱️ Đã đặt đếm ngược: ${mins} phút`);
@@ -666,8 +984,12 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 fontWeight: 900,
                 letterSpacing: '-0.03em',
                 lineHeight: 1,
-                color: isRunning ? 'var(--text-primary)' : 'var(--text-secondary)',
-                textShadow: isRunning ? '0 0 35px rgba(2, 132, 199, 0.25)' : 'none',
+                color: timerPhase === 'break' 
+                  ? '#10b981' 
+                  : (isRunning ? 'var(--text-primary)' : 'var(--text-secondary)'),
+                textShadow: isRunning 
+                  ? (timerPhase === 'break' ? '0 0 35px rgba(16, 185, 129, 0.3)' : '0 0 35px rgba(2, 132, 199, 0.25)') 
+                  : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.2rem'
@@ -685,24 +1007,52 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 borderRadius: '20px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                background: isRunning ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)',
-                color: isRunning ? '#16a34a' : 'var(--text-muted)'
+                background: timerPhase === 'break'
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : (isRunning ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)'),
+                color: timerPhase === 'break'
+                  ? '#10b981'
+                  : (isRunning ? '#16a34a' : 'var(--text-muted)')
               }}>
                 <span style={{
                   width: '7px',
                   height: '7px',
                   borderRadius: '50%',
-                  background: isRunning ? '#22c55e' : 'var(--text-muted)'
+                  background: timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : 'var(--text-muted)')
                 }} />
                 <span>
-                  {isRunning 
-                    ? (timerMode === 'pomodoro' ? 'Đang tập trung Pomodoro...' : 'Đang bấm giờ học...')
-                    : (elapsedSeconds > 0 ? 'Đang tạm dừng' : 'Sẵn sàng bắt đầu')}
+                  {timerPhase === 'break'
+                    ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
+                    : (isRunning 
+                        ? (timerMode === 'pomodoro' ? 'Đang tập trung Pomodoro...' : 'Đang bấm giờ học...')
+                        : (elapsedSeconds > 0 ? 'Đang tạm dừng' : 'Sẵn sàng bắt đầu'))}
                 </span>
                 {timerMode === 'pomodoro' && isRunning && (
                   <span style={{ marginLeft: '4px', opacity: 0.85 }}>({pomodoroProgressPercent}%)</span>
                 )}
               </div>
+
+              {/* Relaxation Advice Box during break phase */}
+              {timerPhase === 'break' && (
+                <div style={{
+                  marginTop: '0.85rem',
+                  padding: '0.6rem 1.1rem',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  color: '#10b981',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  textAlign: 'center',
+                  maxWidth: '480px'
+                }}>
+                  <span>💧</span>
+                  <span>Hãy uống một ngụm nước, vươn vai thư giãn hoặc phóng tầm mắt ra xa để đôi mắt được nghỉ ngơi!</span>
+                </div>
+              )}
             </div>
 
             {/* Main Action Buttons Bar */}
@@ -720,11 +1070,17 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+                    background: timerPhase === 'break'
+                      ? 'linear-gradient(135deg, #10b981, #059669)'
+                      : 'linear-gradient(135deg, #0284c7, #0ea5e9)'
                   }}
                 >
                   <Play size={20} fill="currentColor" />
-                  <span>{elapsedSeconds > 0 ? 'Tiếp Tục Học' : 'Bắt Đầu Học'}</span>
+                  <span>
+                    {timerPhase === 'break'
+                      ? 'Tiếp Tục Nghỉ'
+                      : (elapsedSeconds > 0 ? 'Tiếp Tục Học' : 'Bắt Đầu Học')}
+                  </span>
                 </button>
               ) : (
                 <button
@@ -748,8 +1104,31 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 </button>
               )}
 
-              {/* Finish & Save Session Button */}
-              {elapsedSeconds > 0 && (
+              {/* During Break Phase: Skip Break Button */}
+              {timerPhase === 'break' && (
+                <button
+                  type="button"
+                  onClick={skipBreak}
+                  className="btn-primary"
+                  style={{
+                    padding: '0.85rem 1.6rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    borderRadius: '16px',
+                    background: '#0284c7',
+                    borderColor: '#0284c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <SkipForward size={18} />
+                  <span>Vào Học Hiệp Kế Tiếp</span>
+                </button>
+              )}
+
+              {/* Finish & Save Session Button (During Study Phase) */}
+              {timerPhase === 'study' && elapsedSeconds > 0 && (
                 <button
                   type="button"
                   onClick={handleOpenFinishModal}
@@ -772,7 +1151,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               )}
 
               {/* Reset Button */}
-              {elapsedSeconds > 0 && (
+              {(elapsedSeconds > 0 || timerPhase === 'break') && (
                 <button
                   type="button"
                   onClick={handleResetTimer}
@@ -871,7 +1250,446 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
         </div>
       )}
 
-      {/* 3. TAB 2: STUDY TIME ANALYTICS & STATISTICS DASHBOARD */}
+      {/* 3. TAB 2: LONG-TERM STUDY SCHEDULES & BREAK PLANNER */}
+      {activeTab === 'schedules' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Live running timer notification banner on schedules tab */}
+          {(liveSeconds > 0 || isRunning) && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '16px',
+              background: isRunning ? (timerPhase === 'break' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 132, 199, 0.1)') : 'var(--bg-secondary)',
+              border: isRunning ? (timerPhase === 'break' ? '1.5px solid #10b981' : '1.5px solid var(--accent-primary)') : '1px solid var(--border-color)',
+              boxShadow: isRunning ? '0 4px 20px rgba(0, 0, 0, 0.05)' : 'none',
+              animation: 'fadeInUp 0.3s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>{timerPhase === 'break' ? '☕' : currentActivity.emoji}</span>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : '#f59e0b'),
+                      animation: isRunning ? 'pulse 1.5s infinite' : 'none'
+                    }} />
+                    <span>
+                      {timerPhase === 'break'
+                        ? `Đang trong giờ nghỉ giữa giờ: ${formatTime(displayTimeSeconds)}`
+                        : `Đồng hồ đang ${isRunning ? 'chạy' : 'tạm dừng'}: ${currentActivity.label} (${formatTime(displayTimeSeconds)})`}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {scheduleCycle ? `Ca học: "${scheduleCycle.title}" • Hiệp ${scheduleCycle.currentCycle}/${scheduleCycle.totalCycles}` : 'Phiên học tự do'}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('timer')}
+                className="btn-primary"
+                style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}
+              >
+                <span>Xem đồng hồ</span>
+              </button>
+            </div>
+          )}
+
+          {/* Intro & Create Schedule Banner */}
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '20px',
+            border: '1px solid var(--border-color)',
+            padding: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <CalendarDays size={22} color="var(--accent-primary)" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                  Kế Hoạch Ca Học Dài Hạn & Nghỉ Giữa Giờ
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '640px', lineHeight: 1.5 }}>
+                Tạo các ca học cố định (Ví dụ: Từ <b>20:00</b> đến <b>22:30</b>). Hệ thống sẽ tự động dẫn dắt bạn qua các hiệp học (VD: 25 phút) xen kẽ chu kỳ nghỉ giữa giờ (VD: 5 phút), kèm chuông báo thức tỉnh tự động.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditingSchedule(null);
+                setIsScheduleModalOpen(true);
+              }}
+              className="btn-primary glow-hover"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.75rem 1.4rem',
+                borderRadius: '12px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+              }}
+            >
+              <Plus size={18} />
+              <span>Tạo Lịch Học Dài Hạn Mới</span>
+            </button>
+          </div>
+
+          {/* Empty State */}
+          {schedules.length === 0 && !isLoadingSchedules && (
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: '20px',
+              border: '1px dashed var(--border-color)',
+              padding: '3rem 1.5rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem'
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '20px',
+                background: 'rgba(2, 132, 199, 0.1)',
+                color: 'var(--accent-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <CalendarDays size={32} />
+              </div>
+              <div style={{ maxWidth: '440px' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.4rem 0' }}>
+                  Chưa có lịch học dài hạn nào
+                </h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                  Hãy thiết lập ca học đầu tiên của bạn (Ví dụ: 20:00 - 22:30 mỗi tối) để ứng dụng tự động kiểm soát chu kỳ học và nghỉ giữa giờ.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingSchedule(null);
+                  setIsScheduleModalOpen(true);
+                }}
+                className="btn-primary"
+                style={{
+                  padding: '0.65rem 1.3rem',
+                  fontSize: '0.88rem',
+                  borderRadius: '10px'
+                }}
+              >
+                ➕ Thiết Lập Lịch Học Ngay
+              </button>
+            </div>
+          )}
+
+          {/* Schedule Cards Grid */}
+          {schedules.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '1.25rem'
+            }}>
+              {schedules.map(sch => {
+                const isCurrentActive = scheduleCycle?.scheduleId === sch.id;
+                const soundMeta = SOUND_OPTIONS.find(s => s.id === sch.sound_type) || SOUND_OPTIONS[0];
+
+                let totalMins = 150;
+                try {
+                  const [sh, sm] = (sch.start_time || '20:00').split(':').map(Number);
+                  const [eh, em] = (sch.end_time || '22:30').split(':').map(Number);
+                  let diff = (eh * 60 + em) - (sh * 60 + sm);
+                  if (diff <= 0) diff += 24 * 60;
+                  totalMins = diff;
+                } catch (e) {}
+
+                const cycleMins = (sch.study_duration_minutes || 25) + (sch.break_duration_minutes || 5);
+                const cyclesCount = Math.max(1, Math.floor(totalMins / cycleMins));
+
+                const allDays = [
+                  { id: 'mon', label: 'T2' },
+                  { id: 'tue', label: 'T3' },
+                  { id: 'wed', label: 'T4' },
+                  { id: 'thu', label: 'T5' },
+                  { id: 'fri', label: 'T6' },
+                  { id: 'sat', label: 'T7' },
+                  { id: 'sun', label: 'CN' }
+                ];
+                const activeDays = Array.isArray(sch.days_of_week) ? sch.days_of_week : [];
+
+                return (
+                  <div
+                    key={sch.id}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      borderRadius: '20px',
+                      border: isCurrentActive 
+                        ? '2px solid var(--accent-primary)' 
+                        : (sch.is_active ? '1px solid var(--border-color)' : '1px dashed var(--border-color)'),
+                      opacity: sch.is_active ? 1 : 0.75,
+                      boxShadow: isCurrentActive ? '0 8px 25px rgba(2, 132, 199, 0.2)' : 'var(--shadow-sm)',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      position: 'relative',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div>
+                      {/* Card Header: Title & Switch */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                              {sch.title}
+                            </h4>
+                            {isCurrentActive && (
+                              <span style={{
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '6px',
+                                background: 'rgba(2, 132, 199, 0.15)',
+                                color: 'var(--accent-primary)',
+                                fontSize: '0.68rem',
+                                fontWeight: 800
+                              }}>
+                                Đang chạy
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                            Tổng ca: {Math.floor(totalMins / 60)}h{totalMins % 60 > 0 ? `${totalMins % 60}p` : ''} ({cyclesCount} hiệp học)
+                          </span>
+                        </div>
+
+                        {/* Active toggle button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleScheduleActive(sch)}
+                          style={{
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '20px',
+                            border: 'none',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            background: sch.is_active ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)',
+                            color: sch.is_active ? '#16a34a' : 'var(--text-muted)'
+                          }}
+                          title={sch.is_active ? 'Nhấn để tạm tắt lịch này' : 'Nhấn để bật lịch này'}
+                        >
+                          {sch.is_active ? '✓ Đang bật' : '✕ Đang tắt'}
+                        </button>
+                      </div>
+
+                      {/* Time Frame Display */}
+                      <div style={{
+                        background: 'var(--bg-tertiary)',
+                        borderRadius: '12px',
+                        padding: '0.75rem 1rem',
+                        marginBottom: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Clock size={16} color="var(--accent-primary)" />
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                            {sch.start_time || '20:00'} ➔ {sch.end_time || '22:30'}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                          {totalMins} phút
+                        </span>
+                      </div>
+
+                      {/* Study vs Break Pill Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                        <div style={{
+                          padding: '0.5rem 0.65rem',
+                          borderRadius: '10px',
+                          background: 'rgba(2, 132, 199, 0.08)',
+                          border: '1px solid rgba(2, 132, 199, 0.18)',
+                          fontSize: '0.78rem'
+                        }}>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Học mỗi hiệp:</span>
+                          <strong style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
+                            📚 {sch.study_duration_minutes} phút
+                          </strong>
+                        </div>
+
+                        <div style={{
+                          padding: '0.5rem 0.65rem',
+                          borderRadius: '10px',
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          fontSize: '0.78rem'
+                        }}>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Nghỉ giữa giờ:</span>
+                          <strong style={{ color: '#10b981', fontSize: '0.9rem' }}>
+                            ☕ {sch.break_duration_minutes} phút
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* Days of week display */}
+                      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.85rem' }}>
+                        {allDays.map(d => {
+                          const isActive = activeDays.includes(d.id);
+                          return (
+                            <span
+                              key={d.id}
+                              style={{
+                                width: '28px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                background: isActive ? 'rgba(2, 132, 199, 0.15)' : 'var(--bg-tertiary)',
+                                color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
+                                border: `1px solid ${isActive ? 'rgba(2, 132, 199, 0.3)' : 'transparent'}`
+                              }}
+                            >
+                              {d.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sound info tag */}
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.74rem',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg-tertiary)',
+                        padding: '0.25rem 0.6rem',
+                        borderRadius: '6px',
+                        marginBottom: '1rem'
+                      }}>
+                        <span>{soundMeta.emoji}</span>
+                        <span>Chuông: {soundMeta.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => previewSound(sch.sound_type || 'melodic')}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-primary)',
+                            cursor: 'pointer',
+                            padding: '0 2px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                          title="Nghe thử chuông này"
+                        >
+                          <Volume2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Card Actions Footer */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: '0.75rem',
+                      borderTop: '1px solid var(--border-color)',
+                      gap: '0.5rem'
+                    }}>
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSchedule(sch);
+                            setIsScheduleModalOpen(true);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.65rem', borderRadius: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title="Chỉnh sửa lịch học"
+                        >
+                          <Edit2 size={13} />
+                          <span>Sửa</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSchedule(sch.id)}
+                          className="btn-secondary"
+                          style={{ padding: '0.35rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', color: '#ef4444' }}
+                          title="Xóa lịch học này"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {isCurrentActive ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('timer')}
+                          className="btn-primary"
+                          style={{
+                            padding: '0.45rem 1rem',
+                            borderRadius: '10px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            background: '#10b981',
+                            borderColor: '#10b981'
+                          }}
+                        >
+                          <span>Đang chạy ➔ Xem</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            startScheduleCycle(sch);
+                            setActiveTab('timer');
+                          }}
+                          className="btn-primary glow-hover"
+                          style={{
+                            padding: '0.45rem 1rem',
+                            borderRadius: '10px',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #0284c7, #0ea5e9)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}
+                        >
+                          <Play size={14} fill="currentColor" />
+                          <span>Bắt Đầu Ca Học</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. TAB 3: STUDY TIME ANALYTICS & STATISTICS DASHBOARD */}
       {activeTab === 'stats' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Live running timer notification banner on stats tab */}
@@ -1469,6 +2287,17 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
           </div>
         </div>
       )}
+
+      {/* 5. STUDY SCHEDULE SETUP & EDIT MODAL */}
+      <StudyScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setEditingSchedule(null);
+        }}
+        onSave={handleSaveSchedule}
+        schedule={editingSchedule}
+      />
     </div>
   );
 }

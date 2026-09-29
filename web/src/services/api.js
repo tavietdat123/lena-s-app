@@ -521,6 +521,31 @@ export const api = {
     return res.json();
   },
 
+  // Long-term Study Schedules & Break Intervals
+  getStudySchedules: async () => {
+    try {
+      const res = await authFetch(`${API_BASE}/study-timer/schedules`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, data: [] };
+    }
+  },
+
+  saveStudySchedule: async (scheduleData) => {
+    const res = await authFetch(`${API_BASE}/study-timer/schedules`, {
+      method: 'POST',
+      body: JSON.stringify(scheduleData)
+    });
+    return res.json();
+  },
+
+  deleteStudySchedule: async (id) => {
+    const res = await authFetch(`${API_BASE}/study-timer/schedules/${id}`, {
+      method: 'DELETE'
+    });
+    return res.json();
+  },
+
   // Quiz Hub
   getQuizTopics: async () => {
     try {

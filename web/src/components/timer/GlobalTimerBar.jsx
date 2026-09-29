@@ -29,6 +29,8 @@ export default function GlobalTimerBar() {
 
   const {
     timerMode,
+    timerPhase,
+    scheduleCycle,
     selectedActivity,
     isRunning,
     liveSeconds,
@@ -42,7 +44,12 @@ export default function GlobalTimerBar() {
     return null;
   }
 
+  const isBreak = timerPhase === 'break';
   const act = ACTIVITIES.find(a => a.id === selectedActivity) || ACTIVITIES[0];
+  const badgeLabel = isBreak ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') : act.label;
+  const badgeEmoji = isBreak ? '☕' : act.emoji;
+  const badgeColor = isBreak ? '#10b981' : act.color;
+
   const displaySeconds = timerMode === 'pomodoro'
     ? Math.max(0, pomodoroTarget - liveSeconds)
     : liveSeconds;
@@ -80,20 +87,21 @@ export default function GlobalTimerBar() {
       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
     >
-      {/* Activity badge */}
+      {/* Activity / Break badge */}
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.3rem',
         fontSize: '0.78rem',
         fontWeight: 800,
-        color: act.color,
-        background: `${act.color}15`,
-        padding: '0.2rem 0.5rem',
-        borderRadius: '20px'
+        color: badgeColor,
+        background: `${badgeColor}20`,
+        padding: '0.2rem 0.55rem',
+        borderRadius: '20px',
+        border: isBreak ? '1px solid rgba(16, 185, 129, 0.4)' : 'none'
       }}>
-        <span>{act.emoji}</span>
-        <span>{act.label}</span>
+        <span>{badgeEmoji}</span>
+        <span>{badgeLabel}</span>
       </span>
 
       {/* Timer clock with blinking dot */}
