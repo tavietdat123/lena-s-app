@@ -163,6 +163,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
 
   const elapsedSeconds = liveSeconds;
   const pomodoroRemaining = Math.max(0, pomodoroTarget - liveSeconds);
+  const isPomodoroCompleted = timerMode === 'pomodoro' && isCompletedAutoSaved;
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [sessionNotes, setSessionNotes] = useState('');
@@ -634,13 +635,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               }}>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isRunning && timerMode !== 'stopwatch') {
-                      if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
-                      resetTimer();
-                    }
-                    setTimerMode('stopwatch');
-                  }}
+                  onClick={() => setTimerMode('stopwatch')}
                   style={{
                     padding: '0.35rem 0.85rem',
                     borderRadius: '8px',
@@ -656,13 +651,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isRunning && timerMode !== 'pomodoro') {
-                      if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
-                      resetTimer();
-                    }
-                    setTimerMode('pomodoro');
-                  }}
+                  onClick={() => setTimerMode('pomodoro')}
                   style={{
                     padding: '0.35rem 0.85rem',
                     borderRadius: '8px',
@@ -1026,26 +1015,26 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 borderRadius: '20px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                background: isCompletedAutoSaved
+                background: isPomodoroCompleted
                   ? 'rgba(34, 197, 94, 0.18)'
                   : (timerPhase === 'break'
                     ? 'rgba(16, 185, 129, 0.15)'
                     : (isRunning ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)')),
-                color: isCompletedAutoSaved
+                color: isPomodoroCompleted
                   ? '#16a34a'
                   : (timerPhase === 'break'
                     ? '#10b981'
                     : (isRunning ? '#16a34a' : 'var(--text-muted)')),
-                border: isCompletedAutoSaved ? '1px solid rgba(34, 197, 94, 0.4)' : 'none'
+                border: isPomodoroCompleted ? '1px solid rgba(34, 197, 94, 0.4)' : 'none'
               }}>
                 <span style={{
                   width: '7px',
                   height: '7px',
                   borderRadius: '50%',
-                  background: isCompletedAutoSaved ? '#22c55e' : (timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : 'var(--text-muted)'))
+                  background: isPomodoroCompleted ? '#22c55e' : (timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : 'var(--text-muted)'))
                 }} />
                 <span>
-                  {isCompletedAutoSaved
+                  {isPomodoroCompleted
                     ? `🎉 Đã hoàn thành & tự động lưu vào hệ thống (+${lastSavedSession?.xpEarned || 20} XP)!`
                     : (timerPhase === 'break'
                         ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
@@ -1081,7 +1070,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               )}
 
               {/* Auto-Saved Success Card Banner */}
-              {isCompletedAutoSaved && (
+              {isPomodoroCompleted && (
                 <div style={{
                   marginTop: '1rem',
                   padding: '0.85rem 1.25rem',
@@ -1159,7 +1148,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
 
             {/* Main Action Buttons Bar */}
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {isCompletedAutoSaved ? (
+              {isPomodoroCompleted ? (
                 <>
                   <button
                     type="button"
@@ -1990,7 +1979,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
       {activeTab === 'stats' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Live running timer notification banner or auto-saved notice on stats tab */}
-          {isCompletedAutoSaved ? (
+          {isPomodoroCompleted ? (
             <div style={{
               display: 'flex',
               alignItems: 'center',

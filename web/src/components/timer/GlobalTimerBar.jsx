@@ -24,19 +24,20 @@ export default function GlobalTimerBar() {
   } = useStudyTimer();
 
   // If user is already on the /timer page, or timer is 0 and not running and not auto-saved, or minimized: don't show
-  if (location.pathname === '/timer' || isMinimized || (liveSeconds === 0 && !isRunning && !isCompletedAutoSaved)) {
+  const isPomodoroCompleted = timerMode === 'pomodoro' && isCompletedAutoSaved;
+  if (location.pathname === '/timer' || isMinimized || (liveSeconds === 0 && !isRunning && !isPomodoroCompleted)) {
     return null;
   }
 
   const isBreak = timerPhase === 'break';
   const meta = getActivityMeta(selectedActivity, customActivityTitle);
-  const badgeLabel = isCompletedAutoSaved
+  const badgeLabel = isPomodoroCompleted
     ? 'Đã tự động lưu'
     : (isBreak 
         ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') 
         : (customActivityTitle?.trim() || meta.label));
-  const badgeEmoji = isCompletedAutoSaved ? '✅' : (isBreak ? '☕' : meta.emoji);
-  const badgeColor = isCompletedAutoSaved ? '#16a34a' : (isBreak ? '#10b981' : meta.color);
+  const badgeEmoji = isPomodoroCompleted ? '✅' : (isBreak ? '☕' : meta.emoji);
+  const badgeColor = isPomodoroCompleted ? '#16a34a' : (isBreak ? '#10b981' : meta.color);
 
   const displaySeconds = timerMode === 'pomodoro'
     ? Math.max(0, pomodoroTarget - liveSeconds)
@@ -60,13 +61,13 @@ export default function GlobalTimerBar() {
         right: '24px',
         zIndex: 9999,
         background: 'var(--bg-secondary)',
-        border: isCompletedAutoSaved ? '1.5px solid #22c55e' : '1px solid var(--border-color)',
+        border: isPomodoroCompleted ? '1.5px solid #22c55e' : '1px solid var(--border-color)',
         borderRadius: '50px',
         padding: '0.45rem 0.9rem',
         display: 'flex',
         alignItems: 'center',
         gap: '0.65rem',
-        boxShadow: isCompletedAutoSaved ? '0 8px 30px rgba(34, 197, 94, 0.28)' : '0 8px 30px rgba(0, 0, 0, 0.22)',
+        boxShadow: isPomodoroCompleted ? '0 8px 30px rgba(34, 197, 94, 0.28)' : '0 8px 30px rgba(0, 0, 0, 0.22)',
         cursor: 'pointer',
         backdropFilter: 'blur(10px)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -86,7 +87,7 @@ export default function GlobalTimerBar() {
         background: `${badgeColor}20`,
         padding: '0.2rem 0.55rem',
         borderRadius: '20px',
-        border: isBreak || isCompletedAutoSaved ? `1px solid ${badgeColor}40` : 'none'
+        border: isBreak || isPomodoroCompleted ? `1px solid ${badgeColor}40` : 'none'
       }}>
         <span>{badgeEmoji}</span>
         <span>{badgeLabel}</span>
@@ -106,15 +107,15 @@ export default function GlobalTimerBar() {
           width: '7px',
           height: '7px',
           borderRadius: '50%',
-          background: isCompletedAutoSaved ? '#22c55e' : (isRunning ? '#22c55e' : '#f59e0b'),
+          background: isPomodoroCompleted ? '#22c55e' : (isRunning ? '#22c55e' : '#f59e0b'),
           animation: isRunning ? 'pulse 1.5s infinite' : 'none'
         }} />
-        <span>{isCompletedAutoSaved ? `+${lastSavedSession?.xpEarned || 20} XP` : formatTime(displaySeconds)}</span>
+        <span>{isPomodoroCompleted ? `+${lastSavedSession?.xpEarned || 20} XP` : formatTime(displaySeconds)}</span>
       </div>
 
       {/* Action buttons inside pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={(e) => e.stopPropagation()}>
-        {!isCompletedAutoSaved && (
+        {!isPomodoroCompleted && (
           <button
             type="button"
             onClick={handleTogglePlay}

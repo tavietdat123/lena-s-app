@@ -511,7 +511,7 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
     if (typeof document === 'undefined') return;
     const defaultTitle = 'LinguaVault - Nền Tảng Học & Ghi Nhớ Ngôn Ngữ Chuyên Sâu';
 
-    if (isCompletedAutoSaved) {
+    if (timerMode === 'pomodoro' && isCompletedAutoSaved) {
       document.title = '🎉 Đã lưu Pomodoro! - LinguaVault';
       return;
     }
@@ -554,6 +554,22 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [isCompletedAutoSaved]);
+
+  const changeTimerMode = (newMode) => {
+    if (newMode === timerMode) return;
+    if (isRunning) {
+      if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
+      pauseTimer();
+    }
+    setTimerMode(newMode);
+    setTimerPhase('study');
+    setAccumulatedSeconds(0);
+    setLiveSeconds(0);
+    setRunStartTime(null);
+    setSessionStartedAt(null);
+    setIsCompletedAutoSaved(false);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
   const startTimer = () => {
     const now = Date.now();
@@ -715,7 +731,7 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
   return (
     <StudyTimerContext.Provider value={{
       timerMode,
-      setTimerMode,
+      setTimerMode: changeTimerMode,
       timerPhase,
       setTimerPhase,
       selectedActivity,
