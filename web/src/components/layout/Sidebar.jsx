@@ -15,7 +15,9 @@ import {
   Target,
   Mic,
   Timer,
-  Globe
+  Globe,
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 
 export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickAdd, onOpenSettings, onOpenCommandPalette, onSharePublicStats }) {
@@ -295,23 +297,25 @@ export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickA
         </button>
 
         {/* Public stats portfolio share button */}
-        {onSharePublicStats && (
-          <button 
-            onClick={onSharePublicStats}
-            className="btn-secondary" 
-            style={{ 
-              width: '100%', 
-              justifyContent: 'flex-start', 
-              padding: '0.65rem 0.95rem',
-              borderColor: 'rgba(99, 102, 241, 0.3)',
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%)'
-            }}
-            title="Sao chép link bảng thống kê công khai"
-          >
-            <Globe size={17} style={{ color: 'var(--accent-primary)' }} />
-            <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>Thống Kê Public</span>
-          </button>
-        )}
+        {/* Cổng Giám Sát Học Tập */}
+        <button 
+          onClick={() => {
+            const url = `${window.location.origin}/monitor`;
+            window.open(url, '_blank');
+          }}
+          className="btn-secondary glow-hover" 
+          style={{ 
+            width: '100%', 
+            justifyContent: 'flex-start', 
+            padding: '0.65rem 0.95rem',
+            borderColor: 'rgba(2, 132, 199, 0.35)',
+            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, rgba(56, 189, 248, 0.08) 100%)'
+          }}
+          title="Mở Cổng Giám Sát Học Tập để xem trực tiếp giao diện người ngoài nhìn thấy"
+        >
+          <ShieldCheck size={17} style={{ color: 'var(--accent-primary)' }} />
+          <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>Cổng Giám Sát (UI)</span>
+        </button>
 
         {/* Settings button */}
         <button 

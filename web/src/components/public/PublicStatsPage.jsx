@@ -19,7 +19,16 @@ import {
   ShieldCheck,
   Brain,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Eye,
+  AlertTriangle,
+  MessageSquare,
+  Send,
+  ThumbsUp,
+  History,
+  CheckCircle,
+  XCircle,
+  HelpCircle
 } from 'lucide-react';
 import { api } from '../../services/api';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
@@ -33,14 +42,19 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
   const [statsData, setStatsData] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Supervisor Feedback Form State
+  const [supervisorName, setSupervisorName] = useState('');
+  const [feedbackType, setFeedbackType] = useState('cheer'); // 'cheer' | 'nudge' | 'warning'
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [feedbackSuccessNotice, setFeedbackSuccessNotice] = useState('');
+
+  const loadData = () => {
     setLoading(true);
     setError(null);
 
     api.getPublicStats(username || '')
       .then(res => {
-        if (!isMounted) return;
         if (res.success && res.data) {
           setStatsData(res.data);
         } else {
@@ -48,14 +62,15 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
         }
       })
       .catch(err => {
-        if (!isMounted) return;
         setError(err.message || 'Lỗi kết nối máy chủ.');
       })
       .finally(() => {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       });
+  };
 
-    return () => { isMounted = false; };
+  useEffect(() => {
+    loadData();
   }, [username]);
 
   const handleCopyLink = () => {
@@ -65,6 +80,46 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
       setTimeout(() => setCopied(false), 2500);
     });
   };
+
+  const handleSendFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim()) return;
+
+    setIsSendingFeedback(true);
+    setFeedbackSuccessNotice('');
+
+    try {
+      const res = await api.postSupervisorFeedback({
+        username: username || statsData?.user?.username || 'admin',
+        supervisor_name: supervisorName.trim() || 'Người Giám Sát',
+        type: feedbackType,
+        message: feedbackMessage.trim()
+      });
+
+      if (res.success) {
+        setFeedbackSuccessNotice('Đã gửi lời nhắc/động viên tới học viên thành công! 🎉');
+        setFeedbackMessage('');
+        // Reload data to show updated feedback
+        api.getPublicStats(username || '').then(r => {
+          if (r.success && r.data) setStatsData(r.data);
+        });
+        setTimeout(() => setFeedbackSuccessNotice(''), 4000);
+      } else {
+        alert(res.error || 'Lỗi gửi phản hồi');
+      }
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setIsSendingFeedback(false);
+    }
+  };
+
+  const quickNudgeTemplates = [
+    { type: 'cheer', text: '👏 Hôm nay học rất chăm chỉ và đúng giờ, tiếp tục phát huy nhé!' },
+    { type: 'nudge', text: '⚠️ Nhắc nhở: Hôm nay bạn chưa hoàn thành đủ thời gian học, vào học ngay nhé!' },
+    { type: 'cheer', text: '🔥 Chuỗi ngày học liên tục rất ấn tượng, đừng để bị đứt streak!' },
+    { type: 'warning', text: '⏱️ Đã gần hết ngày rồi, hãy dành ra 15 phút ôn tập thẻ flashcards nhé!' }
+  ];
 
   if (loading) {
     return (
@@ -86,7 +141,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }} />
-          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Đang tải Bảng Thống Kê Công Khai...</p>
+          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Đang tải Cổng Giám Sát Học Tập...</p>
         </div>
       </div>
     );
@@ -103,10 +158,10 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
         padding: '2rem'
       }}>
         <div className="card" style={{ maxWidth: '500px', textAlign: 'center', padding: '2.5rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>Chưa Có Dữ Liệu Công Khai</h2>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛡️</div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>Không Tìm Thấy Hồ Sơ Giám Sát</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            {error || 'Không thể tìm thấy thông tin thống kê người dùng này.'}
+            {error || 'Không thể tìm thấy thông tin giám sát người dùng này.'}
           </p>
           <button
             onClick={() => navigate('/login')}
@@ -120,7 +175,18 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
     );
   }
 
-  const { user, summary, retentionBreakdown, levelsBreakdown, activityDistribution, recentLogs, topWords } = statsData;
+  const { 
+    user, 
+    summary, 
+    todayAccountability, 
+    recentSessions = [], 
+    supervisorFeedbacks = [], 
+    retentionBreakdown, 
+    levelsBreakdown, 
+    activityDistribution, 
+    periodsData, 
+    topWords 
+  } = statsData;
 
   const totalWords = summary.totalWords || 0;
   const masteredCount = retentionBreakdown.mastered || 0;
@@ -133,14 +199,28 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
   const learningPct = totalWords > 0 ? (learningCount / totalWords) * 100 : 0;
   const newPct = totalWords > 0 ? (newCount / totalWords) * 100 : 0;
 
+  const formatSessionTime = (isoStr) => {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `${hours}:${mins} • ${day}/${month}`;
+    } catch (e) {
+      return isoStr;
+    }
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg-primary)',
       color: 'var(--text-primary)',
-      paddingBottom: '4rem'
+      paddingBottom: '5rem'
     }}>
-      {/* 1. TOP NAVBAR */}
+      {/* 1. TOP NAVBAR (SUPERVISOR BRAND BAR) */}
       <header style={{
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-color)',
@@ -155,17 +235,19 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
         }}>
-          {/* Brand Logo */}
+          {/* Brand Logo & Supervision Tag */}
           <div
             onClick={() => navigate('/')}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           >
             <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
+              width: '38px',
+              height: '38px',
+              borderRadius: '12px',
               background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
               display: 'flex',
               alignItems: 'center',
@@ -173,20 +255,36 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
               color: '#ffffff',
               boxShadow: '0 4px 12px rgba(2, 132, 199, 0.3)'
             }}>
-              <BookOpen size={20} />
+              <ShieldCheck size={22} />
             </div>
             <div>
-              <div style={{ fontWeight: 900, fontSize: '1.15rem', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #0284c7, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                LinguaVault
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontWeight: 900, fontSize: '1.15rem', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #0284c7, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  LinguaVault
+                </span>
+                <span style={{
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  color: '#16a34a',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }} />
+                  <span>TRỰC TIẾP</span>
+                </span>
               </div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>
-                PUBLIC LEARNING PORTFOLIO
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.3px' }}>
+                CỔNG GIÁM SÁT HỌC TẬP & BÁO CÁO KỶ LUẬT
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <button
               onClick={handleCopyLink}
               className="glow-hover"
@@ -200,13 +298,14 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
                 background: copied ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)',
                 color: copied ? '#16a34a' : 'var(--text-primary)',
                 fontWeight: 700,
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
+              title="Sao chép link trang giám sát này"
             >
-              {copied ? <Check size={16} /> : <Share2 size={16} />}
-              <span>{copied ? 'Đã sao chép link!' : 'Chia sẻ bảng này'}</span>
+              {copied ? <Check size={15} /> : <Share2 size={15} />}
+              <span>{copied ? 'Đã sao chép link!' : 'Chia sẻ link giám sát'}</span>
             </button>
 
             {toggleTheme && (
@@ -214,8 +313,8 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
                 onClick={toggleTheme}
                 aria-label="Toggle Theme"
                 style={{
-                  width: '38px',
-                  height: '38px',
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '10px',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-tertiary)',
@@ -226,7 +325,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
                   cursor: 'pointer'
                 }}
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {isDark ? <Sun size={17} /> : <Moon size={17} />}
               </button>
             )}
 
@@ -234,17 +333,17 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
               onClick={() => navigate('/login')}
               className="btn-primary"
               style={{
-                padding: '0.5rem 1.1rem',
+                padding: '0.5rem 1rem',
                 borderRadius: '12px',
-                fontSize: '0.85rem',
+                fontSize: '0.82rem',
                 fontWeight: 800,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem'
               }}
             >
-              <span>Vào Học Ngay</span>
-              <ArrowRight size={15} />
+              <span>Vào App Học</span>
+              <ArrowRight size={14} />
             </button>
           </div>
         </div>
@@ -253,7 +352,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
       {/* 2. MAIN CONTAINER */}
       <main style={{ maxWidth: '1100px', margin: '2rem auto 0 auto', padding: '0 1.25rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        {/* HERO PROFILE CARD */}
+        {/* HERO LEARNER CARD UNDER SUPERVISION */}
         <div style={{
           background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #38bdf8 100%)',
           borderRadius: '24px',
@@ -268,7 +367,6 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
           position: 'relative',
           overflow: 'hidden'
         }}>
-          {/* Subtle decoration circle */}
           <div style={{
             position: 'absolute',
             right: '-60px',
@@ -299,7 +397,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '2rem', fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em', margin: 0 }}>
                   {user.displayName}
                 </h1>
@@ -314,8 +412,8 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
                   fontWeight: 800,
                   letterSpacing: '0.5px'
                 }}>
-                  <ShieldCheck size={14} />
-                  <span>VERIFIED LEARNER</span>
+                  <Eye size={13} />
+                  <span>HỒ SƠ ĐANG GIÁM SÁT</span>
                 </span>
               </div>
 
@@ -343,7 +441,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
                 <span>{user.currentStreak} Ngày</span>
               </div>
               <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px', fontWeight: 600 }}>
-                Chuỗi Streak liên tục 🔥
+                Chuỗi học liên tục 🔥
               </div>
             </div>
 
@@ -356,117 +454,461 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
               border: '1px solid rgba(255,255,255,0.3)',
               textAlign: 'center'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: '#ffffff', fontWeight: 900, fontSize: '1.3rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontWeight: 900, fontSize: '1.3rem' }}>
                 <Award size={22} />
                 <span>Lv.{user.level}</span>
               </div>
               <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px', fontWeight: 600 }}>
-                {user.totalXp.toLocaleString()} XP tích lũy
+                {user.totalXp} XP tích lũy
               </div>
             </div>
           </div>
         </div>
 
-        {/* 3. 4 KEY PERFORMANCE INDICATORS */}
+        {/* 3. TODAY'S ACCOUNTABILITY & SUPERVISION BANNER (Trọng tâm giám sát ngày hôm nay) */}
+        {todayAccountability && (
+          <div style={{
+            background: todayAccountability.overallStatus === 'completed'
+              ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(16, 185, 129, 0.05) 100%)'
+              : (todayAccountability.overallStatus === 'in_progress'
+                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%)'
+                : 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(220, 38, 38, 0.05) 100%)'),
+            borderRadius: '24px',
+            border: `1.5px solid ${todayAccountability.statusColor}`,
+            padding: '1.75rem 2rem',
+            boxShadow: 'var(--shadow-md)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem'
+          }}>
+            {/* Top Status Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+                  {todayAccountability.overallStatus === 'completed' && <CheckCircle size={24} style={{ color: '#22c55e' }} />}
+                  {todayAccountability.overallStatus === 'in_progress' && <Clock size={24} style={{ color: '#f59e0b' }} />}
+                  {todayAccountability.overallStatus === 'not_started' && <AlertTriangle size={24} style={{ color: '#ef4444' }} />}
+                  
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: todayAccountability.statusColor, margin: 0 }}>
+                    HÔM NAY: {todayAccountability.statusLabel.toUpperCase()}
+                  </h3>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  {todayAccountability.statusMessage}
+                </p>
+              </div>
+
+              {todayAccountability.lastActiveAt && (
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)'
+                }}>
+                  Hoạt động gần nhất: <b style={{ color: 'var(--text-primary)' }}>{formatSessionTime(todayAccountability.lastActiveAt)}</b>
+                </div>
+              )}
+            </div>
+
+            {/* 3 Metric Progress Targets */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1rem',
+              paddingTop: '0.5rem'
+            }}>
+              {/* Target 1: Study Time */}
+              <div style={{
+                background: 'var(--bg-secondary)',
+                padding: '1.15rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ Thời Gian Học Hôm Nay</span>
+                  <b style={{ color: todayAccountability.isTimeGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
+                    {todayAccountability.todayMinutes} / {todayAccountability.targetGoalMinutes} phút
+                  </b>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.round((todayAccountability.todayMinutes / todayAccountability.targetGoalMinutes) * 100))}%`,
+                    height: '100%',
+                    background: todayAccountability.isTimeGoalMet ? '#22c55e' : '#0284c7',
+                    borderRadius: '4px',
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  {todayAccountability.isTimeGoalMet ? '✓ Đạt chỉ tiêu thời lượng ngày' : 'Cần học thêm để đủ mục tiêu'}
+                </div>
+              </div>
+
+              {/* Target 2: Flashcards Reviewed */}
+              <div style={{
+                background: 'var(--bg-secondary)',
+                padding: '1.15rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎴 Thẻ Flashcards Đã Ôn</span>
+                  <b style={{ color: todayAccountability.isReviewsGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
+                    {todayAccountability.todayReviews} / {todayAccountability.targetGoalReviews} thẻ
+                  </b>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.round((todayAccountability.todayReviews / todayAccountability.targetGoalReviews) * 100))}%`,
+                    height: '100%',
+                    background: todayAccountability.isReviewsGoalMet ? '#22c55e' : '#8b5cf6',
+                    borderRadius: '4px',
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  {todayAccountability.todayReviews > 0 ? `Đã ôn ${todayAccountability.todayReviews} lượt lặp ngắt quãng` : 'Hôm nay chưa thực hiện phiên ôn thẻ nào'}
+                </div>
+              </div>
+
+              {/* Target 3: Sessions Count */}
+              <div style={{
+                background: 'var(--bg-secondary)',
+                padding: '1.15rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎯 Số Phiên Bấm Giờ</span>
+                  <b style={{ color: 'var(--accent-primary)' }}>
+                    {todayAccountability.todaySessionsCount} phiên
+                  </b>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.min(100, todayAccountability.todaySessionsCount * 25)}%`,
+                    height: '100%',
+                    background: '#f59e0b',
+                    borderRadius: '4px',
+                    transition: 'width 0.5s ease'
+                  }} />
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                  {todayAccountability.todaySessionsCount > 0 ? 'Đã ghi nhận dữ liệu bấm giờ Pomodoro' : 'Chưa có phiên bấm giờ nào hôm nay'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4. SUPERVISOR INTERACTIVE BOX: GỬI LỜI NHẮC / ĐỘNG VIÊN HỌC VIÊN */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-          gap: '1.25rem'
+          background: 'var(--bg-secondary)',
+          borderRadius: '24px',
+          border: '1px solid var(--border-color)',
+          padding: '2rem',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          {/* Total Words */}
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
             <div style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '16px',
-              background: 'rgba(2, 132, 199, 0.12)',
-              color: 'var(--accent-primary)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+              color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
+              justifyContent: 'center'
             }}>
-              <BookOpen size={28} />
+              <MessageSquare size={18} />
             </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>Tổng Từ Vựng</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, lineHeight: 1.1, marginTop: '2px' }}>
-                {summary.totalWords} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>từ</span>
-              </div>
-            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+              Gửi Lời Động Viên & Nhắc Nhở Học Viên (Dành Cho Người Giám Sát)
+            </h3>
           </div>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+            Bạn đang giám sát học viên <b>{user.displayName}</b>. Hãy gửi lời khen hoặc nhắc nhở kỷ luật; lời nhắn sẽ hiển thị trực tiếp trên Dashboard của người học!
+          </p>
 
-          {/* Mastered Words */}
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', padding: '1.5rem' }}>
+          {feedbackSuccessNotice && (
             <div style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '16px',
-              background: 'rgba(34, 197, 94, 0.12)',
+              background: 'rgba(34, 197, 94, 0.15)',
+              border: '1px solid #22c55e',
               color: '#16a34a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
+              padding: '0.75rem 1rem',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              marginBottom: '1rem'
             }}>
-              <CheckCircle2 size={28} />
+              {feedbackSuccessNotice}
             </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>Đã Thuộc Vĩnh Viễn</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, lineHeight: 1.1, marginTop: '2px' }}>
-                {summary.masteredWords} <span style={{ fontSize: '0.9rem', color: '#16a34a', fontWeight: 700 }}>({summary.retentionRate}%)</span>
-              </div>
-            </div>
+          )}
+
+          {/* Quick Nudge Templates */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {quickNudgeTemplates.map((tpl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setFeedbackType(tpl.type);
+                  setFeedbackMessage(tpl.text);
+                }}
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                {tpl.text}
+              </button>
+            ))}
           </div>
 
-          {/* Patterns & Categories */}
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', padding: '1.5rem' }}>
-            <div style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '16px',
-              background: 'rgba(139, 92, 246, 0.12)',
-              color: '#8b5cf6',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Layers size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>Cấu Trúc Giao Tiếp</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, lineHeight: 1.1, marginTop: '2px' }}>
-                {summary.totalPatterns} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>cấu trúc</span>
-              </div>
-            </div>
-          </div>
+          {/* Feedback Form */}
+          <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Tên người giám sát (VD: Bố/Mẹ, Thầy Hoàng, Bạn học...)"
+                value={supervisorName}
+                onChange={e => setSupervisorName(e.target.value)}
+                style={{
+                  flex: '1 1 240px',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.88rem',
+                  outline: 'none'
+                }}
+              />
 
-          {/* Focused Hours */}
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', padding: '1.5rem' }}>
-            <div style={{
-              width: '54px',
-              height: '54px',
-              borderRadius: '16px',
-              background: 'rgba(245, 158, 11, 0.12)',
-              color: '#d97706',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Clock size={28} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700 }}>Thời Gian Tập Trung</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 900, lineHeight: 1.1, marginTop: '2px' }}>
-                {summary.totalStudyHours} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 600 }}>giờ</span>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackType('cheer')}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: feedbackType === 'cheer' ? '#22c55e' : 'var(--bg-tertiary)',
+                    color: feedbackType === 'cheer' ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  👏 Khen Ngợi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackType('nudge')}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: feedbackType === 'nudge' ? '#f59e0b' : 'var(--bg-tertiary)',
+                    color: feedbackType === 'nudge' ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚠️ Nhắc Nhở
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackType('warning')}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: feedbackType === 'warning' ? '#ef4444' : 'var(--bg-tertiary)',
+                    color: feedbackType === 'warning' ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚨 Cảnh Báo
+                </button>
               </div>
             </div>
-          </div>
+
+            <textarea
+              rows={2}
+              placeholder="Nhập nội dung lời nhắn hoặc bấm các mẫu gợi ý phía trên..."
+              value={feedbackMessage}
+              onChange={e => setFeedbackMessage(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem',
+                resize: 'vertical',
+                outline: 'none',
+                fontFamily: 'inherit'
+              }}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="submit"
+                disabled={isSendingFeedback || !feedbackMessage.trim()}
+                className="btn-primary glow-hover"
+                style={{
+                  padding: '0.65rem 1.35rem',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: isSendingFeedback ? 'not-allowed' : 'pointer',
+                  opacity: (!feedbackMessage.trim() || isSendingFeedback) ? 0.6 : 1
+                }}
+              >
+                <Send size={16} />
+                <span>{isSendingFeedback ? 'Đang gửi...' : 'Gửi Lời Nhắc Đến Học Viên'}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Recent Supervisor Messages Stream */}
+          {supervisorFeedbacks && supervisorFeedbacks.length > 0 && (
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                LỜI NHẮN ĐÃ GỬI GẦN ĐÂY ({supervisorFeedbacks.length}):
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {supervisorFeedbacks.slice(0, 4).map(fb => (
+                  <div
+                    key={fb.id}
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      borderLeft: `4px solid ${fb.type === 'warning' ? '#ef4444' : (fb.type === 'nudge' ? '#f59e0b' : '#22c55e')}`,
+                      padding: '0.65rem 1rem',
+                      borderRadius: '0 12px 12px 0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        {fb.supervisor_name}:
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '0.4rem' }}>
+                        "{fb.message}"
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {formatSessionTime(fb.created_at)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 4. MEMORY RETENTION STAGES (SPACED REPETITION SM-2) */}
+        {/* 5. MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian) */}
+        {periodsData && (
+          <ActivityHistoryChart 
+            periodsData={periodsData} 
+            defaultPeriod="all"
+            title="Biểu Đồ Tiến Trình Học Tập & Lịch Sử Toàn Diện"
+          />
+        )}
+
+        {/* 6. RECENT STUDY SESSIONS AUDIT LOG (Kiểm tra thực tế các phiên học) */}
+        <div style={{
+          background: 'var(--bg-secondary)',
+          borderRadius: '24px',
+          border: '1px solid var(--border-color)',
+          padding: '2rem',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <History size={20} style={{ color: 'var(--accent-primary)' }} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+                Nhật Ký Các Phiên Học Gần Nhất (Audit Trail)
+              </h3>
+            </div>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Ghi nhận từ đồng hồ bấm giờ Pomodoro & Stopwatch
+            </span>
+          </div>
+
+          {recentSessions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Chưa có phiên học nào được ghi lại trong hệ thống.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.75rem 1rem' }}>Thời Gian</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Nội Dung Hoạt Động</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Thời Lượng</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Chế Độ</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Ghi Chú Phiên Học</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentSessions.map(session => (
+                    <tr key={session.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s ease' }}>
+                      <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                        {formatSessionTime(session.started_at)}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {session.activity_title}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                        {session.duration_minutes} phút
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '6px',
+                          background: session.mode === 'pomodoro' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(2, 132, 199, 0.12)',
+                          color: session.mode === 'pomodoro' ? '#ef4444' : 'var(--accent-primary)'
+                        }}>
+                          {session.mode === 'pomodoro' ? '🍅 Pomodoro' : '⏱️ Bấm giờ'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)', fontStyle: session.notes ? 'normal' : 'italic' }}>
+                        {session.notes || 'Không có ghi chú'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* 7. MEMORY RETENTION STAGES (SPACED REPETITION SM-2) */}
         <div className="card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -531,16 +973,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
           </div>
         </div>
 
-        {/* 4.5 MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày, Tổng thời gian) */}
-        {statsData.periodsData && (
-          <ActivityHistoryChart 
-            periodsData={statsData.periodsData} 
-            defaultPeriod="all"
-            title="Biểu Đồ Tiến Trình Học Tập (Lịch Sử Toàn Diện)"
-          />
-        )}
-
-        {/* 5. CEFR LEVEL BREAKDOWN & ACTIVITY DISTRIBUTION */}
+        {/* 8. CEFR LEVEL BREAKDOWN & ACTIVITY BREAKDOWN */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {/* CEFR Level distribution */}
           <div className="card" style={{ padding: '1.75rem' }}>
@@ -602,7 +1035,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
           </div>
         </div>
 
-        {/* 6. SHOWCASE TOP WORDS MASTERED */}
+        {/* 9. SHOWCASE TOP WORDS MASTERED */}
         {topWords && topWords.length > 0 && (
           <div className="card" style={{ padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -671,39 +1104,6 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
             </div>
           </div>
         )}
-
-        {/* 7. INSPIRATIONAL CALL TO ACTION FOOTER */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          color: '#ffffff',
-          borderRadius: '24px',
-          padding: '2.5rem',
-          textAlign: 'center',
-          boxShadow: '0 12px 32px rgba(0,0,0,0.2)'
-        }}>
-          <h3 style={{ fontSize: '1.65rem', fontWeight: 900, marginBottom: '0.65rem' }}>
-            Bạn Cũng Muốn Xây Dựng Kho Kiến Thức Bền Vững Như Thế Này?
-          </h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.98rem', maxWidth: '640px', margin: '0 auto 1.5rem auto', lineHeight: 1.5 }}>
-            LinguaVault kết hợp thuật toán lặp lại ngắt quãng SuperMemo SM-2, AI phân tích phát âm và đồng hồ bấm giờ Pomodoro chuyên sâu để giúp bạn học kiên trì mỗi ngày.
-          </p>
-          <button
-            onClick={() => navigate('/login')}
-            className="btn-primary glow-hover"
-            style={{
-              padding: '0.9rem 2rem',
-              borderRadius: '14px',
-              fontSize: '1rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <span>Bắt Đầu Hành Trình Ngay (Miễn Phí)</span>
-            <ArrowRight size={18} />
-          </button>
-        </div>
 
       </main>
     </div>

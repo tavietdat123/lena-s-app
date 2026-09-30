@@ -292,6 +292,19 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_study_schedules_user ON study_schedules(user_id);
   `);
 
+  // 14. Supervisor Accountability Nudges & Messages Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS supervisor_feedbacks (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'admin_master_user_id',
+      supervisor_name TEXT DEFAULT 'Người Giám Sát',
+      type TEXT DEFAULT 'cheer',
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_supervisor_feedbacks_user ON supervisor_feedbacks(user_id, created_at);
+  `);
+
   // Migration: Ensure study_schedules has activity_type
   try {
     db.exec(`ALTER TABLE study_schedules ADD COLUMN activity_type TEXT DEFAULT 'general';`);

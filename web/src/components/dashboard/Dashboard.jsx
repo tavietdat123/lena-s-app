@@ -12,7 +12,9 @@ import {
   Award,
   Clock,
   Target,
-  Share2
+  Share2,
+  Eye,
+  ShieldCheck
 } from 'lucide-react';
 import { playAudio } from '../../services/audioService';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
@@ -216,18 +218,14 @@ export default function Dashboard({
             </button>
           )}
 
+          {/* Button 1: Open Supervisor UI in a new tab immediately */}
           <button
             onClick={() => {
-              if (onSharePublicStats) {
-                onSharePublicStats();
-              } else {
-                const url = `${window.location.origin}/public/stats`;
-                navigator.clipboard.writeText(url);
-                window.open(url, '_blank');
-              }
+              const url = `${window.location.origin}/monitor`;
+              window.open(url, '_blank');
             }}
             style={{
-              background: 'rgba(255,255,255,0.18)',
+              background: 'rgba(255,255,255,0.22)',
               color: '#ffffff',
               padding: '0.9rem 1.35rem',
               borderRadius: 'var(--radius-lg)',
@@ -237,17 +235,87 @@ export default function Dashboard({
               alignItems: 'center',
               gap: '0.6rem',
               backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.35)',
+              border: '1px solid rgba(255,255,255,0.45)',
               cursor: 'pointer'
             }}
             className="glow-hover"
-            title="Mở & sao chép liên kết bảng thống kê công khai cho người khác xem"
+            title="Mở giao diện Cổng Giám Sát Học Tập trong tab mới"
           >
-            <Share2 size={18} />
-            <span>Chia Sẻ Bảng Thống Kê</span>
+            <Eye size={18} />
+            <span>Xem Giao Diện Giám Sát</span>
+          </button>
+
+          {/* Button 2: Copy Supervisor Link */}
+          <button
+            onClick={() => {
+              if (onSharePublicStats) {
+                onSharePublicStats();
+              } else {
+                const url = `${window.location.origin}/monitor`;
+                navigator.clipboard.writeText(url);
+                window.open(url, '_blank');
+              }
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              padding: '0.9rem 1.25rem',
+              borderRadius: 'var(--radius-lg)',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.55rem',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              cursor: 'pointer'
+            }}
+            className="glow-hover"
+            title="Sao chép link Cổng Giám Sát gửi cho người khác xem"
+          >
+            <Share2 size={17} />
+            <span>Link Người Giám Sát</span>
           </button>
         </div>
       </div>
+
+      {/* SUPERVISOR RECENT MESSAGE BANNER */}
+      {stats?.supervisorFeedbacks && stats.supervisorFeedbacks.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
+          borderRadius: 'var(--radius-xl)',
+          padding: '1rem 1.5rem',
+          border: '1.5px solid rgba(99, 102, 241, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>📢</span>
+            <div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Lời Nhắn Mới Từ Người Giám Sát ({stats.supervisorFeedbacks[0].supervisor_name}):
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                "{stats.supervisorFeedbacks[0].message}"
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/monitor`;
+              window.open(url, '_blank');
+            }}
+            className="btn-secondary"
+            style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', borderRadius: '10px' }}
+          >
+            <span>Mở Cổng Giám Sát</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
 
       {/* 2. PRO MAX STATS & LEVEL CARD */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>

@@ -237,7 +237,14 @@ export const srsController = {
           total_due_today: (wordStats.due_today || 0) + (patternStats.due_today || 0),
           streak,
           recent_logs: logs,
-          periodsData: activityChartService.buildPeriodsData(db, userId)
+          periodsData: activityChartService.buildPeriodsData(db, userId),
+          supervisorFeedbacks: db.prepare(`
+            SELECT id, supervisor_name, type, message, created_at
+            FROM supervisor_feedbacks
+            WHERE user_id = ? OR user_id = 'admin_master_user_id'
+            ORDER BY created_at DESC
+            LIMIT 5
+          `).all(userId)
         }
       });
     } catch (err) {

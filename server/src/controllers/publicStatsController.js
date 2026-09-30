@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { activityChartService } from '../services/activityChartService.js';
 
@@ -150,6 +151,105 @@ export const publicStatsController = {
         LIMIT 8
       `).all(userId);
 
+      // 9. TODAY'S ACCOUNTABILITY & SUPERVISION STATUS (Đánh giá kỷ luật hôm nay)
+      const pad = n => String(n).padStart(2, '0');
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+      const todaySessionsRow = db.prepare(`
+        SELECT SUM(duration_seconds) as sec, COUNT(*) as count, MAX(started_at) as last_started
+        FROM study_sessions
+        WHERE (user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND substr(started_at, 1, 10) = ?
+      `).get(userId, todayStr);
+
+      const todayLogRow = db.prepare(`
+        SELECT duration_seconds, reviews_count, new_words_count
+        FROM study_logs
+        WHERE (user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND date = ?
+      `).get(userId, todayStr);
+
+      const todaySeconds = Math.max(todaySessionsRow?.sec || 0, todayLogRow?.duration_seconds || 0);
+      const todayMinutes = Math.round(todaySeconds / 60);
+      const todayReviews = todayLogRow?.reviews_count || 0;
+      const todayNewWords = todayLogRow?.new_words_count || 0;
+      const todaySessionsCount = todaySessionsRow?.count || 0;
+
+      // Target goals
+      const userSettings = db.prepare(`
+        SELECT daily_goal FROM user_settings WHERE user_id = ?
+      `).get(userId);
+      const targetGoalReviews = userSettings?.daily_goal || 15;
+      const targetGoalMinutes = 30; // 30 minutes daily study target
+
+      const isTimeGoalMet = todayMinutes >= targetGoalMinutes;
+      const isReviewsGoalMet = todayReviews >= targetGoalReviews;
+      const isCompliant = isTimeGoalMet || isReviewsGoalMet;
+
+      let overallStatus = 'not_started';
+      let statusLabel = 'Chưa Hoàn Thành Kỷ Luật';
+      let statusMessage = 'Học viên hôm nay chưa học phiên nào hoặc chưa đạt mục tiêu tối thiểu!';
+      let statusColor = '#ef4444'; // Red
+
+      if (isCompliant) {
+        overallStatus = 'completed';
+        statusLabel = 'Đạt Chuẩn Kỷ Luật Xuất Sắc';
+        statusMessage = `Đã hoàn thành mục tiêu ngày hôm nay (${todayMinutes} phút / ${targetGoalMinutes} phút)!`;
+        statusColor = '#22c55e'; // Green
+      } else if (todayMinutes > 0 || todayReviews > 0) {
+        overallStatus = 'in_progress';
+        statusLabel = 'Đang Rèn Luyện (Chưa Đủ Mục Tiêu)';
+        statusMessage = `Đã tích lũy ${todayMinutes}/${targetGoalMinutes} phút. Cần học thêm để hoàn thành ngày.`;
+        statusColor = '#f59e0b'; // Amber
+      }
+
+      const todayAccountability = {
+        date: todayStr,
+        todaySeconds,
+        todayMinutes,
+        todayReviews,
+        todayNewWords,
+        todaySessionsCount,
+        targetGoalMinutes,
+        targetGoalReviews,
+        isTimeGoalMet,
+        isReviewsGoalMet,
+        overallStatus,
+        statusLabel,
+        statusMessage,
+        statusColor,
+        lastActiveAt: todaySessionsRow?.last_started || (todaySeconds > 0 ? `${todayStr}T12:00:00Z` : null)
+      };
+
+      // 10. RECENT STUDY SESSIONS (Nhật ký phiên học cụ thể để người giám sát kiểm tra)
+      const recentSessions = db.prepare(`
+        SELECT id, activity_type, activity_title, duration_seconds, mode, notes, started_at, ended_at
+        FROM study_sessions
+        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        ORDER BY started_at DESC
+        LIMIT 15
+      `).all(userId).map(s => ({
+        id: s.id,
+        activity_type: s.activity_type || 'general',
+        activity_title: s.activity_title || 'Phiên học tập trung',
+        duration_seconds: s.duration_seconds,
+        duration_minutes: Math.max(1, Math.round(s.duration_seconds / 60)),
+        mode: s.mode || 'stopwatch',
+        notes: s.notes || '',
+        started_at: s.started_at,
+        ended_at: s.ended_at
+      }));
+
+      // 11. SUPERVISOR FEEDBACKS & NUDGES (Các lời nhắc từ người giám sát)
+      const supervisorFeedbacks = db.prepare(`
+        SELECT id, supervisor_name, type, message, created_at
+        FROM supervisor_feedbacks
+        WHERE user_id = ? OR user_id = 'admin_master_user_id'
+        ORDER BY created_at DESC
+        LIMIT 10
+      `).all(userId);
+
       // Total focused study hours
       const totalStudyHours = ((logsSummary.total_seconds || 0) / 3600).toFixed(1);
 
@@ -182,6 +282,9 @@ export const publicStatsController = {
             quizzesTaken: quizSummary?.count || 0,
             avgQuizScore: quizSummary?.avg_score ? Math.round(quizSummary.avg_score) : null
           },
+          todayAccountability,
+          recentSessions,
+          supervisorFeedbacks,
           retentionBreakdown: {
             mastered: wordCounts.mastered || 0,
             reviewing: wordCounts.reviewing || 0,
@@ -198,6 +301,62 @@ export const publicStatsController = {
     } catch (err) {
       console.error('[Public Stats Error]', err);
       return res.status(500).json({ success: false, error: 'Không thể tải bảng thống kê công khai: ' + err.message });
+    }
+  },
+
+  // POST /api/public/supervisor-feedback (Gửi lời động viên / nhắc nhở từ người giám sát)
+  postSupervisorFeedback: async (req, res) => {
+    try {
+      const db = getDb();
+      const {
+        user_id,
+        username,
+        supervisor_name = 'Người Giám Sát',
+        type = 'cheer', // 'cheer' | 'nudge' | 'warning' | 'comment'
+        message = ''
+      } = req.body || {};
+
+      const cleanMessage = String(message || '').trim();
+      if (!cleanMessage) {
+        return res.status(400).json({ success: false, error: 'Nội dung lời nhắn giám sát không được để trống.' });
+      }
+
+      // Resolve user id
+      let targetUserId = user_id;
+      if (!targetUserId && username) {
+        const u = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+        targetUserId = u?.id;
+      }
+      if (!targetUserId) {
+        targetUserId = 'admin_master_user_id';
+      }
+
+      const id = crypto.randomUUID();
+      const nowIso = new Date().toISOString();
+      const author = String(supervisor_name || 'Người Giám Sát').trim().slice(0, 50) || 'Người Giám Sát';
+
+      db.prepare(`
+        INSERT INTO supervisor_feedbacks (id, user_id, supervisor_name, type, message, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(id, targetUserId, author, type, cleanMessage.slice(0, 500), nowIso);
+
+      const feedback = {
+        id,
+        user_id: targetUserId,
+        supervisor_name: author,
+        type,
+        message: cleanMessage,
+        created_at: nowIso
+      };
+
+      return res.json({
+        success: true,
+        message: 'Đã gửi lời nhắc/động viên tới học viên thành công! 🎉',
+        data: feedback
+      });
+    } catch (err) {
+      console.error('[Supervisor Feedback Error]', err);
+      return res.status(500).json({ success: false, error: err.message });
     }
   }
 };

@@ -226,15 +226,24 @@ export default function App() {
     addToast('Đã cập nhật hồ sơ cá nhân thành công!', 'success');
   };
 
-  const handleSharePublicStats = () => {
+  const getSupervisorUrl = () => {
     const username = currentUser?.username || '';
-    const publicUrl = username 
-      ? `${window.location.origin}/public/stats/${encodeURIComponent(username)}`
-      : `${window.location.origin}/public/stats`;
-    navigator.clipboard.writeText(publicUrl).then(() => {
-      addToast('Đã sao chép liên kết Bảng Thống Kê Công Khai! 🎉 Bạn có thể gửi cho người khác xem.', 'success');
+    return username 
+      ? `${window.location.origin}/monitor/${encodeURIComponent(username)}`
+      : `${window.location.origin}/monitor`;
+  };
+
+  const handleOpenSupervisorPortal = () => {
+    const url = getSupervisorUrl();
+    window.open(url, '_blank');
+  };
+
+  const handleSharePublicStats = () => {
+    const url = getSupervisorUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      addToast('Đã sao chép link Cổng Giám Sát Học Tập! 🛡️ Bạn có thể gửi cho người khác để họ giám sát bạn.', 'success');
     }).catch(() => {
-      window.open(publicUrl, '_blank');
+      window.open(url, '_blank');
     });
   };
 
@@ -447,6 +456,30 @@ export default function App() {
           element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
         />
         <Route
+          path="/monitor"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/monitor/:username"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/supervisor"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/supervisor/:username"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/giam-sat"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/giam-sat/:username"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
           path="/share/stats"
           element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
         />
@@ -621,6 +654,30 @@ export default function App() {
               />
               <Route 
                 path="/public/stats/:username" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/monitor" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/monitor/:username" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/supervisor" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/supervisor/:username" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/giam-sat" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/giam-sat/:username" 
                 element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
               />
               <Route 

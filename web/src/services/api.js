@@ -421,6 +421,20 @@ export const api = {
     }
   },
 
+  // Post Supervisor Feedback / Nudge (No token needed)
+  postSupervisorFeedback: async ({ username, supervisor_name, type, message }) => {
+    try {
+      const res = await fetch(`${API_BASE}/public/supervisor-feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, supervisor_name, type, message })
+      });
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
   // Telegram Bot & Goal Settings
   getTelegramSettings: async () => {
     try {
