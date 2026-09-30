@@ -251,26 +251,13 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
 
   const { 
     user, 
-    summary, 
     todayAccountability, 
     recentSessions = [], 
     supervisorFeedbacks = [], 
-    retentionBreakdown, 
     levelsBreakdown, 
     activityDistribution, 
     periodsData 
   } = statsData;
-
-  const totalWords = summary.totalWords || 0;
-  const masteredCount = retentionBreakdown.mastered || 0;
-  const reviewingCount = retentionBreakdown.reviewing || 0;
-  const learningCount = retentionBreakdown.learning || 0;
-  const newCount = retentionBreakdown.newWords || 0;
-
-  const masteredPct = totalWords > 0 ? (masteredCount / totalWords) * 100 : 0;
-  const reviewingPct = totalWords > 0 ? (reviewingCount / totalWords) * 100 : 0;
-  const learningPct = totalWords > 0 ? (learningCount / totalWords) * 100 : 0;
-  const newPct = totalWords > 0 ? (newCount / totalWords) * 100 : 0;
 
   const formatSessionTime = (isoStr) => {
     if (!isoStr) return '';
@@ -1143,72 +1130,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           )}
         </div>
 
-        {/* 7. MEMORY RETENTION STAGES (SPACED REPETITION SM-2) */}
-        <div className="card" style={{ padding: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <TrendingUp size={22} style={{ color: 'var(--accent-primary)' }} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                Thang Phân Bổ Trí Nhớ (Spaced Repetition SM-2)
-              </h3>
-            </div>
-            <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-              Tổng kho: {totalWords} từ vựng
-            </span>
-          </div>
-
-          {/* Stacked Progress Bar */}
-          <div style={{
-            display: 'flex',
-            height: '16px',
-            borderRadius: '999px',
-            overflow: 'hidden',
-            background: 'var(--bg-tertiary)',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ width: `${masteredPct}%`, background: '#22c55e', transition: 'width 0.6s ease' }} title={`Thuộc vĩnh viễn: ${masteredCount} từ`} />
-            <div style={{ width: `${reviewingPct}%`, background: '#0284c7', transition: 'width 0.6s ease' }} title={`Đang ghi nhớ: ${reviewingCount} từ`} />
-            <div style={{ width: `${learningPct}%`, background: '#f59e0b', transition: 'width 0.6s ease' }} title={`Mới nạp lại: ${learningCount} từ`} />
-            <div style={{ width: `${newPct}%`, background: '#94a3b8', transition: 'width 0.6s ease' }} title={`Từ mới: ${newCount} từ`} />
-          </div>
-
-          {/* 4 Legend Indicators */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e' }} />
-              <div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>THUỘC VĨNH VIỄN</div>
-                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{masteredCount} từ ({Math.round(masteredPct)}%)</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#0284c7' }} />
-              <div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>ĐANG ÔN TẬP ĐỀU</div>
-                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{reviewingCount} từ ({Math.round(reviewingPct)}%)</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }} />
-              <div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>MỚI NẠP LẠI (LEARNING)</div>
-                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{learningCount} từ ({Math.round(learningPct)}%)</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#94a3b8' }} />
-              <div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700 }}>TỪ MỚI CHỜ ÔN</div>
-                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{newCount} từ ({Math.round(newPct)}%)</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 8. CEFR LEVEL BREAKDOWN & ACTIVITY BREAKDOWN */}
+        {/* 7. CEFR LEVEL BREAKDOWN & ACTIVITY BREAKDOWN */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {/* CEFR Level distribution */}
           <div className="card" style={{ padding: '1.75rem' }}>
