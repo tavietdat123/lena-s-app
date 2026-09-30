@@ -9,9 +9,9 @@ export const noteController = {
       const { search, topic } = req.query;
       let query = `
         SELECT * FROM notes 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        WHERE (user_id = ? OR user_id IS NULL OR user_id = 'admin_master_user_id')
       `;
-      const params = [userId, userId, userId];
+      const params = [userId];
 
       if (search) {
         query += ' AND (title LIKE ? OR content LIKE ?)';

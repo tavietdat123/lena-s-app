@@ -9,9 +9,9 @@ export const patternController = {
       const { search, category, tone } = req.query;
       let query = `
         SELECT * FROM patterns 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        WHERE (user_id = ? OR user_id IS NULL OR user_id = 'admin_master_user_id')
       `;
-      const params = [userId, userId, userId];
+      const params = [userId];
 
       if (search) {
         query += ' AND (name LIKE ? OR formula LIKE ? OR meaning_vi LIKE ? OR explanation LIKE ?)';

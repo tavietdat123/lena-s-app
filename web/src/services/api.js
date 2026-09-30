@@ -397,7 +397,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ data })
     });
-    return res.json();
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Máy chủ phản hồi không đúng chuẩn (${res.status}): ${text.slice(0, 100)}`);
+    }
+    if (!res.ok) {
+      throw new Error(json.error || `Lỗi máy chủ (${res.status})`);
+    }
+    return json;
   },
 
   // Telegram Bot & Goal Settings

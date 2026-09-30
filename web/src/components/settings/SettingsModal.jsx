@@ -272,7 +272,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Lỗi xuất dữ liệu: ' + err.message);
+      console.warn('Blob download failed, trying direct link:', err);
+      try {
+        window.open(api.exportDataUrl(), '_blank');
+      } catch (e2) {
+        alert('Lỗi xuất dữ liệu: ' + err.message);
+      }
     }
   };
 
@@ -285,17 +290,22 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
     try {
       const text = await file.text();
-      const json = JSON.parse(text);
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error('Nội dung file không đúng định dạng JSON: ' + parseErr.message);
+      }
 
       const res = await api.importData(json);
       if (res.success) {
-        setImportMessage(res.message);
+        setImportMessage('✓ ' + (res.message || 'Khôi phục dữ liệu thành công!'));
         if (onDataRestored) onDataRestored();
       } else {
-        setImportMessage('Lỗi khôi phục: ' + res.error);
+        setImportMessage('❌ Lỗi khôi phục: ' + (res.error || 'Thất bại'));
       }
     } catch (err) {
-      setImportMessage('File JSON không hợp lệ: ' + err.message);
+      setImportMessage('❌ Lỗi khôi phục: ' + err.message);
     } finally {
       setIsImporting(false);
       if (e.target) e.target.value = '';

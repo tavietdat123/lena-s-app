@@ -555,14 +555,22 @@ ${wordsText}
   // 10. Generate and Send Vault Backup JSON Document to Telegram
   sendBackupDocument: async (customToken = null, customChatId = null, userId = 'admin_master_user_id') => {
     const db = getDb();
+    let userToken = null;
+    let userChatId = null;
+    try {
+      const userSettingsRow = db.prepare("SELECT telegram_bot_token, telegram_chat_id FROM user_settings WHERE user_id = ?").get(userId);
+      userToken = userSettingsRow?.telegram_bot_token;
+      userChatId = userSettingsRow?.telegram_chat_id;
+    } catch (e) {}
+
     const tokenRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_bot_token'").get();
     const chatRow = db.prepare("SELECT value FROM settings WHERE key = 'telegram_chat_id'").get();
 
-    const botToken = customToken || tokenRow?.value;
-    const chatId = customChatId || chatRow?.value;
+    const botToken = customToken || userToken || tokenRow?.value || process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = customChatId || userChatId || chatRow?.value || process.env.TELEGRAM_CHAT_ID;
 
     if (!botToken || !chatId) {
-      throw new Error('Chưa cấu hình Telegram Bot Token hoặc Chat ID.');
+      throw new Error('Chưa cấu hình Telegram Bot Token hoặc Chat ID. Vui lòng kiểm tra lại trong phần Cài đặt.');
     }
 
     // 1. Gather backup payload

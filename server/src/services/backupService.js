@@ -25,38 +25,74 @@ export const backupService = {
   buildBackupPayload: (userId = 'admin_master_user_id') => {
     const db = getDb();
 
-    const words = db.prepare(`
-      SELECT * FROM words 
-      WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId).map(w => ({
-      ...w,
-      collocations: safeParse(w.collocations, []),
-      examples: safeParse(w.examples, []),
-      tags: safeParse(w.tags, [])
-    }));
+    let words = [];
+    try {
+      words = db.prepare(`
+        SELECT * FROM words 
+        WHERE user_id = ?
+        UNION ALL
+        SELECT * FROM words
+        WHERE (user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND id NOT IN (SELECT id FROM words WHERE user_id = ?)
+      `).all(userId, userId).map(w => ({
+        ...w,
+        collocations: safeParse(w.collocations, []),
+        examples: safeParse(w.examples, []),
+        tags: safeParse(w.tags, [])
+      }));
+    } catch (e) {
+      console.error('[Backup words error]', e);
+    }
 
-    const patterns = db.prepare(`
-      SELECT * FROM patterns 
-      WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId).map(p => ({
-      ...p,
-      examples: safeParse(p.examples, []),
-      tags: safeParse(p.tags, [])
-    }));
+    let patterns = [];
+    try {
+      patterns = db.prepare(`
+        SELECT * FROM patterns 
+        WHERE user_id = ?
+        UNION ALL
+        SELECT * FROM patterns
+        WHERE (user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND id NOT IN (SELECT id FROM patterns WHERE user_id = ?)
+      `).all(userId, userId).map(p => ({
+        ...p,
+        examples: safeParse(p.examples, []),
+        tags: safeParse(p.tags, [])
+      }));
+    } catch (e) {
+      console.error('[Backup patterns error]', e);
+    }
 
-    const notes = db.prepare(`
-      SELECT * FROM notes 
-      WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId).map(n => ({
-      ...n,
-      tags: safeParse(n.tags, []),
-      linked_words: safeParse(n.linked_words, [])
-    }));
+    let notes = [];
+    try {
+      notes = db.prepare(`
+        SELECT * FROM notes 
+        WHERE user_id = ?
+        UNION ALL
+        SELECT * FROM notes
+        WHERE (user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND id NOT IN (SELECT id FROM notes WHERE user_id = ?)
+      `).all(userId, userId).map(n => ({
+        ...n,
+        tags: safeParse(n.tags, []),
+        linked_words: safeParse(n.linked_words, [])
+      }));
+    } catch (e) {
+      console.error('[Backup notes error]', e);
+    }
 
-    const study_logs = db.prepare(`
-      SELECT * FROM study_logs 
-      WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId);
+    let study_logs = [];
+    try {
+      study_logs = db.prepare(`
+        SELECT * FROM study_logs 
+        WHERE user_id = ?
+        UNION ALL
+        SELECT * FROM study_logs
+        WHERE (user_id = 'admin_master_user_id' OR user_id IS NULL)
+          AND date NOT IN (SELECT date FROM study_logs WHERE user_id = ?)
+      `).all(userId, userId);
+    } catch (e) {
+      console.error('[Backup study_logs error]', e);
+    }
 
     let topics = [];
     try {
@@ -72,8 +108,8 @@ export const backupService = {
     try {
       quiz_history = db.prepare(`
         SELECT * FROM quiz_history 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-      `).all(userId, userId, userId).map(q => ({
+        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+      `).all(userId).map(q => ({
         ...q,
         questions: safeParse(q.questions, [])
       }));
@@ -88,18 +124,18 @@ export const backupService = {
     try {
       study_sessions = db.prepare(`
         SELECT * FROM study_sessions 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
         ORDER BY started_at DESC
-      `).all(userId, userId, userId);
+      `).all(userId);
     } catch (e) {}
 
     let study_schedules = [];
     try {
       study_schedules = db.prepare(`
         SELECT * FROM study_schedules 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
         ORDER BY created_at DESC
-      `).all(userId, userId, userId).map(s => ({
+      `).all(userId).map(s => ({
         ...s,
         days_of_week: safeParse(s.days_of_week, ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
       }));
