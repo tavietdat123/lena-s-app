@@ -38,7 +38,7 @@ export function safeParseJson(rawText) {
     return JSON.parse(cleaned);
   } catch (e) {}
 
-  // 2. Extract from first { to last }
+  // 2. Extract from first { to last }, or [ to ]
   const firstBrace = cleaned.indexOf('{');
   const lastBrace = cleaned.lastIndexOf('}');
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -48,9 +48,20 @@ export function safeParseJson(rawText) {
     } catch (eBrace) {}
   }
 
+  const firstBracket = cleaned.indexOf('[');
+  const lastBracket = cleaned.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+    const candidate = cleaned.substring(firstBracket, lastBracket + 1);
+    try {
+      return JSON.parse(candidate);
+    } catch (eBracket) {}
+  }
+
   // 3. Sanitize control characters
   try {
-    const target = firstBrace !== -1 && lastBrace > firstBrace ? cleaned.substring(firstBrace, lastBrace + 1) : cleaned;
+    const target = firstBrace !== -1 && lastBrace > firstBrace 
+      ? cleaned.substring(firstBrace, lastBrace + 1) 
+      : (firstBracket !== -1 && lastBracket > firstBracket ? cleaned.substring(firstBracket, lastBracket + 1) : cleaned);
     const sanitizedControl = target.replace(/[\u0000-\u001F\u007F-\u009F]/g, (c) => {
       if (c === '\n') return '\\n';
       if (c === '\r') return '\\r';
@@ -91,6 +102,7 @@ export function safeParseJson(rawText) {
     } catch (errRepaired) {}
   }
 
+  console.warn('[safeParseJson] Parse failed. Snippet:', rawText?.slice?.(0, 300));
   throw new Error(`Không thể phân tích dữ liệu phản hồi từ AI.`);
 }
 
@@ -264,6 +276,42 @@ export async function parseSentenceAI(sentence, apiKey = null) {
       .filter(w => w.length > 3)
       .slice(0, 4);
 
+    const offlinePatterns = [];
+    const lower = sentence.toLowerCase();
+    if (lower.includes('although') || lower.includes('despite') || lower.includes('in spite') || lower.includes('whereas')) {
+      offlinePatterns.push({
+        name: 'Although / Despite (Concession & Contrast)',
+        formula: 'Although + Clause, Main Clause',
+        explanation: 'Diễn tả sự nhượng bộ, tương phản giữa hai mệnh đề',
+        category: 'concession',
+        tone: 'Formal'
+      });
+    } else if (lower.includes('because') || lower.includes('due to') || lower.includes('as a result') || lower.includes('lead to')) {
+      offlinePatterns.push({
+        name: 'Due to / Cause & Effect',
+        formula: 'Due to / As a result of + Noun Phrase, S + V',
+        explanation: 'Chỉ mối quan hệ nguyên nhân - hệ quả trực tiếp',
+        category: 'cause_effect',
+        tone: 'Business'
+      });
+    } else if (lower.includes('not only') || lower.includes('hardly') || lower.includes('it is')) {
+      offlinePatterns.push({
+        name: 'Inversion / Cleft Sentence (Emphasis)',
+        formula: 'Not only + Aux + S + V, but S also + V',
+        explanation: 'Nhấn mạnh đặc điểm hoặc hành động nổi bật',
+        category: 'emphasis',
+        tone: 'Academic'
+      });
+    } else if (lower.includes('if') || lower.includes('unless') || lower.includes('provided')) {
+      offlinePatterns.push({
+        name: 'Conditional / Hypothesis',
+        formula: 'If / Unless + S + V, S + Modal + V',
+        explanation: 'Đặt điều kiện, giả định tình huống',
+        category: 'condition',
+        tone: 'Neutral'
+      });
+    }
+
     return {
       translation: `(Bản dịch mẫu) ${sentence}`,
       extracted_words: words.map(w => ({
@@ -272,8 +320,8 @@ export async function parseSentenceAI(sentence, apiKey = null) {
         part_of_speech: 'word',
         context_usage: `Xuất hiện trong: "${sentence}"`
       })),
-      patterns: [],
-      grammar_notes: 'Hãy thêm Gemini API Key trong Cài đặt để AI bóc tách sâu hơn.'
+      patterns: offlinePatterns,
+      grammar_notes: 'Hãy thêm Gemini API Key trong Cài đặt để AI bóc tách sâu hơn và tự động gợi ý ngữ pháp chuẩn bản xứ.'
     };
   }
 
@@ -287,9 +335,11 @@ Hãy trả về JSON chính xác theo định dạng:
   "sentence_structure": "Tóm tắt cấu trúc ngữ pháp chính: [S] + [V] + [O/C] + [Mệnh đề phụ nếu có]",
   "patterns": [
     {
-      "name": "Tên cấu trúc trọng tâm",
+      "name": "Tên cấu trúc / mẫu câu trọng tâm",
       "formula": "Công thức tổng quát",
-      "explanation": "Giải thích ngắn gọn cách dùng"
+      "explanation": "Giải thích ngắn gọn cách dùng và ý nghĩa",
+      "category": "Mã chức năng câu (chọn 1 trong các mã sau): cause_effect, concession, comparison, emphasis, purpose, condition, opinion, example, addition, conclusion, sequence, advice, clarification, exception, speculation, definition, request, transition",
+      "tone": "Văn phong (Formal / Academic / Business / Daily / Neutral)"
     }
   ],
   "extracted_words": [

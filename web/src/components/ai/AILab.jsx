@@ -22,10 +22,12 @@ import {
   SlidersHorizontal,
   Lightbulb,
   CheckCircle,
-  XCircle
+  XCircle,
+  Settings
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { playAudio } from '../../services/audioService';
+import PatternCategoryModal from '../patterns/PatternCategoryModal';
 
 export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [activeTab, setActiveTab] = useState('parser'); // 'parser' | 'paraphrase' | 'writer' | 'collocations' | 'dialogue' | 'story'
@@ -36,6 +38,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [parseResult, setParseResult] = useState(null);
   const [savedWordIndex, setSavedWordIndex] = useState({});
   const [savedPatternIndex, setSavedPatternIndex] = useState({});
+  const [patternCategories, setPatternCategories] = useState([]);
+  const [selectedPatternCategories, setSelectedPatternCategories] = useState({});
+  const [selectedPatternTones, setSelectedPatternTones] = useState({});
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Tab 2: Paraphrase State
   const [paraphraseInput, setParaphraseInput] = useState('');
@@ -65,6 +71,47 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [isGeneratingStory, setIsGeneratingStory] = useState(false);
   const [storyResult, setStoryResult] = useState(null);
 
+  const loadPatternCategories = async () => {
+    try {
+      const res = await api.getPatternCategories();
+      if (res.success && Array.isArray(res.data)) {
+        setPatternCategories(res.data);
+      }
+    } catch (e) {
+      console.error('Failed to load pattern categories in AILab:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadPatternCategories();
+  }, []);
+
+  const detectPatternCategory = (pattern, categories = []) => {
+    if (pattern.category && categories.some(c => c.id === pattern.category)) {
+      return pattern.category;
+    }
+    const text = `${pattern.name || ''} ${pattern.formula || ''} ${pattern.explanation || ''}`.toLowerCase();
+    if (text.includes('because') || text.includes('due to') || text.includes('as a result') || text.includes('lead to') || text.includes('attribute to') || text.includes('nguyên nhân') || text.includes('hệ quả')) return 'cause_effect';
+    if (text.includes('although') || text.includes('despite') || text.includes('in spite') || text.includes('whereas') || text.includes('nhượng bộ') || text.includes('tương phản')) return 'concession';
+    if (text.includes('compare') || text.includes('contrast') || text.includes('so sánh') || text.includes('the more') || text.includes('superior') || text.includes('inferior')) return 'comparison';
+    if (text.includes('so as to') || text.includes('in order') || text.includes('with a view') || text.includes('aim to') || text.includes('mục đích')) return 'purpose';
+    if (text.includes('unless') || text.includes('provided') || text.includes('had it not') || text.includes('were it not') || text.includes('điều kiện') || text.includes('giả định')) return 'condition';
+    if (text.includes('not only') || text.includes('hardly') || text.includes('it is') || text.includes('no sooner') || text.includes('đảo ngữ') || text.includes('nhấn mạnh')) return 'emphasis';
+    if (text.includes('high time') || text.includes('advisable') || text.includes('should') || text.includes('khuyên') || text.includes('thúc giục')) return 'advice';
+    if (text.includes('for instance') || text.includes('such as') || text.includes('ví dụ') || text.includes('minh họa')) return 'example';
+    if (text.includes('furthermore') || text.includes('moreover') || text.includes('in addition') || text.includes('bổ sung')) return 'addition';
+    if (text.includes('in conclusion') || text.includes('to sum up') || text.includes('tóm lại') || text.includes('kết luận')) return 'conclusion';
+    if (text.includes('in other words') || text.includes('that is to say') || text.includes('làm rõ') || text.includes('diễn giải')) return 'clarification';
+    if (text.includes('except') || text.includes('ngoại lệ') || text.includes('loại trừ')) return 'exception';
+    if (text.includes('likely') || text.includes('probability') || text.includes('phỏng đoán') || text.includes('khả năng')) return 'speculation';
+    if (text.includes('defined as') || text.includes('refers to') || text.includes('định nghĩa')) return 'definition';
+    if (text.includes('would you mind') || text.includes('appreciate it if') || text.includes('yêu cầu') || text.includes('đề nghị')) return 'request';
+    if (text.includes('in terms of') || text.includes('regarding') || text.includes('chuyển ý') || text.includes('dẫn dắt')) return 'transition';
+    if (text.includes('no sooner') || text.includes('prior to') || text.includes('trình tự') || text.includes('thời gian')) return 'sequence';
+    if (text.includes('perspective') || text.includes('undeniable') || text.includes('quan điểm')) return 'opinion';
+    return categories[0]?.id || 'emphasis';
+  };
+
   useEffect(() => {
     if (initialSentence) {
       setSentenceInput(initialSentence);
@@ -84,6 +131,14 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
       const res = await api.parseSentenceAI(sentenceInput.trim());
       if (res.success && res.data) {
         setParseResult(res.data);
+        const initialCats = {};
+        const initialTones = {};
+        (res.data.patterns || []).forEach((p, idx) => {
+          initialCats[idx] = detectPatternCategory(p, patternCategories);
+          initialTones[idx] = p.tone || 'Formal';
+        });
+        setSelectedPatternCategories(initialCats);
+        setSelectedPatternTones(initialTones);
       }
     } catch (err) {
       console.error('Parse error:', err);
@@ -395,57 +450,194 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {/* 3. Core Sentence Patterns */}
               {parseResult.patterns && parseResult.patterns.length > 0 && (
                 <div>
-                  <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                    Mẫu Câu & Cấu Trúc Trọng Tâm:
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-                    {parseResult.patterns.map((item, idx) => (
-                      <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.75rem' }}>
-                        <div>
-                          <h5 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>{item.name}</h5>
-                          {item.formula && (
-                            <div style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)', margin: '0.4rem 0', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: 700 }}>
-                              {item.formula}
-                            </div>
-                          )}
-                          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.5 }}>
-                            {item.explanation}
-                          </p>
-                        </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
+                        Mẫu Câu & Cấu Trúc Trọng Tâm:
+                      </h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                        Tự động nhận diện cấu trúc ngữ pháp. Bạn có thể chọn lại nhóm chức năng diễn đạt phù hợp trước khi lưu.
+                      </p>
+                    </div>
 
-                        <button
-                          onClick={async () => {
-                            try {
-                              await api.createPattern({
-                                name: item.name,
-                                formula: item.formula || '',
-                                meaning_vi: item.explanation || '',
-                                examples: [sentenceInput],
-                                tags: ['Grammar', 'AI-Lab']
-                              });
-                              setSavedPatternIndex(prev => ({ ...prev, [idx]: true }));
-                            } catch (e) {
-                              console.error(e);
-                            }
-                          }}
-                          disabled={savedPatternIndex[idx]}
-                          className={savedPatternIndex[idx] ? 'btn-secondary' : 'btn-primary'}
-                          style={{ width: '100%', justifyContent: 'center', padding: '0.5rem', fontSize: '0.85rem' }}
-                        >
-                          {savedPatternIndex[idx] ? (
-                            <>
-                              <Check size={16} style={{ color: 'var(--accent-success)' }} />
-                              <span>Đã Lưu Mẫu Câu</span>
-                            </>
-                          ) : (
-                            <>
-                              <BookPlus size={16} />
-                              <span>Lưu Mẫu Câu Này Vào Kho</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      className="btn-secondary"
+                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                      title="Quản lý và thêm mới các nhóm chức năng câu"
+                    >
+                      <Layers size={14} />
+                      <span>Quản Lý Chức Năng ({patternCategories.length})</span>
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                    {parseResult.patterns.map((item, idx) => {
+                      const currentCatId = selectedPatternCategories[idx] || item.category || 'emphasis';
+                      const currentCat = patternCategories.find(c => c.id === currentCatId) || {
+                        id: currentCatId,
+                        name: 'Nhấn mạnh & Đảo ngữ',
+                        emoji: '💥',
+                        color: '#8b5cf6'
+                      };
+                      const currentTone = selectedPatternTones[idx] || item.tone || 'Formal';
+
+                      return (
+                        <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.85rem' }}>
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                              <h5 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-primary)', margin: 0 }}>
+                                {item.name}
+                              </h5>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.15rem 0.5rem',
+                                borderRadius: '6px',
+                                background: `${currentCat.color || '#8b5cf6'}18`,
+                                color: currentCat.color || '#8b5cf6',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                flexShrink: 0
+                              }}>
+                                <span>{currentCat.emoji}</span>
+                                <span>{currentCat.name}</span>
+                              </span>
+                            </div>
+
+                            {item.formula && (
+                              <div style={{
+                                background: 'var(--bg-tertiary)',
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: 'var(--radius-sm)',
+                                margin: '0.4rem 0',
+                                fontFamily: 'monospace',
+                                fontSize: '0.85rem',
+                                color: 'var(--accent-primary)',
+                                fontWeight: 700
+                              }}>
+                                {item.formula}
+                              </div>
+                            )}
+
+                            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.5 }}>
+                              {item.explanation}
+                            </p>
+
+                            {/* Sentence Function (Chức năng câu) & Tone Selector Box */}
+                            <div style={{
+                              marginTop: '0.75rem',
+                              padding: '0.7rem 0.85rem',
+                              borderRadius: '12px',
+                              background: 'var(--bg-tertiary)',
+                              border: '1px solid var(--border-color)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <Layers size={13} style={{ color: currentCat.color || 'var(--accent-primary)' }} />
+                                  <span>Chọn chức năng câu:</span>
+                                </label>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {patternCategories.length} nhóm có sẵn
+                                </span>
+                              </div>
+
+                              <select
+                                className="input-control"
+                                value={currentCatId}
+                                onChange={(e) => setSelectedPatternCategories(prev => ({ ...prev, [idx]: e.target.value }))}
+                                style={{
+                                  padding: '0.45rem 0.65rem',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  border: `1.5px solid ${currentCat.color || 'var(--border-color)'}`,
+                                  background: 'var(--bg-secondary)',
+                                  color: 'var(--text-primary)',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {patternCategories.map(cat => (
+                                  <option key={cat.id} value={cat.id}>
+                                    {cat.emoji} {cat.name}
+                                  </option>
+                                ))}
+                              </select>
+
+                              {currentCat.description && (
+                                <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.4, fontStyle: 'italic' }}>
+                                  💡 {currentCat.description}
+                                </div>
+                              )}
+
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.35rem', borderTop: '1px dashed var(--border-color)', marginTop: '0.15rem' }}>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Văn phong:</span>
+                                <select
+                                  value={currentTone}
+                                  onChange={(e) => setSelectedPatternTones(prev => ({ ...prev, [idx]: e.target.value }))}
+                                  style={{
+                                    padding: '0.2rem 0.5rem',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 600,
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-secondary)',
+                                    color: 'var(--text-primary)'
+                                  }}
+                                >
+                                  <option value="Formal">Formal (Trang trọng)</option>
+                                  <option value="Academic">Academic (Học thuật)</option>
+                                  <option value="Business">Business (Công việc)</option>
+                                  <option value="Daily">Daily (Hàng ngày)</option>
+                                  <option value="Neutral">Neutral (Trung tính)</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={async () => {
+                              try {
+                                await api.createPattern({
+                                  name: item.name,
+                                  formula: item.formula || '',
+                                  explanation: item.explanation || '',
+                                  meaning_vi: item.explanation || item.name,
+                                  category: currentCatId,
+                                  tone: currentTone,
+                                  examples: [sentenceInput],
+                                  tags: ['Grammar', 'AI-Lab']
+                                });
+                                setSavedPatternIndex(prev => ({ ...prev, [idx]: true }));
+                              } catch (e) {
+                                console.error(e);
+                                alert('Lỗi khi lưu mẫu câu: ' + e.message);
+                              }
+                            }}
+                            disabled={savedPatternIndex[idx]}
+                            className={savedPatternIndex[idx] ? 'btn-secondary' : 'btn-primary'}
+                            style={{ width: '100%', justifyContent: 'center', padding: '0.55rem', fontSize: '0.85rem' }}
+                          >
+                            {savedPatternIndex[idx] ? (
+                              <>
+                                <Check size={16} style={{ color: 'var(--accent-success)' }} />
+                                <span>Đã Lưu Mẫu Câu ({currentCat.name})</span>
+                              </>
+                            ) : (
+                              <>
+                                <BookPlus size={16} />
+                                <span>Lưu Mẫu Câu Này Vào Kho</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1067,6 +1259,14 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           )}
         </div>
       )}
+
+      {/* Pattern Category Management Modal */}
+      <PatternCategoryModal
+        isOpen={isCategoryModalOpen}
+        categories={patternCategories}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onCategoriesChange={() => loadPatternCategories()}
+      />
     </div>
   );
 }

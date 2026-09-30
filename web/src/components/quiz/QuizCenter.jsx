@@ -1218,13 +1218,24 @@ export default function QuizCenter({ onOpenReview }) {
                   {[
                     { id: 'all', name: 'Tất cả chức năng (All)' },
                     ...(patternCategories.length > 0 ? patternCategories : [
-                      { id: 'emphasis', name: 'Nhấn mạnh & Đảo ngữ' },
-                      { id: 'concession', name: 'Nhượng bộ & Đối lập' },
-                      { id: 'purpose', name: 'Mục đích & Kết quả' },
-                      { id: 'condition', name: 'Điều kiện & Giả định' },
-                      { id: 'opinion', name: 'Khẳng định Quan điểm' },
-                      { id: 'sequence', name: 'Thời gian & Trình tự' },
-                      { id: 'advice', name: 'Khuyên bảo & Thúc giục' }
+                      { id: 'cause_effect', name: '⚡ Nguyên nhân & Hệ quả' },
+                      { id: 'purpose', name: '🎯 Mục đích & Kết quả' },
+                      { id: 'condition', name: '⚠️ Điều kiện & Giả định' },
+                      { id: 'concession', name: '⚖️ Nhượng bộ & Đối lập' },
+                      { id: 'comparison', name: '📊 So sánh & Tương phản' },
+                      { id: 'exception', name: '🚫 Loại trừ & Ngoại lệ' },
+                      { id: 'emphasis', name: '💥 Nhấn mạnh & Đảo ngữ' },
+                      { id: 'advice', name: '💡 Khuyên bảo & Thúc giục' },
+                      { id: 'speculation', name: '🔮 Suy đoán & Khả năng' },
+                      { id: 'opinion', name: '💬 Khẳng định Quan điểm' },
+                      { id: 'addition', name: '➕ Bổ sung & Liệt kê' },
+                      { id: 'example', name: '📌 Dẫn chứng & Minh họa' },
+                      { id: 'clarification', name: '🔍 Giải thích & Làm rõ' },
+                      { id: 'transition', name: '🔄 Chuyển ý & Liên kết' },
+                      { id: 'sequence', name: '⏳ Thời gian & Trình tự' },
+                      { id: 'conclusion', name: '🏁 Tổng kết & Kết luận' },
+                      { id: 'request', name: '🤝 Yêu cầu & Đề nghị' },
+                      { id: 'definition', name: '📖 Định nghĩa & Khái niệm' }
                     ])
                   ].map(t => {
                     const isSelected = selectedPatternCategory === t.id;

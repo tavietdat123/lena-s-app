@@ -146,13 +146,24 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
                   ))
                 ) : (
                   <>
-                    <option value="emphasis">💥 Nhấn mạnh & Đảo ngữ</option>
-                    <option value="concession">⚖️ Nhượng bộ & Đối lập</option>
+                    <option value="cause_effect">⚡ Nguyên nhân & Hệ quả</option>
                     <option value="purpose">🎯 Mục đích & Kết quả</option>
                     <option value="condition">⚠️ Điều kiện & Giả định</option>
+                    <option value="concession">⚖️ Nhượng bộ & Đối lập</option>
+                    <option value="comparison">📊 So sánh & Tương phản</option>
+                    <option value="exception">🚫 Loại trừ & Ngoại lệ</option>
+                    <option value="emphasis">💥 Nhấn mạnh & Đảo ngữ</option>
+                    <option value="advice">💡 Khuyên bảo & Thúc giục</option>
+                    <option value="speculation">🔮 Suy đoán & Khả năng</option>
                     <option value="opinion">💬 Khẳng định Quan điểm</option>
+                    <option value="addition">➕ Bổ sung & Liệt kê</option>
+                    <option value="example">📌 Dẫn chứng & Minh họa</option>
+                    <option value="clarification">🔍 Giải thích & Làm rõ</option>
+                    <option value="transition">🔄 Chuyển ý & Liên kết</option>
                     <option value="sequence">⏳ Thời gian & Trình tự</option>
-                    <option value="advice">⏰ Khuyên bảo & Thúc giục</option>
+                    <option value="conclusion">🏁 Tổng kết & Kết luận</option>
+                    <option value="request">🤝 Yêu cầu & Đề nghị</option>
+                    <option value="definition">📖 Định nghĩa & Khái niệm</option>
                   </>
                 )}
               </select>
