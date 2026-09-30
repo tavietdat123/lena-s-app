@@ -141,6 +141,33 @@ export const backupService = {
       }));
     } catch (e) {}
 
+    let speaking_history = [];
+    try {
+      speaking_history = db.prepare(`
+        SELECT * FROM speaking_history 
+        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        ORDER BY created_at DESC
+      `).all(userId).map(sp => ({
+        ...sp,
+        feedback_json: safeParse(sp.feedback_json, {})
+      }));
+    } catch (e) {}
+
+    let notification_settings = {};
+    try {
+      const rows = db.prepare('SELECT key, value FROM settings').all();
+      for (const r of rows) {
+        notification_settings[r.key] = r.value;
+      }
+    } catch (e) {}
+
+    let user_profile = null;
+    try {
+      user_profile = db.prepare('SELECT * FROM user_profile WHERE user_id = ? OR id = ? LIMIT 1').get(userId, userId)
+        || db.prepare('SELECT * FROM user_profile LIMIT 1').get()
+        || null;
+    } catch (e) {}
+
     return {
       app: 'LinguaVault',
       version: '2.0.0',
@@ -156,7 +183,10 @@ export const backupService = {
         study_schedules,
         topics,
         quiz_history,
-        user_settings
+        speaking_history,
+        user_settings,
+        notification_settings,
+        user_profile
       }
     };
   },
@@ -180,10 +210,13 @@ export const backupService = {
     const study_schedules = Array.isArray(payload.study_schedules) ? payload.study_schedules : [];
     const topics = Array.isArray(payload.topics) ? payload.topics : [];
     const quiz_history = Array.isArray(payload.quiz_history) ? payload.quiz_history : [];
+    const speaking_history = Array.isArray(payload.speaking_history) ? payload.speaking_history : [];
     const user_settings = payload.user_settings || null;
+    const notification_settings = payload.notification_settings || null;
+    const user_profile = payload.user_profile || null;
 
-    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && pattern_categories.length === 0 && study_sessions.length === 0 && study_schedules.length === 0) {
-      throw new Error('File sao lưu không chứa dữ liệu từ vựng hoặc cấu trúc nào để khôi phục.');
+    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && pattern_categories.length === 0 && study_sessions.length === 0 && study_schedules.length === 0 && !user_settings && !notification_settings) {
+      throw new Error('File sao lưu không chứa dữ liệu hợp lệ để khôi phục.');
     }
 
     db.exec('BEGIN TRANSACTION;');
@@ -274,10 +307,16 @@ export const backupService = {
             user_id = excluded.user_id
         `);
 
+        const checkWordOwner = db.prepare('SELECT id, user_id FROM words WHERE id = ?');
         for (const w of words) {
           if (!w.id || !w.word) continue;
+          const existing = checkWordOwner.get(w.id);
+          const wordId = (existing && existing.user_id === 'admin_master_user_id' && userId !== 'admin_master_user_id')
+            ? (`w_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`)
+            : w.id;
+
           insertWord.run(
-            w.id,
+            wordId,
             w.word,
             w.phonetic || '',
             w.audio_url || '',
@@ -333,10 +372,16 @@ export const backupService = {
             user_id = excluded.user_id
         `);
 
+        const checkPatternOwner = db.prepare('SELECT id, user_id FROM patterns WHERE id = ?');
         for (const p of patterns) {
           if (!p.id || !p.name) continue;
+          const existing = checkPatternOwner.get(p.id);
+          const patternId = (existing && existing.user_id === 'admin_master_user_id' && userId !== 'admin_master_user_id')
+            ? (`pat_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`)
+            : p.id;
+
           insertPattern.run(
-            p.id,
+            patternId,
             p.name,
             p.formula || '',
             p.explanation || '',
@@ -373,10 +418,16 @@ export const backupService = {
             user_id = excluded.user_id
         `);
 
+        const checkNoteOwner = db.prepare('SELECT id, user_id FROM notes WHERE id = ?');
         for (const n of notes) {
           if (!n.id || !n.title) continue;
+          const existing = checkNoteOwner.get(n.id);
+          const noteId = (existing && existing.user_id === 'admin_master_user_id' && userId !== 'admin_master_user_id')
+            ? (`note_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`)
+            : n.id;
+
           insertNote.run(
-            n.id,
+            noteId,
             n.title,
             n.content || '',
             n.topic || 'General',
@@ -591,6 +642,88 @@ export const backupService = {
         }
       }
 
+      // 10. Restore AI Speaking History
+      if (speaking_history.length > 0) {
+        try {
+          const insertSpeaking = db.prepare(`
+            INSERT INTO speaking_history (
+              id, user_id, type, prompt_title, target_text, spoken_text, score, feedback_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              type = excluded.type,
+              prompt_title = excluded.prompt_title,
+              target_text = excluded.target_text,
+              spoken_text = excluded.spoken_text,
+              score = excluded.score,
+              feedback_json = excluded.feedback_json,
+              user_id = excluded.user_id
+          `);
+
+          for (const sp of speaking_history) {
+            if (!sp.id) continue;
+            insertSpeaking.run(
+              sp.id,
+              userId,
+              sp.type || 'read_aloud',
+              sp.prompt_title || '',
+              sp.target_text || '',
+              sp.spoken_text || '',
+              sp.score ?? null,
+              typeof sp.feedback_json === 'object' ? JSON.stringify(sp.feedback_json) : (sp.feedback_json || '{}'),
+              sp.created_at || new Date().toISOString()
+            );
+          }
+        } catch (e) {
+          console.warn('[Import Speaking History Warning]', e.message);
+        }
+      }
+
+      // 11. Restore Notification & System Settings (Telegram times, auto-backup, discipline mode)
+      if (notification_settings && typeof notification_settings === 'object') {
+        try {
+          const insertSetting = db.prepare(`
+            INSERT INTO settings (key, value)
+            VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+          `);
+
+          for (const [k, v] of Object.entries(notification_settings)) {
+            if (k && v !== undefined && v !== null) {
+              insertSetting.run(String(k), String(v));
+            }
+          }
+        } catch (e) {
+          console.warn('[Import Notification Settings Warning]', e.message);
+        }
+      }
+
+      // 12. Restore User Profile & Streak / XP
+      if (user_profile && typeof user_profile === 'object') {
+        try {
+          db.prepare(`
+            INSERT INTO user_profile (id, user_id, total_xp, current_level, title, streak_record, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              total_xp = excluded.total_xp,
+              current_level = excluded.current_level,
+              title = excluded.title,
+              streak_record = excluded.streak_record,
+              updated_at = excluded.updated_at,
+              user_id = excluded.user_id
+          `).run(
+            user_profile.id || userId,
+            userId,
+            user_profile.total_xp || 0,
+            user_profile.current_level || 1,
+            user_profile.title || 'Novice Scholar 🌱',
+            user_profile.streak_record || 0,
+            new Date().toISOString()
+          );
+        } catch (e) {
+          console.warn('[Import User Profile Warning]', e.message);
+        }
+      }
+
       db.exec('COMMIT;');
     } catch (txErr) {
       try { db.exec('ROLLBACK;'); } catch (e) {}
@@ -606,6 +739,9 @@ export const backupService = {
     if (study_logs.length > 0) summaryParts.push(`${study_logs.length} ngày lịch sử`);
     if (study_sessions.length > 0) summaryParts.push(`${study_sessions.length} phiên bấm giờ học`);
     if (study_schedules.length > 0) summaryParts.push(`${study_schedules.length} lịch học dài hạn`);
+    if (speaking_history.length > 0) summaryParts.push(`${speaking_history.length} bài phát âm AI`);
+    if (user_settings || notification_settings) summaryParts.push(`cài đặt thông báo & Telegram`);
+    if (user_profile) summaryParts.push(`hồ sơ điểm thưởng XP & Streak`);
 
     return {
       success: true,
@@ -618,7 +754,8 @@ export const backupService = {
         topics: topics.length,
         study_logs: study_logs.length,
         study_sessions: study_sessions.length,
-        study_schedules: study_schedules.length
+        study_schedules: study_schedules.length,
+        speaking_history: speaking_history.length
       }
     };
   }
