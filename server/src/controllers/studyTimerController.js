@@ -7,8 +7,13 @@ const ACTIVITY_META = {
   flashcard: { label: 'Ôn Tập Flashcards (SRS)', emoji: '🎴', color: '#8b5cf6' },
   reader: { label: 'Đọc Hiểu & Ghi Chú', emoji: '📖', color: '#10b981' },
   quiz: { label: 'Luyện Đề Quiz Trắc Nghiệm', emoji: '🎯', color: '#f59e0b' },
-  speaking: { label: 'Luyện Phát Âm & Speaking', emoji: '🎙️', color: '#ec4899' },
-  general: { label: 'Tự Học & Tổng Hợp', emoji: '💡', color: '#06b6d4' }
+  speaking: { label: 'Luyện Phát Âm & Nói', emoji: '🎙️', color: '#ec4899' },
+  coding: { label: 'Lập Trình & Học Code', emoji: '💻', color: '#6366f1' },
+  work: { label: 'Công Việc & Dự Án', emoji: '💼', color: '#059669' },
+  deepwork: { label: 'Deep Work Tập Trung', emoji: '🧠', color: '#d97706' },
+  writing: { label: 'Viết Lách & Dịch Thuật', emoji: '✍️', color: '#0ea5e9' },
+  general: { label: 'Tự Học & Khác', emoji: '💡', color: '#06b6d4' },
+  custom: { label: 'Hoạt Động Tùy Chỉnh', emoji: '⚡', color: '#8b5cf6' }
 };
 
 export const studyTimerController = {
@@ -258,8 +263,14 @@ export const studyTimerController = {
         GROUP BY activity_type
       `).all(userId, userId, userId);
 
-      const activityBreakdown = Object.entries(ACTIVITY_META).map(([type, meta]) => {
+      const dynamicTypes = Array.from(new Set([...Object.keys(ACTIVITY_META), ...activityRows.map(r => r.activity_type)]));
+      const activityBreakdown = dynamicTypes.map(type => {
         const found = activityRows.find(r => r.activity_type === type);
+        const meta = ACTIVITY_META[type] || {
+          label: type,
+          emoji: '⚡',
+          color: '#6366f1'
+        };
         const sec = found ? found.total_seconds : 0;
         const count = found ? found.count : 0;
         const percent = totalSeconds > 0 ? Math.round((sec / totalSeconds) * 100) : 0;
@@ -396,6 +407,7 @@ export const studyTimerController = {
         days_of_week = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
         is_active = true,
         sound_type = 'melodic',
+        activity_type = 'general',
         auto_start_breaks = true
       } = req.body || {};
 
@@ -422,6 +434,7 @@ export const studyTimerController = {
             days_of_week = ?,
             is_active = ?,
             sound_type = ?,
+            activity_type = ?,
             auto_start_breaks = ?,
             updated_at = ?
           WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id'))
@@ -436,6 +449,7 @@ export const studyTimerController = {
           daysStr,
           is_active ? 1 : 0,
           sound_type || 'melodic',
+          activity_type || 'general',
           auto_start_breaks ? 1 : 0,
           now,
           scheduleId,
@@ -448,8 +462,8 @@ export const studyTimerController = {
             id, user_id, title, start_time, end_time,
             study_duration_minutes, break_duration_minutes, long_break_minutes,
             cycles_before_long_break, days_of_week, is_active, sound_type,
-            auto_start_breaks, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            activity_type, auto_start_breaks, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           scheduleId,
           userId,
@@ -463,6 +477,7 @@ export const studyTimerController = {
           daysStr,
           is_active ? 1 : 0,
           sound_type || 'melodic',
+          activity_type || 'general',
           auto_start_breaks ? 1 : 0,
           now,
           now

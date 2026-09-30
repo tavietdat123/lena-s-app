@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Coffee, BellRing, Calendar, Sparkles, Check, Volume2 } from 'lucide-react';
-import { SOUND_OPTIONS, playChime } from '../../context/StudyTimerContext';
+import { SOUND_OPTIONS, ACTIVITIES, playChime } from '../../context/StudyTimerContext';
 
 const DAYS_OF_WEEK = [
   { id: 'mon', label: 'T2', name: 'Thứ 2' },
@@ -14,6 +14,7 @@ const DAYS_OF_WEEK = [
 
 export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }) {
   const [title, setTitle] = useState('');
+  const [activityType, setActivityType] = useState('coding');
   const [startTime, setStartTime] = useState('20:00');
   const [endTime, setEndTime] = useState('22:30');
   const [studyMins, setStudyMins] = useState(25);
@@ -27,6 +28,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
   useEffect(() => {
     if (schedule) {
       setTitle(schedule.title || '');
+      setActivityType(schedule.activity_type || 'coding');
       setStartTime(schedule.start_time || '20:00');
       setEndTime(schedule.end_time || '22:30');
       setStudyMins(schedule.study_duration_minutes || 25);
@@ -36,7 +38,8 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
       setSoundType(schedule.sound_type || 'melodic');
       setAutoStartBreaks(schedule.auto_start_breaks !== false);
     } else {
-      setTitle('Ca Học Tối Kỷ Luật');
+      setTitle('Ca Cày Code Tối Kỷ Luật');
+      setActivityType('coding');
       setStartTime('20:00');
       setEndTime('22:30');
       setStudyMins(25);
@@ -90,6 +93,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
       await onSave({
         id: schedule?.id,
         title: title.trim(),
+        activity_type: activityType,
         start_time: startTime,
         end_time: endTime,
         study_duration_minutes: Number(studyMins) || 25,
@@ -152,10 +156,10 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                {schedule ? 'Chỉnh Sửa Lịch Học Dài Hạn' : 'Thiết Lập Lịch Học Dài Hạn & Nghỉ Giữa Giờ'}
+                {schedule ? 'Chỉnh Sửa Lịch Làm Việc / Học Tập' : 'Thiết Lập Lịch Dài Hạn & Nghỉ Giữa Giờ'}
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
-                Định hình khung giờ từ bao giờ đến bao giờ và thời gian nghỉ giữa giờ.
+                Định hình khung giờ từ bao giờ đến bao giờ, cày code, làm việc hoặc học tập.
               </p>
             </div>
           </div>
@@ -165,17 +169,68 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-          {/* 1. Schedule Name */}
+          {/* 1. Activity Type Selection */}
+          <div>
+            <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>
+              🎯 Loại Ca Hoạt Động (Học code, Làm việc, Ngoại ngữ...):
+            </label>
+            <div style={{
+              display: 'flex',
+              gap: '0.4rem',
+              flexWrap: 'wrap'
+            }}>
+              {ACTIVITIES.map(act => {
+                const isSelected = activityType === act.id;
+                return (
+                  <button
+                    key={act.id}
+                    type="button"
+                    onClick={() => {
+                      setActivityType(act.id);
+                      if (!schedule) {
+                        if (act.id === 'coding') setTitle('Ca Cày Code Tối Kỷ Luật');
+                        else if (act.id === 'work') setTitle('Ca Làm Việc & Dự Án');
+                        else if (act.id === 'deepwork') setTitle('Ca Deep Work Chuyên Sâu');
+                        else if (act.id === 'writing') setTitle('Ca Viết Lách & Dịch');
+                        else if (act.id === 'vocab') setTitle('Ca Học Từ Vựng Mới');
+                        else if (act.id === 'flashcard') setTitle('Ca Ôn Flashcards SRS');
+                      }
+                    }}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      border: '1.5px solid',
+                      borderColor: isSelected ? act.color : 'var(--border-color)',
+                      background: isSelected ? `${act.color}1c` : 'var(--bg-tertiary)',
+                      color: isSelected ? act.color : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{act.emoji}</span>
+                    <span>{act.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Schedule Name */}
           <div>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-              📌 Tên Lịch Học / Ca Học:
+              📌 Tên Lịch / Ca Hoạt Động:
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: Ca học tối kỷ luật, Luyện thi IELTS sáng..."
+              placeholder="VD: Ca cày code tối, Giải quyết task dự án, Ôn từ vựng..."
               style={{
                 width: '100%',
                 padding: '0.65rem 0.85rem',

@@ -1,16 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Maximize2, X } from 'lucide-react';
-import { useStudyTimer } from '../../context/StudyTimerContext';
-
-const ACTIVITIES = [
-  { id: 'vocab', label: 'Học Từ Vựng', emoji: '📚', color: '#0284c7' },
-  { id: 'flashcard', label: 'Flashcards', emoji: '🎴', color: '#8b5cf6' },
-  { id: 'reader', label: 'Đọc Hiểu', emoji: '📖', color: '#10b981' },
-  { id: 'quiz', label: 'Quiz', emoji: '🎯', color: '#f59e0b' },
-  { id: 'speaking', label: 'Speaking', emoji: '🎙️', color: '#ec4899' },
-  { id: 'general', label: 'Tự Học', emoji: '💡', color: '#06b6d4' }
-];
+import { useStudyTimer, getActivityMeta } from '../../context/StudyTimerContext';
 
 function formatTime(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -32,6 +23,7 @@ export default function GlobalTimerBar() {
     timerPhase,
     scheduleCycle,
     selectedActivity,
+    customActivityTitle,
     isRunning,
     liveSeconds,
     pomodoroTarget,
@@ -45,10 +37,12 @@ export default function GlobalTimerBar() {
   }
 
   const isBreak = timerPhase === 'break';
-  const act = ACTIVITIES.find(a => a.id === selectedActivity) || ACTIVITIES[0];
-  const badgeLabel = isBreak ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') : act.label;
-  const badgeEmoji = isBreak ? '☕' : act.emoji;
-  const badgeColor = isBreak ? '#10b981' : act.color;
+  const meta = getActivityMeta(selectedActivity, customActivityTitle);
+  const badgeLabel = isBreak 
+    ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') 
+    : (customActivityTitle?.trim() || meta.label);
+  const badgeEmoji = isBreak ? '☕' : meta.emoji;
+  const badgeColor = isBreak ? '#10b981' : meta.color;
 
   const displaySeconds = timerMode === 'pomodoro'
     ? Math.max(0, pomodoroTarget - liveSeconds)

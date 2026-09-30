@@ -283,12 +283,18 @@ export function initializeDatabase() {
       days_of_week TEXT DEFAULT '["mon","tue","wed","thu","fri","sat","sun"]',
       is_active INTEGER DEFAULT 1,
       sound_type TEXT DEFAULT 'melodic',
+      activity_type TEXT DEFAULT 'general',
       auto_start_breaks INTEGER DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_study_schedules_user ON study_schedules(user_id);
   `);
+
+  // Migration: Ensure study_schedules has activity_type
+  try {
+    db.exec(`ALTER TABLE study_schedules ADD COLUMN activity_type TEXT DEFAULT 'general';`);
+  } catch (e) {}
 
   // Migration: Ensure words table has topic_id & user_id column
   try {

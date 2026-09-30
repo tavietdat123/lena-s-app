@@ -18,12 +18,12 @@ async function runTest() {
     'id', 'user_id', 'title', 'start_time', 'end_time',
     'study_duration_minutes', 'break_duration_minutes', 'long_break_minutes',
     'cycles_before_long_break', 'days_of_week', 'is_active', 'sound_type',
-    'auto_start_breaks', 'created_at', 'updated_at'
+    'activity_type', 'auto_start_breaks', 'created_at', 'updated_at'
   ];
   for (const c of requiredCols) {
     if (!cols.includes(c)) throw new Error(`❌ Cột ${c} thiếu trong bảng study_schedules!`);
   }
-  console.log('  ✅ [PASS] Đầy đủ 15 cột cấu hình lịch học và chu kỳ nghỉ giữa giờ');
+  console.log('  ✅ [PASS] Đầy đủ 16 cột cấu hình lịch học và chu kỳ nghỉ giữa giờ');
 
   // 2. Test Backup and Restore
   const user = db.prepare(`SELECT id FROM users LIMIT 1`).get();

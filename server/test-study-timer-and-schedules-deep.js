@@ -1,8 +1,10 @@
-import { getDb } from './src/db/database.js';
+import { getDb, initializeDatabase } from './src/db/database.js';
 import { backupService } from './src/services/backupService.js';
 import { studyTimerController } from './src/controllers/studyTimerController.js';
 import { generateToken } from './src/services/authService.js';
 import crypto from 'crypto';
+
+initializeDatabase();
 
 let passCount = 0;
 let failCount = 0;
@@ -299,6 +301,7 @@ async function runDeepTesting() {
       days_of_week: ['mon', 'wed', 'fri', 'sun'],
       is_active: true,
       sound_type: 'fanfare',
+      activity_type: 'coding',
       auto_start_breaks: true
     }
   }, mockRes);
@@ -306,12 +309,14 @@ async function runDeepTesting() {
   assert(jsonCaptured.success === true, 'Tạo mới lịch học qua controller thành công (Status 200)');
   assert(jsonCaptured.data.title === 'Ca Học Đêm Chuyên Sâu', 'Dữ liệu trả về đúng tiêu đề lịch');
   assert(jsonCaptured.data.sound_type === 'fanfare', 'Gán đúng nhạc chuông fanfare');
+  assert(jsonCaptured.data.activity_type === 'coding', 'Gán đúng loại hoạt động coding');
 
   // Test 4.3: Read schedule from DB
   const readSched = db.prepare('SELECT * FROM study_schedules WHERE id = ?').get(newSchedId);
   assert(readSched !== undefined, 'Lịch học đã được lưu bền vững vào bảng study_schedules');
   assert(readSched.start_time === '21:00' && readSched.end_time === '23:30', 'Đúng khung giờ 21:00 -> 23:30');
   assert(readSched.study_duration_minutes === 30 && readSched.break_duration_minutes === 5, 'Đúng thời lượng 30p học, 5p nghỉ');
+  assert(readSched.activity_type === 'coding', 'Lưu bền vững activity_type = coding trong SQLite');
 
   // Test 4.4: Update schedule
   studyTimerController.saveSchedule({
@@ -324,13 +329,15 @@ async function runDeepTesting() {
       study_duration_minutes: 25,
       break_duration_minutes: 5,
       is_active: false,
-      sound_type: 'alarm'
+      sound_type: 'alarm',
+      activity_type: 'work'
     }
   }, mockRes);
 
   const updatedSched = db.prepare('SELECT * FROM study_schedules WHERE id = ?').get(newSchedId);
   assert(updatedSched.title === 'Ca Học Đêm (Đã Cập Nhật)', 'Cập nhật tiêu đề lịch học thành công');
   assert(updatedSched.sound_type === 'alarm', 'Đổi nhạc chuông sang alarm thành công');
+  assert(updatedSched.activity_type === 'work', 'Cập nhật loại hoạt động sang work thành công');
   assert(updatedSched.is_active === 0, 'Tắt lịch học (is_active = 0) thành công');
 
   // Test 4.5: Multi-user isolation
@@ -348,6 +355,26 @@ async function runDeepTesting() {
   const afterDelete = db.prepare('SELECT id FROM study_schedules WHERE id = ?').get(newSchedId);
   assert(afterDelete === undefined, 'Xóa lịch học khỏi cơ sở dữ liệu thành công');
 
+  // Test 4.7: Save Coding & Work Session and Verify Stats Breakdown
+  studyTimerController.saveSession({
+    user: { id: testUserId },
+    body: {
+      activity_type: 'coding',
+      activity_title: 'Code Backend API Authentication',
+      duration_seconds: 3600, // 60 mins
+      mode: 'stopwatch',
+      started_at: new Date(Date.now() - 3600000).toISOString(),
+      ended_at: new Date().toISOString()
+    }
+  }, mockRes);
+  assert(jsonCaptured.success === true, 'Lưu phiên làm việc lập trình Coding thành công (60 phút)');
+
+  studyTimerController.getStats({ user: { id: testUserId } }, mockRes);
+  assert(jsonCaptured.success === true, 'Lấy thống kê thời gian làm việc thành công');
+  const codingBreakdown = jsonCaptured.data.activityBreakdown.find(b => b.type === 'coding');
+  assert(codingBreakdown !== undefined && codingBreakdown.total_minutes === 60, 'Thống kê phân bổ chính xác 60 phút cho hoạt động Lập Trình (coding)');
+  assert(codingBreakdown.emoji === '💻', 'Biểu tượng của hoạt động coding hiển thị 💻');
+
   // -------------------------------------------------------------
   // TEST SUITE 5: Backup & Restore Integration
   // -------------------------------------------------------------
@@ -358,9 +385,9 @@ async function runDeepTesting() {
     INSERT INTO study_schedules (
       id, user_id, title, start_time, end_time,
       study_duration_minutes, break_duration_minutes,
-      days_of_week, sound_type, is_active, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-  `).run(backupTestId, testUserId, 'Ca Học Sao Lưu Test', '19:00', '21:30', 25, 5, '["mon","tue"]', 'zen', 1);
+      days_of_week, sound_type, activity_type, is_active, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+  `).run(backupTestId, testUserId, 'Ca Học Sao Lưu Test', '19:00', '21:30', 25, 5, '["mon","tue"]', 'zen', 'coding', 1);
 
   const backupPayload = backupService.buildBackupPayload(testUserId);
   assert(Array.isArray(backupPayload.data.study_schedules), 'Backup payload chứa trường study_schedules dạng mảng');

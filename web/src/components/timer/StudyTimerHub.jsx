@@ -20,31 +20,42 @@ import {
   FileText, 
   Target, 
   Mic, 
-  Info,
-  Check,
-  X,
-  Volume2,
-  SlidersHorizontal,
-  Coffee,
-  Music,
-  BellRing,
-  CalendarDays,
-  SkipForward,
-  Edit2,
-  Plus
+  Info, 
+  Check, 
+  X, 
+  Volume2, 
+  SlidersHorizontal, 
+  Coffee, 
+  Music, 
+  BellRing, 
+  CalendarDays, 
+  SkipForward, 
+  Edit2, 
+  Plus,
+  Code,
+  Briefcase,
+  Brain,
+  PenTool,
+  Zap,
+  Laptop
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { useStudyTimer, SOUND_OPTIONS } from '../../context/StudyTimerContext';
+import { useStudyTimer, SOUND_OPTIONS, ACTIVITIES, getActivityMeta } from '../../context/StudyTimerContext';
 import StudyScheduleModal from './StudyScheduleModal';
 
-const ACTIVITIES = [
-  { id: 'vocab', label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7', icon: BookOpen },
-  { id: 'flashcard', label: 'Ôn Tập Flashcards (SRS)', emoji: '🎴', color: '#8b5cf6', icon: Layers },
-  { id: 'reader', label: 'Đọc Hiểu & Ghi Chú', emoji: '📖', color: '#10b981', icon: FileText },
-  { id: 'quiz', label: 'Luyện Đề Quiz Trắc Nghiệm', emoji: '🎯', color: '#f59e0b', icon: Target },
-  { id: 'speaking', label: 'Luyện Nói & Speaking', emoji: '🎙️', color: '#ec4899', icon: Mic },
-  { id: 'general', label: 'Tự Học & Tổng Hợp', emoji: '💡', color: '#06b6d4', icon: Sparkles }
-];
+const ACTIVITY_ICONS = {
+  coding: Code,
+  work: Briefcase,
+  vocab: BookOpen,
+  flashcard: Layers,
+  reader: FileText,
+  quiz: Target,
+  speaking: Mic,
+  deepwork: Brain,
+  writing: PenTool,
+  general: Sparkles,
+  custom: Zap
+};
 
 const POMODORO_PRESETS = [
   { label: '5m', tag: 'Khởi động', fullLabel: '5 phút (Khởi động nhanh)', seconds: 5 * 60 },
@@ -123,6 +134,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
     setTimerPhase,
     selectedActivity,
     setSelectedActivity,
+    customActivityTitle,
+    setCustomActivityTitle,
     isRunning,
     liveSeconds,
     pomodoroTarget,
@@ -285,13 +298,14 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
     if (liveSeconds < 1) return;
     setIsSaving(true);
     try {
-      const act = ACTIVITIES.find(a => a.id === selectedActivity) || ACTIVITIES[0];
+      const actMeta = getActivityMeta(selectedActivity, customActivityTitle);
+      const resolvedTitle = customActivityTitle?.trim() || actMeta.label;
       const now = new Date();
       const startIso = sessionStartedAt || new Date(now.getTime() - liveSeconds * 1000).toISOString();
 
       const res = await api.saveStudySession({
         activity_type: selectedActivity,
-        activity_title: act.label,
+        activity_title: resolvedTitle,
         duration_seconds: liveSeconds,
         mode: timerMode,
         target_seconds: timerMode === 'pomodoro' ? pomodoroTarget : 0,
@@ -303,7 +317,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
       if (res.success) {
         const xpEarned = res.xpEarned || 20;
         if (onAddToast) {
-          onAddToast(`🎉 Đã lưu phiên học ${formatDurationHuman(liveSeconds)}! (+${xpEarned} XP)`);
+          onAddToast(`🎉 Đã lưu ${resolvedTitle} (${formatDurationHuman(liveSeconds)})! (+${xpEarned} XP)`);
         }
         if (onSessionFinished) onSessionFinished(res);
 
@@ -329,12 +343,12 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
         if (onAddToast) onAddToast('Đã xóa phiên học.');
         loadStatsAndHistory();
       }
-    } catch (err) {
+    } catch (e) {
       alert('Lỗi xóa phiên học: ' + err.message);
     }
   };
 
-  const currentActivity = ACTIVITIES.find(a => a.id === selectedActivity) || ACTIVITIES[0];
+  const currentActivity = getActivityMeta(selectedActivity, customActivityTitle);
   const displayTimeSeconds = timerMode === 'pomodoro' ? pomodoroRemaining : elapsedSeconds;
 
   // Calculate Pomodoro Progress percentage
@@ -1024,8 +1038,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   {timerPhase === 'break'
                     ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
                     : (isRunning 
-                        ? (timerMode === 'pomodoro' ? 'Đang tập trung Pomodoro...' : 'Đang bấm giờ học...')
-                        : (elapsedSeconds > 0 ? 'Đang tạm dừng' : 'Sẵn sàng bắt đầu'))}
+                        ? (customActivityTitle ? `Đang thực hiện: ${customActivityTitle}` : `Đang ${currentActivity.label}...`)
+                        : (elapsedSeconds > 0 ? 'Đang tạm dừng' : `Sẵn sàng: ${customActivityTitle || currentActivity.label}`))}
                 </span>
                 {timerMode === 'pomodoro' && isRunning && (
                   <span style={{ marginLeft: '4px', opacity: 0.85 }}>({pomodoroProgressPercent}%)</span>
@@ -1171,9 +1185,15 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
 
           {/* Activity Selector Row */}
           <div>
-            <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', marginBottom: '0.6rem' }}>
-              🎯 Bạn đang học nội dung gì? (Chọn hoạt động để phân loại thống kê):
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                🎯 Bạn đang làm gì? (Chọn loại công việc & học tập để phân loại):
+              </label>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                Hỗ trợ cày code, làm việc, ngoại ngữ & deep work
+              </span>
+            </div>
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
@@ -1181,7 +1201,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}>
               {ACTIVITIES.map(act => {
                 const isSelected = selectedActivity === act.id;
-                const Icon = act.icon;
+                const Icon = ACTIVITY_ICONS[act.id] || Sparkles;
                 return (
                   <button
                     key={act.id}
@@ -1190,9 +1210,9 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     style={{
                       padding: '0.75rem 0.85rem',
                       borderRadius: '14px',
-                      border: '1px solid',
+                      border: '1.5px solid',
                       borderColor: isSelected ? act.color : 'var(--border-color)',
-                      background: isSelected ? 'var(--bg-secondary)' : 'var(--bg-tertiary)',
+                      background: isSelected ? `${act.color}15` : 'var(--bg-tertiary)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.6rem',
@@ -1206,7 +1226,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       width: '32px',
                       height: '32px',
                       borderRadius: '8px',
-                      background: `${act.color}18`,
+                      background: `${act.color}20`,
                       color: act.color,
                       display: 'flex',
                       alignItems: 'center',
@@ -1224,6 +1244,122 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Custom Task / Goal Input & Quick Chips */}
+            <div style={{
+              marginTop: '0.85rem',
+              background: 'var(--bg-secondary)',
+              padding: '0.9rem 1.1rem',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>✏️ Tên công việc / mục tiêu cụ thể:</span>
+                  {customActivityTitle && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700 }}>
+                      «{customActivityTitle}»
+                    </span>
+                  )}
+                </label>
+                {customActivityTitle && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomActivityTitle('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.74rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    ✕ Xóa tên cụ thể
+                  </button>
+                )}
+              </div>
+
+              <input
+                type="text"
+                value={customActivityTitle}
+                onChange={(e) => setCustomActivityTitle(e.target.value)}
+                placeholder={
+                  selectedActivity === 'coding'
+                    ? 'VD: Code backend API, Fix bug giỏ hàng, Luyện thuật toán LeetCode...'
+                    : selectedActivity === 'work'
+                    ? 'VD: Soạn báo cáo dự án, Xử lý email khách hàng, Lên kế hoạch tuần...'
+                    : selectedActivity === 'deepwork'
+                    ? 'VD: Nghiên cứu kiến trúc hệ thống, Đọc tài liệu RFC...'
+                    : selectedActivity === 'writing'
+                    ? 'VD: Viết bài blog kỹ thuật, Soạn tài liệu API...'
+                    : 'VD: Nhập tên công việc cụ thể bạn muốn hiển thị trên đồng hồ...'
+                }
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.9rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600
+                }}
+              />
+
+              {/* Quick Suggestion Chips */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 700 }}>Gợi ý nhanh:</span>
+                {(selectedActivity === 'coding' ? [
+                  '💻 Code Backend API',
+                  '🐛 Fix Bug Thanh Toán',
+                  '🚀 Giải Thuật LeetCode',
+                  '🎨 Thiết Kế Giao Diện UI',
+                  '📖 Đọc Tài Liệu Kỹ Thuật'
+                ] : selectedActivity === 'work' ? [
+                  '💼 Xử Lý Task Dự Án',
+                  '📑 Soạn Báo Cáo',
+                  '📬 Trả Lời Khách Hàng',
+                  '📊 Lập Kế Hoạch Sprint'
+                ] : selectedActivity === 'deepwork' ? [
+                  '🧠 Deep Work Không Điện Thoại',
+                  '🔥 Tối Ưu Hiệu Năng DB',
+                  '🎯 Sprint Tập Trung 60p'
+                ] : selectedActivity === 'writing' ? [
+                  '✍️ Viết Bài Chia Sẻ',
+                  '📑 Soạn Tài Liệu Kỹ Thuật',
+                  '🌐 Dịch Thuật Bài Viết'
+                ] : [
+                  '💻 Lập Trình & Code',
+                  '💼 Xử Lý Công Việc',
+                  '📚 Học 20 Từ Vựng Mới',
+                  '🎴 Ôn 50 Flashcards',
+                  '🎯 Giải Đề Kiểm Tra'
+                ]).map(chip => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setCustomActivityTitle(chip)}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '8px',
+                      background: customActivityTitle === chip ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                      color: customActivityTitle === chip ? '#ffffff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1455,10 +1591,26 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       {/* Card Header: Title & Switch */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                             <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
                               {sch.title}
                             </h4>
+                            {sch.activity_type && (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '6px',
+                                background: `${getActivityMeta(sch.activity_type).color}15`,
+                                color: getActivityMeta(sch.activity_type).color,
+                                fontSize: '0.72rem',
+                                fontWeight: 700
+                              }}>
+                                <span>{getActivityMeta(sch.activity_type).emoji}</span>
+                                <span>{getActivityMeta(sch.activity_type).label}</span>
+                              </span>
+                            )}
                             {isCurrentActive && (
                               <span style={{
                                 padding: '0.15rem 0.45rem',
@@ -2125,7 +2277,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   </thead>
                   <tbody>
                     {sessions.map(s => {
-                      const act = ACTIVITIES.find(a => a.id === s.activity_type) || ACTIVITIES[0];
+                      const act = getActivityMeta(s.activity_type, s.activity_title);
+                      const displayTitle = s.activity_title || act.label;
                       const dateObj = new Date(s.started_at);
                       const dateFormatted = `${dateObj.getDate()}/${dateObj.getMonth() + 1} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
 
@@ -2138,8 +2291,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                             <span style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '0.3rem',
-                              padding: '0.2rem 0.55rem',
+                              gap: '0.35rem',
+                              padding: '0.25rem 0.6rem',
                               borderRadius: '8px',
                               background: `${act.color}15`,
                               color: act.color,
@@ -2147,7 +2300,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                               fontSize: '0.78rem'
                             }}>
                               <span>{act.emoji}</span>
-                              <span>{act.label}</span>
+                              <span>{displayTitle}</span>
                             </span>
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
@@ -2218,13 +2371,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  fontSize: '0.82rem',
+                  fontSize: '0.85rem',
                   fontWeight: 700,
                   color: currentActivity.color,
                   marginTop: '4px'
                 }}>
                   <span>{currentActivity.emoji}</span>
-                  <span>{currentActivity.label}</span>
+                  <span>{customActivityTitle ? `${customActivityTitle} • ${currentActivity.label}` : currentActivity.label}</span>
                 </div>
               </div>
 

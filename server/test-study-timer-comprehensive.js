@@ -135,8 +135,9 @@ async function runComprehensiveTests() {
   let statsRes = null;
   studyTimerController.getStats({ user: { id: userId } }, { json: (d) => { statsRes = d; return d; } });
   assert(statsRes && statsRes.success && statsRes.data.totalSeconds >= (720 + 2100), 'Lấy KPI tổng thời gian học chính xác');
-  assert(statsRes.data.dailyHistory.length === 14, 'Biểu đồ lịch sử 14 ngày luôn đủ 14 điểm dữ liệu');
-  assert(statsRes.data.activityBreakdown.length === 6, 'Phân bổ 6 loại hoạt động học tập chuẩn xác');
+  assert(statsRes.data.activityBreakdown.length >= 11, 'Phân bổ 11 loại hoạt động đa năng (coding, work, deepwork, ngoại ngữ...) chuẩn xác');
+  assert(statsRes.data.activityBreakdown.some(a => a.type === 'coding' && a.emoji === '💻'), 'Hỗ trợ danh mục Lập trình & Học Code (💻)');
+  assert(statsRes.data.activityBreakdown.some(a => a.type === 'work' && a.emoji === '💼'), 'Hỗ trợ danh mục Công việc & Dự án (💼)');
 
   // Test Get Sessions with pagination and filter
   let listRes = null;

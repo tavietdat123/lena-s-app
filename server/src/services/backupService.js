@@ -333,8 +333,9 @@ export const backupService = {
 
         for (const s of study_logs) {
           if (!s.date) continue;
+          const logId = (s.id && s.id.includes(userId)) ? s.id : `log_${userId}_${s.date}`;
           insertStudyLog.run(
-            s.id || `log_${userId}_${s.date}`,
+            logId,
             s.date,
             userId,
             s.reviews_count || 0,
@@ -476,8 +477,8 @@ export const backupService = {
               id, user_id, title, start_time, end_time,
               study_duration_minutes, break_duration_minutes, long_break_minutes,
               cycles_before_long_break, days_of_week, is_active, sound_type,
-              auto_start_breaks, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              activity_type, auto_start_breaks, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               title = excluded.title,
               start_time = excluded.start_time,
@@ -489,6 +490,7 @@ export const backupService = {
               days_of_week = excluded.days_of_week,
               is_active = excluded.is_active,
               sound_type = excluded.sound_type,
+              activity_type = excluded.activity_type,
               auto_start_breaks = excluded.auto_start_breaks,
               updated_at = excluded.updated_at,
               user_id = excluded.user_id
@@ -509,6 +511,7 @@ export const backupService = {
               safeStringify(sch.days_of_week, '["mon","tue","wed","thu","fri","sat","sun"]'),
               sch.is_active !== undefined ? (sch.is_active ? 1 : 0) : 1,
               sch.sound_type || 'melodic',
+              sch.activity_type || 'general',
               sch.auto_start_breaks !== undefined ? (sch.auto_start_breaks ? 1 : 0) : 1,
               sch.created_at || new Date().toISOString(),
               sch.updated_at || new Date().toISOString()

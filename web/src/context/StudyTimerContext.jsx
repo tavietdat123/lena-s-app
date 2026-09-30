@@ -11,6 +11,36 @@ export const SOUND_OPTIONS = [
   { id: 'fanfare', label: 'Kèn Khải Hoàn', emoji: '🎺', desc: 'Hợp âm chiến thắng mừng hoàn thành phiên' }
 ];
 
+export const ACTIVITIES = [
+  { id: 'coding', label: 'Lập Trình & Học Code', emoji: '💻', color: '#6366f1' },
+  { id: 'work', label: 'Công Việc & Dự Án', emoji: '💼', color: '#059669' },
+  { id: 'vocab', label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7' },
+  { id: 'flashcard', label: 'Ôn Flashcards (SRS)', emoji: '🎴', color: '#8b5cf6' },
+  { id: 'reader', label: 'Đọc Hiểu & Ghi Chú', emoji: '📖', color: '#10b981' },
+  { id: 'quiz', label: 'Luyện Đề Quiz Trắc Nghiệm', emoji: '🎯', color: '#f59e0b' },
+  { id: 'speaking', label: 'Luyện Phát Âm & Nói', emoji: '🎙️', color: '#ec4899' },
+  { id: 'deepwork', label: 'Deep Work Tập Trung', emoji: '🧠', color: '#d97706' },
+  { id: 'writing', label: 'Viết Lách & Dịch Thuật', emoji: '✍️', color: '#0ea5e9' },
+  { id: 'general', label: 'Tự Học & Khác', emoji: '💡', color: '#06b6d4' },
+  { id: 'custom', label: 'Tự Đặt Tên...', emoji: '⚡', color: '#8b5cf6' }
+];
+
+export function getActivityMeta(activityId, customTitle = '') {
+  const found = ACTIVITIES.find(a => a.id === activityId);
+  if (found) {
+    if (activityId === 'custom' && customTitle) {
+      return { ...found, label: customTitle };
+    }
+    return found;
+  }
+  return {
+    id: activityId || 'custom',
+    label: customTitle || activityId || 'Công việc tự do',
+    emoji: '⚡',
+    color: '#6366f1'
+  };
+}
+
 // High-Fidelity Web Audio Sound Synthesizer
 export function playChime(soundType = 'melodic') {
   try {
@@ -95,7 +125,8 @@ export function playChime(soundType = 'melodic') {
 export function StudyTimerProvider({ children, onAddToast }) {
   const [timerMode, setTimerMode] = useState('stopwatch'); // 'stopwatch' | 'pomodoro'
   const [timerPhase, setTimerPhase] = useState('study'); // 'study' | 'break'
-  const [selectedActivity, setSelectedActivity] = useState('vocab');
+  const [selectedActivity, setSelectedActivity] = useState('coding');
+  const [customActivityTitle, setCustomActivityTitle] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
   const [runStartTime, setRunStartTime] = useState(null);
@@ -134,7 +165,8 @@ export function StudyTimerProvider({ children, onAddToast }) {
         if (parsed) {
           setTimerMode(parsed.timerMode || 'stopwatch');
           setTimerPhase(parsed.timerPhase || 'study');
-          setSelectedActivity(parsed.selectedActivity || 'vocab');
+          setSelectedActivity(parsed.selectedActivity || 'coding');
+          setCustomActivityTitle(parsed.customActivityTitle || '');
           setPomodoroTargetState(parsed.pomodoroTarget || 25 * 60);
           setSessionStartedAt(parsed.sessionStartedAt || null);
           setScheduleCycle(parsed.scheduleCycle || null);
@@ -169,6 +201,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
           timerMode,
           timerPhase,
           selectedActivity,
+          customActivityTitle,
           isRunning,
           accumulatedSeconds,
           runStartTime,
@@ -180,7 +213,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
         localStorage.removeItem(STORAGE_KEY);
       }
     } catch (e) {}
-  }, [timerMode, timerPhase, selectedActivity, isRunning, accumulatedSeconds, runStartTime, sessionStartedAt, pomodoroTarget, liveSeconds, scheduleCycle]);
+  }, [timerMode, timerPhase, selectedActivity, customActivityTitle, isRunning, accumulatedSeconds, runStartTime, sessionStartedAt, pomodoroTarget, liveSeconds, scheduleCycle]);
 
   // 3. High-precision ticker based on Date.now() - immune to tab throttle
   useEffect(() => {
@@ -306,6 +339,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setSessionStartedAt(null);
     setTimerPhase('study');
     setScheduleCycle(null);
+    setCustomActivityTitle('');
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -323,6 +357,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setLiveSeconds(0);
     setSessionStartedAt(null);
     setTimerPhase('study');
+    setCustomActivityTitle('');
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -348,6 +383,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
     const cycleData = {
       scheduleId: schedule.id,
       title: schedule.title,
+      activityType: schedule.activity_type || 'general',
       currentCycle: 1,
       totalCycles,
       studyDurationMinutes: studyMins,
@@ -366,6 +402,9 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setLiveSeconds(0);
     if (schedule.sound_type) {
       setSoundTypePersisted(schedule.sound_type);
+    }
+    if (schedule.activity_type) {
+      setSelectedActivity(schedule.activity_type);
     }
     const now = Date.now();
     setSessionStartedAt(new Date(now).toISOString());
@@ -411,6 +450,8 @@ export function StudyTimerProvider({ children, onAddToast }) {
       setTimerPhase,
       selectedActivity,
       setSelectedActivity,
+      customActivityTitle,
+      setCustomActivityTitle,
       isRunning,
       liveSeconds,
       pomodoroTarget,
