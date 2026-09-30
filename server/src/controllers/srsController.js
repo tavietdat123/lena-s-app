@@ -2,6 +2,7 @@ import { db } from '../db/database.js';
 import { calculateNextSRS, previewNextIntervals } from '../services/srsAlgorithm.js';
 import crypto from 'node:crypto';
 import { gamificationService } from '../services/gamificationService.js';
+import { activityChartService } from '../services/activityChartService.js';
 
 export const srsController = {
   // 1. Get all items due for review today for specific account
@@ -235,7 +236,8 @@ export const srsController = {
           },
           total_due_today: (wordStats.due_today || 0) + (patternStats.due_today || 0),
           streak,
-          recent_logs: logs
+          recent_logs: logs,
+          periodsData: activityChartService.buildPeriodsData(db, userId)
         }
       });
     } catch (err) {

@@ -1,4 +1,5 @@
 import { getDb } from '../db/database.js';
+import { activityChartService } from '../services/activityChartService.js';
 
 export const publicStatsController = {
   // GET /api/public/stats or /api/public/stats/:username
@@ -190,6 +191,7 @@ export const publicStatsController = {
           levelsBreakdown,
           activityDistribution: Object.values(activityMap),
           recentLogs,
+          periodsData: activityChartService.buildPeriodsData(db, userId),
           topWords
         }
       });

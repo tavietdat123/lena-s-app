@@ -42,6 +42,7 @@ import {
 import { api } from '../../services/api';
 import { useStudyTimer, SOUND_OPTIONS, ACTIVITIES, getActivityMeta } from '../../context/StudyTimerContext';
 import StudyScheduleModal from './StudyScheduleModal';
+import ActivityHistoryChart from '../common/ActivityHistoryChart';
 
 const ACTIVITY_ICONS = {
   coding: Code,
@@ -2059,111 +2060,52 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             </div>
           </div>
 
-          {/* 14-Day Visual Activity Bar Chart */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            borderRadius: '20px',
-            border: '1px solid var(--border-color)',
-            padding: '1.5rem',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
-                  📈 Biểu Đồ Thời Gian Học 14 Ngày Gần Nhất
-                </h3>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Thời lượng học chủ động mỗi ngày (tính theo phút)
-                </span>
-              </div>
-              {stats?.streakDays > 0 && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '12px',
-                  background: 'rgba(245, 158, 11, 0.12)',
-                  color: '#f59e0b',
-                  fontSize: '0.82rem',
-                  fontWeight: 800
-                }}>
-                  <Flame size={15} />
-                  <span>Chuỗi: {stats.streakDays} ngày liên tục</span>
-                </div>
-              )}
-            </div>
-
-            {/* Custom Interactive SVG/CSS Bar Chart */}
+          {/* Multi-Period Activity Chart (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian) */}
+          {stats?.periodsData ? (
+            <ActivityHistoryChart 
+              periodsData={stats.periodsData} 
+              defaultPeriod="all"
+              title="Biểu Đồ Thời Gian Học & Hoạt Động"
+            />
+          ) : (
             <div style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '0.5rem',
-              height: '180px',
-              paddingTop: '1.5rem',
-              borderBottom: '1px solid var(--border-color)'
+              background: 'var(--bg-secondary)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-sm)'
             }}>
-              {stats?.dailyHistory?.map((day, idx) => {
-                const maxMinutes = Math.max(60, ...stats.dailyHistory.map(d => d.duration_minutes));
-                const heightPercent = maxMinutes > 0 ? Math.max(4, Math.round((day.duration_minutes / maxMinutes) * 100)) : 4;
-                const hasMinutes = day.duration_minutes > 0;
-
-                return (
-                  <div
-                    key={day.date}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      height: '100%',
-                      justifyContent: 'flex-end',
-                      position: 'relative'
-                    }}
-                    title={`${day.label}: ${day.duration_minutes} phút (${day.count} phiên)`}
-                  >
-                    {/* Tooltip on bar */}
-                    {hasMinutes && (
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        color: day.isToday ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        marginBottom: '4px'
-                      }}>
-                        {day.duration_minutes}'
-                      </span>
-                    )}
-
-                    {/* Bar Pill */}
-                    <div
-                      style={{
-                        width: '100%',
-                        maxWidth: '28px',
-                        height: `${heightPercent}%`,
-                        borderRadius: '6px 6px 2px 2px',
-                        background: day.isToday 
-                          ? 'linear-gradient(180deg, #0284c7, #38bdf8)' 
-                          : (hasMinutes ? 'linear-gradient(180deg, #8b5cf6, #a78bfa)' : 'var(--bg-tertiary)'),
-                        transition: 'all 0.3s ease',
-                        boxShadow: day.isToday && hasMinutes ? '0 4px 12px rgba(2, 132, 199, 0.3)' : 'none'
-                      }}
-                    />
-
-                    {/* Day label */}
-                    <span style={{
-                      fontSize: '0.7rem',
-                      fontWeight: day.isToday ? 800 : 500,
-                      color: day.isToday ? 'var(--accent-primary)' : 'var(--text-muted)',
-                      marginTop: '6px',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {day.shortDate}
-                    </span>
-                  </div>
-                );
-              })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                    📈 Biểu Đồ Thời Gian Học 14 Ngày Gần Nhất
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Thời lượng học chủ động mỗi ngày (tính theo phút)
+                  </span>
+                </div>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '0.5rem',
+                height: '180px',
+                paddingTop: '1.5rem',
+                borderBottom: '1px solid var(--border-color)'
+              }}>
+                {stats?.dailyHistory?.map((day) => {
+                  const maxMinutes = Math.max(60, ...stats.dailyHistory.map(d => d.duration_minutes));
+                  const heightPercent = maxMinutes > 0 ? Math.max(4, Math.round((day.duration_minutes / maxMinutes) * 100)) : 4;
+                  return (
+                    <div key={day.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                      <div style={{ width: '100%', maxWidth: '28px', height: `${heightPercent}%`, borderRadius: '6px 6px 2px 2px', background: day.isToday ? 'linear-gradient(180deg, #0284c7, #38bdf8)' : 'var(--bg-tertiary)' }} />
+                      <span style={{ fontSize: '0.7rem', marginTop: '6px' }}>{day.shortDate}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Activity Breakdown Progress Bars */}
           <div style={{

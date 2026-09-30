@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { gamificationService } from '../services/gamificationService.js';
+import { activityChartService } from '../services/activityChartService.js';
 
 const ACTIVITY_META = {
   vocab: { label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7' },
@@ -339,6 +340,9 @@ export const studyTimerController = {
         }
       }
 
+      // Compute multi-period historical breakdown (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian từ trước đến nay)
+      const periodsData = activityChartService.buildPeriodsData(db, userId);
+
       return res.json({
         success: true,
         data: {
@@ -351,6 +355,7 @@ export const studyTimerController = {
           avgSessionMinutes,
           activityBreakdown,
           dailyHistory,
+          periodsData,
           streakDays
         }
       });

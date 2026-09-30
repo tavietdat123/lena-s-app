@@ -22,6 +22,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { api } from '../../services/api';
+import ActivityHistoryChart from '../common/ActivityHistoryChart';
 
 export default function PublicStatsPage({ isDark, toggleTheme }) {
   const { username } = useParams();
@@ -529,6 +530,15 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
             </div>
           </div>
         </div>
+
+        {/* 4.5 MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày, Tổng thời gian) */}
+        {statsData.periodsData && (
+          <ActivityHistoryChart 
+            periodsData={statsData.periodsData} 
+            defaultPeriod="all"
+            title="Biểu Đồ Tiến Trình Học Tập (Lịch Sử Toàn Diện)"
+          />
+        )}
 
         {/* 5. CEFR LEVEL BREAKDOWN & ACTIVITY DISTRIBUTION */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>

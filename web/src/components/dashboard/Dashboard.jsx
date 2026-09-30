@@ -15,6 +15,7 @@ import {
   Share2
 } from 'lucide-react';
 import { playAudio } from '../../services/audioService';
+import ActivityHistoryChart from '../common/ActivityHistoryChart';
 
 export default function Dashboard({ 
   stats, 
@@ -410,6 +411,15 @@ export default function Dashboard({
           </div>
         </div>
       </div>
+
+      {/* 3.5 MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian) */}
+      {stats?.periodsData && (
+        <ActivityHistoryChart 
+          periodsData={stats.periodsData} 
+          defaultPeriod="all"
+          title="Biểu Đồ Tiến Trình Học Tập"
+        />
+      )}
 
       {/* 4. RECENT VOCABULARY SECTION WITH AUDIO VISUALIZER */}
       <div>
