@@ -411,16 +411,6 @@ export function initializeDatabase() {
   // Pre-populate & Auto-sync Standard Sentence Pattern Categories (Chức năng câu / Diễn đạt)
   ensureDefaultPatternCategories(db);
 
-  // Auto-sync Golden Master Patterns if patterns table has fewer than 20 patterns
-  try {
-    const patternsCount = db.prepare('SELECT COUNT(*) as count FROM patterns').get();
-    if (!patternsCount || patternsCount.count < 20) {
-      ensureMasterPatterns(db, ADMIN_USER_ID);
-    }
-  } catch (e) {
-    console.warn('[Sync Master Patterns Warning]', e.message);
-  }
-
   // Pre-populate Default Master Admin User if users table is empty
   const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
   if (!usersCount || usersCount.count === 0) {
