@@ -486,7 +486,7 @@ export default function App() {
 
   // 3. Authenticated App Workspace Shell
   return (
-    <StudyTimerProvider onAddToast={addToast}>
+    <StudyTimerProvider onAddToast={addToast} onSessionSaved={refreshAllData}>
       <div className="app-container">
       {/* 1. Sidebar Navigation */}
       <Sidebar

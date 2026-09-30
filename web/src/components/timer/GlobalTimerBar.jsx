@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, Pause, Maximize2, X } from 'lucide-react';
-import { useStudyTimer, getActivityMeta } from '../../context/StudyTimerContext';
-
-function formatTime(totalSeconds) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) {
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
+import { Play, Pause, Maximize2, X, Check } from 'lucide-react';
+import { useStudyTimer, getActivityMeta, formatTime } from '../../context/StudyTimerContext';
 
 export default function GlobalTimerBar() {
   const location = useLocation();
@@ -27,22 +17,26 @@ export default function GlobalTimerBar() {
     isRunning,
     liveSeconds,
     pomodoroTarget,
+    isCompletedAutoSaved,
+    lastSavedSession,
     startTimer,
     pauseTimer
   } = useStudyTimer();
 
-  // If user is already on the /timer page, or timer is 0 and not running, or minimized: don't show
-  if (location.pathname === '/timer' || (liveSeconds === 0 && !isRunning) || isMinimized) {
+  // If user is already on the /timer page, or timer is 0 and not running and not auto-saved, or minimized: don't show
+  if (location.pathname === '/timer' || isMinimized || (liveSeconds === 0 && !isRunning && !isCompletedAutoSaved)) {
     return null;
   }
 
   const isBreak = timerPhase === 'break';
   const meta = getActivityMeta(selectedActivity, customActivityTitle);
-  const badgeLabel = isBreak 
-    ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') 
-    : (customActivityTitle?.trim() || meta.label);
-  const badgeEmoji = isBreak ? '☕' : meta.emoji;
-  const badgeColor = isBreak ? '#10b981' : meta.color;
+  const badgeLabel = isCompletedAutoSaved
+    ? 'Đã tự động lưu'
+    : (isBreak 
+        ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') 
+        : (customActivityTitle?.trim() || meta.label));
+  const badgeEmoji = isCompletedAutoSaved ? '✅' : (isBreak ? '☕' : meta.emoji);
+  const badgeColor = isCompletedAutoSaved ? '#16a34a' : (isBreak ? '#10b981' : meta.color);
 
   const displaySeconds = timerMode === 'pomodoro'
     ? Math.max(0, pomodoroTarget - liveSeconds)
@@ -66,13 +60,13 @@ export default function GlobalTimerBar() {
         right: '24px',
         zIndex: 9999,
         background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
+        border: isCompletedAutoSaved ? '1.5px solid #22c55e' : '1px solid var(--border-color)',
         borderRadius: '50px',
         padding: '0.45rem 0.9rem',
         display: 'flex',
         alignItems: 'center',
         gap: '0.65rem',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.22)',
+        boxShadow: isCompletedAutoSaved ? '0 8px 30px rgba(34, 197, 94, 0.28)' : '0 8px 30px rgba(0, 0, 0, 0.22)',
         cursor: 'pointer',
         backdropFilter: 'blur(10px)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -81,7 +75,7 @@ export default function GlobalTimerBar() {
       onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
     >
-      {/* Activity / Break badge */}
+      {/* Activity / Break / Auto-saved badge */}
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -92,7 +86,7 @@ export default function GlobalTimerBar() {
         background: `${badgeColor}20`,
         padding: '0.2rem 0.55rem',
         borderRadius: '20px',
-        border: isBreak ? '1px solid rgba(16, 185, 129, 0.4)' : 'none'
+        border: isBreak || isCompletedAutoSaved ? `1px solid ${badgeColor}40` : 'none'
       }}>
         <span>{badgeEmoji}</span>
         <span>{badgeLabel}</span>
@@ -112,23 +106,25 @@ export default function GlobalTimerBar() {
           width: '7px',
           height: '7px',
           borderRadius: '50%',
-          background: isRunning ? '#22c55e' : '#f59e0b',
+          background: isCompletedAutoSaved ? '#22c55e' : (isRunning ? '#22c55e' : '#f59e0b'),
           animation: isRunning ? 'pulse 1.5s infinite' : 'none'
         }} />
-        <span>{formatTime(displaySeconds)}</span>
+        <span>{isCompletedAutoSaved ? `+${lastSavedSession?.xpEarned || 20} XP` : formatTime(displaySeconds)}</span>
       </div>
 
       {/* Action buttons inside pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={handleTogglePlay}
-          className="btn-icon"
-          style={{ width: '28px', height: '28px', background: 'var(--bg-tertiary)', borderRadius: '50%' }}
-          title={isRunning ? 'Tạm dừng' : 'Tiếp tục'}
-        >
-          {isRunning ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-        </button>
+        {!isCompletedAutoSaved && (
+          <button
+            type="button"
+            onClick={handleTogglePlay}
+            className="btn-icon"
+            style={{ width: '28px', height: '28px', background: 'var(--bg-tertiary)', borderRadius: '50%' }}
+            title={isRunning ? 'Tạm dừng' : 'Tiếp tục'}
+          >
+            {isRunning ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+          </button>
+        )}
 
         <button
           type="button"

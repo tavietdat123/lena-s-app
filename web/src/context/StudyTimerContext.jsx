@@ -1,8 +1,33 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { api } from '../services/api';
 
 const StudyTimerContext = createContext(null);
 const STORAGE_KEY = 'linguavault_active_timer';
 const SOUND_KEY = 'linguavault_timer_sound';
+const PENDING_KEY = 'linguavault_pending_study_sessions';
+
+export function formatTime(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export function formatDurationHuman(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h} giờ ${m} phút`;
+  }
+  if (m > 0) {
+    return `${m} phút ${s > 0 ? `${s}s` : ''}`;
+  }
+  return `${s} giây`;
+}
 
 export const SOUND_OPTIONS = [
   { id: 'melodic', label: 'Chuông Ngân Vang', emoji: '🔔', desc: 'Giai điệu 5 nốt tươi vui, thanh lịch' },
@@ -122,7 +147,7 @@ export function playChime(soundType = 'melodic') {
   }
 }
 
-export function StudyTimerProvider({ children, onAddToast }) {
+export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
   const [timerMode, setTimerMode] = useState('stopwatch'); // 'stopwatch' | 'pomodoro'
   const [timerPhase, setTimerPhase] = useState('study'); // 'study' | 'break'
   const [selectedActivity, setSelectedActivity] = useState('coding');
@@ -142,6 +167,11 @@ export function StudyTimerProvider({ children, onAddToast }) {
   });
   const [liveSeconds, setLiveSeconds] = useState(0);
 
+  // Auto-Save & Completion State
+  const [isCompletedAutoSaved, setIsCompletedAutoSaved] = useState(false);
+  const [lastSavedSession, setLastSavedSession] = useState(null);
+  const autoSavingRef = useRef(false);
+
   // Active Long-Term Schedule Cycle State
   const [scheduleCycle, setScheduleCycle] = useState(null);
 
@@ -155,6 +185,117 @@ export function StudyTimerProvider({ children, onAddToast }) {
   const previewSound = (type = soundType) => {
     playChime(type);
   };
+
+  // Helper to auto-save completed study session to backend
+  const autoSaveSession = async ({
+    activityType = selectedActivity,
+    customTitle = customActivityTitle,
+    durationSeconds,
+    targetSeconds,
+    notes = '',
+    startedAt = sessionStartedAt,
+    scheduleTitle = scheduleCycle?.title
+  }) => {
+    const actMeta = getActivityMeta(activityType, customTitle);
+    const resolvedTitle = customTitle?.trim() || actMeta.label;
+    const now = new Date();
+    const durSec = Math.max(1, parseInt(durationSeconds, 10) || pomodoroTarget);
+    const startIso = startedAt || new Date(now.getTime() - durSec * 1000).toISOString();
+    const endIso = now.toISOString();
+
+    const sessionPayload = {
+      activity_type: activityType,
+      activity_title: resolvedTitle,
+      duration_seconds: durSec,
+      mode: 'pomodoro',
+      target_seconds: targetSeconds || pomodoroTarget,
+      notes: notes || (scheduleTitle ? `Ca học: "${scheduleTitle}"` : 'Tự động hoàn thành đếm ngược Pomodoro'),
+      started_at: startIso,
+      ended_at: endIso
+    };
+
+    try {
+      const res = await api.saveStudySession(sessionPayload);
+      if (res && res.success) {
+        const xpEarned = res.xpEarned || 20;
+        const savedInfo = {
+          id: res.data?.id,
+          title: resolvedTitle,
+          duration: durSec,
+          xpEarned,
+          savedAt: Date.now()
+        };
+        setLastSavedSession(savedInfo);
+        setIsCompletedAutoSaved(true);
+
+        if (onAddToast) {
+          onAddToast(`🎉 Đã tự động lưu ${resolvedTitle} (${formatDurationHuman(durSec)})! (+${xpEarned} XP)`);
+        }
+
+        if (onSessionSaved) {
+          onSessionSaved(res);
+        }
+
+        // Desktop Notification if browser permits
+        try {
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('🍅 Hoàn thành Pomodoro!', {
+              body: `Đã tự động lưu "${resolvedTitle}" (${formatDurationHuman(durSec)}). Bạn được cộng +${xpEarned} XP!`,
+              icon: '/favicon.ico'
+            });
+          }
+        } catch (ne) {}
+
+        return res;
+      }
+    } catch (err) {
+      console.error('Auto-save study session error, storing to pending queue:', err);
+      // Offline fallback: save to pending queue in localStorage
+      try {
+        const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+        pending.push(sessionPayload);
+        localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+        if (onAddToast) {
+          onAddToast(`⚠️ Phiên học ${resolvedTitle} (${formatDurationHuman(durSec)}) đã được lưu tạm offline và sẽ đồng bộ khi có mạng.`);
+        }
+      } catch (pe) {}
+    }
+  };
+
+  // Sync any offline pending sessions when online
+  const syncPendingSessions = async () => {
+    try {
+      const pendingRaw = localStorage.getItem(PENDING_KEY);
+      if (!pendingRaw) return;
+      const pending = JSON.parse(pendingRaw);
+      if (!Array.isArray(pending) || pending.length === 0) return;
+
+      const remaining = [];
+      for (const sess of pending) {
+        try {
+          const res = await api.saveStudySession(sess);
+          if (!res || !res.success) {
+            remaining.push(sess);
+          }
+        } catch (e) {
+          remaining.push(sess);
+        }
+      }
+
+      if (remaining.length === 0) {
+        localStorage.removeItem(PENDING_KEY);
+        if (onSessionSaved) onSessionSaved();
+      } else {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(remaining));
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncPendingSessions();
+    window.addEventListener('online', syncPendingSessions);
+    return () => window.removeEventListener('online', syncPendingSessions);
+  }, []);
 
   // 1. Restore state from localStorage once on app boot
   useEffect(() => {
@@ -170,16 +311,40 @@ export function StudyTimerProvider({ children, onAddToast }) {
           setPomodoroTargetState(parsed.pomodoroTarget || 25 * 60);
           setSessionStartedAt(parsed.sessionStartedAt || null);
           setScheduleCycle(parsed.scheduleCycle || null);
+          if (parsed.isCompletedAutoSaved) {
+            setIsCompletedAutoSaved(true);
+            setLastSavedSession(parsed.lastSavedSession || null);
+          }
 
           const acc = Number(parsed.accumulatedSeconds) || 0;
           if (parsed.isRunning && parsed.runStartTime) {
             const now = Date.now();
             const elapsed = Math.max(0, Math.floor((now - Number(parsed.runStartTime)) / 1000));
             const total = acc + elapsed;
-            setAccumulatedSeconds(total);
-            setLiveSeconds(total);
-            setRunStartTime(now);
-            setIsRunning(true);
+
+            // If countdown finished while tab/browser was away
+            if (parsed.timerMode === 'pomodoro' && total >= (parsed.pomodoroTarget || 25 * 60)) {
+              const target = parsed.pomodoroTarget || 25 * 60;
+              setAccumulatedSeconds(target);
+              setLiveSeconds(target);
+              setIsRunning(false);
+              setRunStartTime(null);
+              setIsCompletedAutoSaved(true);
+
+              autoSaveSession({
+                activityType: parsed.selectedActivity || 'coding',
+                customTitle: parsed.customActivityTitle || '',
+                durationSeconds: target,
+                targetSeconds: target,
+                notes: 'Tự động hoàn thành Pomodoro khi khôi phục ứng dụng',
+                startedAt: parsed.sessionStartedAt
+              });
+            } else {
+              setAccumulatedSeconds(total);
+              setLiveSeconds(total);
+              setRunStartTime(now);
+              setIsRunning(true);
+            }
           } else {
             setAccumulatedSeconds(acc);
             setLiveSeconds(acc);
@@ -196,7 +361,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
   // 2. Persist state to localStorage whenever changed
   useEffect(() => {
     try {
-      if (liveSeconds > 0 || isRunning || scheduleCycle) {
+      if (liveSeconds > 0 || isRunning || scheduleCycle || isCompletedAutoSaved) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           timerMode,
           timerPhase,
@@ -207,13 +372,15 @@ export function StudyTimerProvider({ children, onAddToast }) {
           runStartTime,
           sessionStartedAt,
           pomodoroTarget,
-          scheduleCycle
+          scheduleCycle,
+          isCompletedAutoSaved,
+          lastSavedSession
         }));
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
     } catch (e) {}
-  }, [timerMode, timerPhase, selectedActivity, customActivityTitle, isRunning, accumulatedSeconds, runStartTime, sessionStartedAt, pomodoroTarget, liveSeconds, scheduleCycle]);
+  }, [timerMode, timerPhase, selectedActivity, customActivityTitle, isRunning, accumulatedSeconds, runStartTime, sessionStartedAt, pomodoroTarget, liveSeconds, scheduleCycle, isCompletedAutoSaved, lastSavedSession]);
 
   // 3. High-precision ticker based on Date.now() - immune to tab throttle
   useEffect(() => {
@@ -229,7 +396,30 @@ export function StudyTimerProvider({ children, onAddToast }) {
           if (soundEnabled) playChime(soundType);
 
           if (timerPhase === 'study') {
-            // Study phase completed
+            // Study phase completed -> Auto-save session!
+            const durationToSave = pomodoroTarget;
+            const currentSelectedAct = selectedActivity;
+            const currentCustomTitle = customActivityTitle;
+            const currentScheduleCycle = scheduleCycle;
+            const currentStartedAt = sessionStartedAt;
+
+            if (!autoSavingRef.current) {
+              autoSavingRef.current = true;
+              autoSaveSession({
+                activityType: currentSelectedAct,
+                customTitle: currentCustomTitle,
+                durationSeconds: durationToSave,
+                targetSeconds: pomodoroTarget,
+                notes: currentScheduleCycle 
+                  ? `Ca học: "${currentScheduleCycle.title}" (Hiệp ${currentScheduleCycle.currentCycle}/${currentScheduleCycle.totalCycles})`
+                  : 'Tự động hoàn thành đếm ngược Pomodoro',
+                startedAt: currentStartedAt,
+                scheduleTitle: currentScheduleCycle?.title
+              }).finally(() => {
+                autoSavingRef.current = false;
+              });
+            }
+
             if (scheduleCycle) {
               // Transition to break phase
               const isLongBreak = (scheduleCycle.currentCycle % scheduleCycle.cyclesBeforeLongBreak) === 0;
@@ -239,6 +429,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
               setTimerPhase('break');
               setAccumulatedSeconds(0);
               setLiveSeconds(0);
+              setSessionStartedAt(null);
               setPomodoroTargetState(breakSec);
 
               if (scheduleCycle.autoStartBreaks) {
@@ -257,7 +448,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
               setAccumulatedSeconds(pomodoroTarget);
               setLiveSeconds(pomodoroTarget);
               setRunStartTime(null);
-              if (onAddToast) onAddToast('🍅 Chúc mừng bạn đã hoàn thành phiên Pomodoro!');
+              setIsCompletedAutoSaved(true);
             }
           } else {
             // Break phase completed
@@ -274,11 +465,13 @@ export function StudyTimerProvider({ children, onAddToast }) {
                 if (scheduleCycle.autoStartNextSession) {
                   const now = Date.now();
                   setRunStartTime(now);
+                  setSessionStartedAt(new Date(now).toISOString());
                   setIsRunning(true);
                   if (onAddToast) onAddToast(`🔔 Hết giờ nghỉ giữa giờ! Tự động bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}.`);
                 } else {
                   setIsRunning(false);
                   setRunStartTime(null);
+                  setSessionStartedAt(null);
                   if (onAddToast) onAddToast(`🔔 Hết giờ nghỉ giữa giờ! Bấm Bắt Đầu để vào hiệp ${nextCycle}/${scheduleCycle.totalCycles}.`);
                 }
               } else {
@@ -289,6 +482,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
                 setLiveSeconds(0);
                 setScheduleCycle(null);
                 setTimerPhase('study');
+                setSessionStartedAt(null);
                 if (onAddToast) onAddToast(`🎉 Chúc mừng bạn đã hoàn thành xuất sắc toàn bộ ca học (${scheduleCycle.totalCycles} hiệp)!`);
               }
             } else {
@@ -297,6 +491,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
               setRunStartTime(null);
               setAccumulatedSeconds(0);
               setLiveSeconds(0);
+              setSessionStartedAt(null);
               if (onAddToast) onAddToast('🔔 Hết giờ nghỉ giải lao!');
             }
           }
@@ -309,13 +504,81 @@ export function StudyTimerProvider({ children, onAddToast }) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, runStartTime, accumulatedSeconds, timerMode, timerPhase, pomodoroTarget, soundEnabled, soundType, scheduleCycle, onAddToast]);
+  }, [isRunning, runStartTime, accumulatedSeconds, timerMode, timerPhase, pomodoroTarget, soundEnabled, soundType, scheduleCycle, onAddToast, selectedActivity, customActivityTitle, sessionStartedAt]);
+
+  // 4. Dynamic document.title updater across browser tabs
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const defaultTitle = 'LinguaVault - Nền Tảng Học & Ghi Nhớ Ngôn Ngữ Chuyên Sâu';
+
+    if (isCompletedAutoSaved) {
+      document.title = '🎉 Đã lưu Pomodoro! - LinguaVault';
+      return;
+    }
+
+    if (isRunning) {
+      const displaySec = timerMode === 'pomodoro'
+        ? Math.max(0, pomodoroTarget - liveSeconds)
+        : liveSeconds;
+      const emoji = timerPhase === 'break' ? '☕' : '⏱️';
+      document.title = `${emoji} (${formatTime(displaySec)}) LinguaVault`;
+    } else if (liveSeconds > 0) {
+      const displaySec = timerMode === 'pomodoro'
+        ? Math.max(0, pomodoroTarget - liveSeconds)
+        : liveSeconds;
+      document.title = `⏸️ (${formatTime(displaySec)}) LinguaVault`;
+    } else {
+      document.title = defaultTitle;
+    }
+  }, [isRunning, liveSeconds, pomodoroTarget, timerMode, timerPhase, isCompletedAutoSaved]);
+
+  // 5. Cross-tab synchronization via window storage event
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed.isCompletedAutoSaved && !isCompletedAutoSaved) {
+            setIsCompletedAutoSaved(true);
+            setIsRunning(false);
+            setRunStartTime(null);
+            setAccumulatedSeconds(parsed.accumulatedSeconds || 0);
+            setLiveSeconds(parsed.accumulatedSeconds || 0);
+            if (parsed.lastSavedSession) {
+              setLastSavedSession(parsed.lastSavedSession);
+            }
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [isCompletedAutoSaved]);
 
   const startTimer = () => {
     const now = Date.now();
+    if (isCompletedAutoSaved) {
+      setIsCompletedAutoSaved(false);
+      setAccumulatedSeconds(0);
+      setLiveSeconds(0);
+    }
     if (!sessionStartedAt && timerPhase === 'study') {
       setSessionStartedAt(new Date(now).toISOString());
     }
+    setRunStartTime(now);
+    setIsRunning(true);
+  };
+
+  const startNewPomodoro = (customSeconds) => {
+    setIsCompletedAutoSaved(false);
+    setTimerPhase('study');
+    setTimerMode('pomodoro');
+    const target = customSeconds || pomodoroTarget;
+    setPomodoroTargetState(target);
+    setAccumulatedSeconds(0);
+    setLiveSeconds(0);
+    const now = Date.now();
+    setSessionStartedAt(new Date(now).toISOString());
     setRunStartTime(now);
     setIsRunning(true);
   };
@@ -340,14 +603,17 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setTimerPhase('study');
     setScheduleCycle(null);
     setCustomActivityTitle('');
+    setIsCompletedAutoSaved(false);
     localStorage.removeItem(STORAGE_KEY);
   };
 
   const setPomodoroTarget = (seconds) => {
     if (isRunning) return;
+    setIsCompletedAutoSaved(false);
     setPomodoroTargetState(seconds);
     setAccumulatedSeconds(0);
     setLiveSeconds(0);
+    setSessionStartedAt(null);
   };
 
   const clearSessionAfterSave = () => {
@@ -358,6 +624,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setSessionStartedAt(null);
     setTimerPhase('study');
     setCustomActivityTitle('');
+    setIsCompletedAutoSaved(false);
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -400,6 +667,7 @@ export function StudyTimerProvider({ children, onAddToast }) {
     setPomodoroTargetState(studyMins * 60);
     setAccumulatedSeconds(0);
     setLiveSeconds(0);
+    setIsCompletedAutoSaved(false);
     if (schedule.sound_type) {
       setSoundTypePersisted(schedule.sound_type);
     }
@@ -430,9 +698,11 @@ export function StudyTimerProvider({ children, onAddToast }) {
       setTimerPhase('study');
       setAccumulatedSeconds(0);
       setLiveSeconds(0);
+      setIsCompletedAutoSaved(false);
       setPomodoroTargetState(scheduleCycle.studyDurationMinutes * 60);
       const now = Date.now();
       setRunStartTime(now);
+      setSessionStartedAt(new Date(now).toISOString());
       setIsRunning(true);
       if (onAddToast) onAddToast(`⏩ Đã bỏ qua nghỉ giữa giờ, bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}!`);
     } else {
@@ -469,7 +739,13 @@ export function StudyTimerProvider({ children, onAddToast }) {
       startTimer,
       pauseTimer,
       resetTimer,
-      clearSessionAfterSave
+      clearSessionAfterSave,
+      // Auto-save and persistence
+      isCompletedAutoSaved,
+      setIsCompletedAutoSaved,
+      lastSavedSession,
+      startNewPomodoro,
+      autoSaveSession
     }}>
       {children}
     </StudyTimerContext.Provider>

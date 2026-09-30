@@ -154,7 +154,11 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
     startTimer,
     pauseTimer,
     resetTimer,
-    clearSessionAfterSave
+    clearSessionAfterSave,
+    isCompletedAutoSaved,
+    setIsCompletedAutoSaved,
+    lastSavedSession,
+    startNewPomodoro
   } = useStudyTimer();
 
   const elapsedSeconds = liveSeconds;
@@ -266,10 +270,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
   }, [historyFilter]);
 
   useEffect(() => {
-    if (activeTab === 'stats') {
+    if (activeTab === 'stats' || lastSavedSession) {
       loadStatsAndHistory();
     }
-  }, [activeTab]);
+  }, [activeTab, lastSavedSession]);
 
   const handleStartTimer = () => {
     startTimer();
@@ -1018,29 +1022,36 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                padding: '0.3rem 0.85rem',
+                padding: '0.35rem 0.95rem',
                 borderRadius: '20px',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                background: timerPhase === 'break'
-                  ? 'rgba(16, 185, 129, 0.15)'
-                  : (isRunning ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)'),
-                color: timerPhase === 'break'
-                  ? '#10b981'
-                  : (isRunning ? '#16a34a' : 'var(--text-muted)')
+                background: isCompletedAutoSaved
+                  ? 'rgba(34, 197, 94, 0.18)'
+                  : (timerPhase === 'break'
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : (isRunning ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-tertiary)')),
+                color: isCompletedAutoSaved
+                  ? '#16a34a'
+                  : (timerPhase === 'break'
+                    ? '#10b981'
+                    : (isRunning ? '#16a34a' : 'var(--text-muted)')),
+                border: isCompletedAutoSaved ? '1px solid rgba(34, 197, 94, 0.4)' : 'none'
               }}>
                 <span style={{
                   width: '7px',
                   height: '7px',
                   borderRadius: '50%',
-                  background: timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : 'var(--text-muted)')
+                  background: isCompletedAutoSaved ? '#22c55e' : (timerPhase === 'break' ? '#10b981' : (isRunning ? '#22c55e' : 'var(--text-muted)'))
                 }} />
                 <span>
-                  {timerPhase === 'break'
-                    ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
-                    : (isRunning 
-                        ? (customActivityTitle ? `Đang thực hiện: ${customActivityTitle}` : `Đang ${currentActivity.label}...`)
-                        : (elapsedSeconds > 0 ? 'Đang tạm dừng' : `Sẵn sàng: ${customActivityTitle || currentActivity.label}`))}
+                  {isCompletedAutoSaved
+                    ? `🎉 Đã hoàn thành & tự động lưu vào hệ thống (+${lastSavedSession?.xpEarned || 20} XP)!`
+                    : (timerPhase === 'break'
+                        ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
+                        : (isRunning 
+                            ? (customActivityTitle ? `Đang thực hiện: ${customActivityTitle}` : `Đang ${currentActivity.label}...`)
+                            : (elapsedSeconds > 0 ? 'Đang tạm dừng' : `Sẵn sàng: ${customActivityTitle || currentActivity.label}`)))}
                 </span>
                 {timerMode === 'pomodoro' && isRunning && (
                   <span style={{ marginLeft: '4px', opacity: 0.85 }}>({pomodoroProgressPercent}%)</span>
@@ -1068,118 +1079,251 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   <span>Hãy uống một ngụm nước, vươn vai thư giãn hoặc phóng tầm mắt ra xa để đôi mắt được nghỉ ngơi!</span>
                 </div>
               )}
+
+              {/* Auto-Saved Success Card Banner */}
+              {isCompletedAutoSaved && (
+                <div style={{
+                  marginTop: '1rem',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.18))',
+                  border: '1.5px solid #22c55e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  maxWidth: '560px',
+                  width: '100%',
+                  boxShadow: '0 4px 18px rgba(34, 197, 94, 0.15)',
+                  animation: 'fadeInUp 0.3s ease'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      background: '#22c55e',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.1rem',
+                      fontWeight: 900,
+                      flexShrink: 0
+                    }}>
+                      ✓
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        Đã Tự Động Lưu Vào Hệ Thống!
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>
+                        {lastSavedSession?.title || currentActivity.label} • {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget)} (+{lastSavedSession?.xpEarned || 20} XP)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => startNewPomodoro()}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.45rem 0.9rem',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+                      }}
+                    >
+                      🚀 Hiệp Mới
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('stats')}
+                      className="btn-secondary"
+                      style={{
+                        padding: '0.45rem 0.8rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        borderRadius: '10px'
+                      }}
+                    >
+                      📊 Thống Kê
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Main Action Buttons Bar */}
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {!isRunning ? (
-                <button
-                  type="button"
-                  onClick={handleStartTimer}
-                  className="btn-primary glow-hover"
-                  style={{
-                    padding: '0.85rem 2rem',
-                    fontSize: '1.05rem',
-                    fontWeight: 800,
-                    borderRadius: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: timerPhase === 'break'
-                      ? 'linear-gradient(135deg, #10b981, #059669)'
-                      : 'linear-gradient(135deg, #0284c7, #0ea5e9)'
-                  }}
-                >
-                  <Play size={20} fill="currentColor" />
-                  <span>
-                    {timerPhase === 'break'
-                      ? 'Tiếp Tục Nghỉ'
-                      : (elapsedSeconds > 0 ? 'Tiếp Tục Học' : 'Bắt Đầu Học')}
-                  </span>
-                </button>
+              {isCompletedAutoSaved ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startNewPomodoro()}
+                    className="btn-primary glow-hover"
+                    style={{
+                      padding: '0.85rem 1.8rem',
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+                    }}
+                  >
+                    <Play size={18} fill="currentColor" />
+                    <span>🍅 Bắt Đầu Hiệp Mới</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('stats')}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.85rem 1.4rem',
+                      fontSize: '0.92rem',
+                      fontWeight: 700,
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem'
+                    }}
+                  >
+                    <BarChart3 size={17} />
+                    <span>Xem Bảng Thống Kê</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetTimer}
+                    className="btn-secondary"
+                    style={{
+                      padding: '0.85rem 1.1rem',
+                      borderRadius: '16px',
+                      color: 'var(--text-muted)'
+                    }}
+                    title="Đặt lại đồng hồ"
+                  >
+                    <RotateCcw size={18} />
+                  </button>
+                </>
               ) : (
-                <button
-                  type="button"
-                  onClick={handlePauseTimer}
-                  className="btn-secondary"
-                  style={{
-                    padding: '0.85rem 1.75rem',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    borderRadius: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: '#f59e0b',
-                    borderColor: 'rgba(245, 158, 11, 0.4)'
-                  }}
-                >
-                  <Pause size={20} fill="currentColor" />
-                  <span>Tạm Dừng</span>
-                </button>
-              )}
+                <>
+                  {!isRunning ? (
+                    <button
+                      type="button"
+                      onClick={handleStartTimer}
+                      className="btn-primary glow-hover"
+                      style={{
+                        padding: '0.85rem 2rem',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        borderRadius: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: timerPhase === 'break'
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+                      }}
+                    >
+                      <Play size={20} fill="currentColor" />
+                      <span>
+                        {timerPhase === 'break'
+                          ? 'Tiếp Tục Nghỉ'
+                          : (elapsedSeconds > 0 ? 'Tiếp Tục Học' : 'Bắt Đầu Học')}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePauseTimer}
+                      className="btn-secondary"
+                      style={{
+                        padding: '0.85rem 1.75rem',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        borderRadius: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#f59e0b',
+                        borderColor: 'rgba(245, 158, 11, 0.4)'
+                      }}
+                    >
+                      <Pause size={20} fill="currentColor" />
+                      <span>Tạm Dừng</span>
+                    </button>
+                  )}
 
-              {/* During Break Phase: Skip Break Button */}
-              {timerPhase === 'break' && (
-                <button
-                  type="button"
-                  onClick={skipBreak}
-                  className="btn-primary"
-                  style={{
-                    padding: '0.85rem 1.6rem',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    borderRadius: '16px',
-                    background: '#0284c7',
-                    borderColor: '#0284c7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <SkipForward size={18} />
-                  <span>Vào Học Hiệp Kế Tiếp</span>
-                </button>
-              )}
+                  {/* During Break Phase: Skip Break Button */}
+                  {timerPhase === 'break' && (
+                    <button
+                      type="button"
+                      onClick={skipBreak}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.85rem 1.6rem',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        borderRadius: '16px',
+                        background: '#0284c7',
+                        borderColor: '#0284c7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <SkipForward size={18} />
+                      <span>Vào Học Hiệp Kế Tiếp</span>
+                    </button>
+                  )}
 
-              {/* Finish & Save Session Button (During Study Phase) */}
-              {timerPhase === 'study' && elapsedSeconds > 0 && (
-                <button
-                  type="button"
-                  onClick={handleOpenFinishModal}
-                  className="btn-primary"
-                  style={{
-                    padding: '0.85rem 1.6rem',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    borderRadius: '16px',
-                    background: '#10b981',
-                    borderColor: '#10b981',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <CheckCircle2 size={19} />
-                  <span>Hoàn Thành & Lưu</span>
-                </button>
-              )}
+                  {/* Finish & Save Session Button (During Study Phase) */}
+                  {timerPhase === 'study' && elapsedSeconds > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleOpenFinishModal}
+                      className="btn-primary"
+                      style={{
+                        padding: '0.85rem 1.6rem',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        borderRadius: '16px',
+                        background: '#10b981',
+                        borderColor: '#10b981',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <CheckCircle2 size={19} />
+                      <span>Hoàn Thành & Lưu</span>
+                    </button>
+                  )}
 
-              {/* Reset Button */}
-              {(elapsedSeconds > 0 || timerPhase === 'break') && (
-                <button
-                  type="button"
-                  onClick={handleResetTimer}
-                  className="btn-secondary"
-                  style={{
-                    padding: '0.85rem 1.1rem',
-                    borderRadius: '16px',
-                    color: 'var(--text-muted)'
-                  }}
-                  title="Đặt lại đồng hồ"
-                >
-                  <RotateCcw size={18} />
-                </button>
+                  {/* Reset Button */}
+                  {(elapsedSeconds > 0 || timerPhase === 'break') && (
+                    <button
+                      type="button"
+                      onClick={handleResetTimer}
+                      className="btn-secondary"
+                      style={{
+                        padding: '0.85rem 1.1rem',
+                        borderRadius: '16px',
+                        color: 'var(--text-muted)'
+                      }}
+                      title="Đặt lại đồng hồ"
+                    >
+                      <RotateCcw size={18} />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1845,8 +1989,56 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
       {/* 4. TAB 3: STUDY TIME ANALYTICS & STATISTICS DASHBOARD */}
       {activeTab === 'stats' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Live running timer notification banner on stats tab */}
-          {(liveSeconds > 0 || isRunning) && (
+          {/* Live running timer notification banner or auto-saved notice on stats tab */}
+          {isCompletedAutoSaved ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.18))',
+              border: '1.5px solid #22c55e',
+              boxShadow: '0 4px 20px rgba(34, 197, 94, 0.15)',
+              animation: 'fadeInUp 0.3s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <span style={{ fontSize: '1.6rem' }}>🎉</span>
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>Đã tự động lưu phiên Pomodoro: {lastSavedSession?.title || currentActivity.label}</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>
+                    Thời lượng: {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget)} • Được cộng +{lastSavedSession?.xpEarned || 20} XP vào hồ sơ & lịch sử bên dưới!
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    startNewPomodoro();
+                    setActiveTab('timer');
+                  }}
+                  className="btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
+                  }}
+                >
+                  <Play size={14} fill="currentColor" />
+                  <span>Vào Bấm Giờ Hiệp Mới</span>
+                </button>
+              </div>
+            </div>
+          ) : (liveSeconds > 0 || isRunning) ? (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1920,7 +2112,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
           {/* 4 Summary KPI Cards */}
           <div style={{
             display: 'grid',
