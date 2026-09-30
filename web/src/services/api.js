@@ -448,6 +448,19 @@ export const api = {
     }
   },
 
+  // Get Public Activity Chart for specific period: week, month, last30, all (No token needed)
+  getPublicActivityChart: async (username = '', period = 'week') => {
+    try {
+      const base = username 
+        ? `${API_BASE}/public/activity-chart/${encodeURIComponent(username)}` 
+        : `${API_BASE}/public/activity-chart`;
+      const res = await fetch(`${base}?period=${encodeURIComponent(period)}`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
   // Post Supervisor Feedback / Nudge (No token needed)
   postSupervisorFeedback: async ({ username, supervisor_name, type, message }) => {
     try {

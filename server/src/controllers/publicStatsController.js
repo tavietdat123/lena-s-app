@@ -417,7 +417,7 @@ export const publicStatsController = {
           dailyBreakdown,
           allTimeBreakdown,
           recentLogs,
-          periodsData: activityChartService.buildPeriodsData(db, userId),
+          periodsData: activityChartService.buildPeriodsData(db, userId, ['week']),
           topWords
         }
       });
@@ -617,6 +617,54 @@ export const publicStatsController = {
     } catch (err) {
       console.error('[Daily Breakdown Error]', err);
       return res.status(500).json({ success: false, error: 'Không thể tải phân bổ dữ liệu theo ngày: ' + err.message });
+    }
+  },
+
+  // GET /api/public/activity-chart or /api/public/activity-chart/:username (Tải dữ liệu biểu đồ theo từng tab: week, month, last30, all)
+  getPublicActivityChart: async (req, res) => {
+    try {
+      const db = getDb();
+      const targetIdentifier = req.params?.username || req.query?.user || req.query?.username || null;
+
+      let user = null;
+      if (targetIdentifier) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE username = ? OR id = ?
+        `).get(targetIdentifier, targetIdentifier);
+      }
+
+      if (!user) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE role = 'admin' OR id = 'admin_master_user_id' 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get() || db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get();
+      }
+
+      const userId = user?.id || 'admin_master_user_id';
+      const period = String(req.query.period || 'week').trim().toLowerCase();
+      const allowedPeriods = ['week', 'month', 'last30', 'all'];
+      const cleanPeriod = allowedPeriods.includes(period) ? period : 'week';
+
+      const periodResult = activityChartService.buildPeriodsData(db, userId, [cleanPeriod]);
+
+      return res.json({
+        success: true,
+        data: periodResult[cleanPeriod] || null,
+        period: cleanPeriod
+      });
+    } catch (err) {
+      console.error('[Public Activity Chart Error]', err);
+      return res.status(500).json({ success: false, error: 'Không thể tải dữ liệu biểu đồ: ' + err.message });
     }
   }
 };

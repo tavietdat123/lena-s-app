@@ -128,6 +128,19 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
     }
   };
 
+  const handleFetchChartPeriod = async (periodKey) => {
+    const target = resolveTargetUsername();
+    try {
+      const res = await api.getPublicActivityChart(target, periodKey);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch (err) {
+      console.error('Error fetching activity chart period:', err);
+    }
+    return null;
+  };
+
   const loadData = () => {
     setLoading(true);
     setError(null);
@@ -981,12 +994,13 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           )}
         </div>
 
-        {/* 5. MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian) */}
+        {/* 5. MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Mặc định Tuần này, gọi data theo tab khi bấm) */}
         {periodsData && (
           <ActivityHistoryChart 
             periodsData={periodsData} 
-            defaultPeriod="all"
+            defaultPeriod="week"
             title="Biểu Đồ Tiến Trình Học Tập & Lịch Sử Toàn Diện"
+            onFetchPeriod={handleFetchChartPeriod}
           />
         )}
 

@@ -15,17 +15,69 @@ import {
 
 export default function ActivityHistoryChart({ 
   periodsData, 
-  defaultPeriod = 'all', 
+  defaultPeriod = 'week', 
   title = 'Biểu Đồ Hoạt Động & Thời Gian Học',
-  showMetricsToggle = true
+  showMetricsToggle = true,
+  onFetchPeriod = null
 }) {
+  const [localPeriodsData, setLocalPeriodsData] = useState(periodsData || {});
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+  const [loadingPeriod, setLoadingPeriod] = useState(false);
+  const [fetchingPeriodKey, setFetchingPeriodKey] = useState(null);
   const [metricMode, setMetricMode] = useState('duration'); // 'duration' (minutes) | 'reviews' (cards) | 'combined'
   const [hoveredDay, setHoveredDay] = useState(null);
   const scrollContainerRef = useRef(null);
 
-  // Available periods from periodsData
-  const currentPeriodData = periodsData?.[selectedPeriod] || periodsData?.all || periodsData?.week || null;
+  // Sync incoming periodsData into local cache
+  useEffect(() => {
+    if (periodsData) {
+      setLocalPeriodsData(prev => ({ ...prev, ...periodsData }));
+    }
+  }, [periodsData]);
+
+  // If defaultPeriod changes from parent
+  useEffect(() => {
+    if (defaultPeriod) {
+      setSelectedPeriod(defaultPeriod);
+    }
+  }, [defaultPeriod]);
+
+  // Handle switching periods (loads on-demand if not already cached)
+  const handlePeriodChange = async (key) => {
+    if (selectedPeriod === key || loadingPeriod) return;
+
+    // If we already have the data locally, switch instantly
+    if (localPeriodsData && localPeriodsData[key]) {
+      setSelectedPeriod(key);
+      return;
+    }
+
+    // If not cached and onFetchPeriod callback provided, fetch on-demand
+    if (onFetchPeriod) {
+      setLoadingPeriod(true);
+      setFetchingPeriodKey(key);
+      try {
+        const data = await onFetchPeriod(key);
+        if (data) {
+          setLocalPeriodsData(prev => ({
+            ...prev,
+            [key]: data
+          }));
+        }
+        setSelectedPeriod(key);
+      } catch (err) {
+        console.error('Failed to load period data:', err);
+      } finally {
+        setLoadingPeriod(false);
+        setFetchingPeriodKey(null);
+      }
+    } else {
+      setSelectedPeriod(key);
+    }
+  };
+
+  // Available periods from localPeriodsData
+  const currentPeriodData = localPeriodsData?.[selectedPeriod] || localPeriodsData?.week || localPeriodsData?.all || null;
   const days = currentPeriodData?.days || [];
   const summary = currentPeriodData?.summary || {};
 
@@ -43,7 +95,7 @@ export default function ActivityHistoryChart({
     }
   }, [selectedPeriod]);
 
-  if (!periodsData) {
+  if (!localPeriodsData || Object.keys(localPeriodsData).length === 0) {
     return null;
   }
 
@@ -123,12 +175,14 @@ export default function ActivityHistoryChart({
         }}>
           {periodOptions.map(p => {
             const isSelected = selectedPeriod === p.key;
+            const isFetchingThis = loadingPeriod && fetchingPeriodKey === p.key;
             const Icon = p.icon;
             return (
               <button
                 key={p.key}
                 type="button"
-                onClick={() => setSelectedPeriod(p.key)}
+                onClick={() => handlePeriodChange(p.key)}
+                disabled={loadingPeriod}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -142,12 +196,25 @@ export default function ActivityHistoryChart({
                   color: isSelected ? '#ffffff' : 'var(--text-secondary)',
                   fontWeight: 700,
                   fontSize: '0.82rem',
-                  cursor: 'pointer',
+                  cursor: loadingPeriod ? 'wait' : 'pointer',
                   transition: 'all 0.2s ease',
-                  boxShadow: isSelected ? '0 2px 8px rgba(2, 132, 199, 0.3)' : 'none'
+                  boxShadow: isSelected ? '0 2px 8px rgba(2, 132, 199, 0.3)' : 'none',
+                  opacity: (loadingPeriod && !isFetchingThis && !isSelected) ? 0.6 : 1
                 }}
               >
-                <Icon size={14} />
+                {isFetchingThis ? (
+                  <span style={{
+                    width: '12px',
+                    height: '12px',
+                    border: '2px solid rgba(255,255,255,0.4)',
+                    borderTopColor: isSelected ? '#ffffff' : 'var(--accent-primary)',
+                    borderRadius: '50%',
+                    display: 'inline-block',
+                    animation: 'spin 0.6s linear infinite'
+                  }} />
+                ) : (
+                  <Icon size={14} />
+                )}
                 <span>{p.label}</span>
               </button>
             );
@@ -159,7 +226,9 @@ export default function ActivityHistoryChart({
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: '0.85rem'
+        gap: '0.85rem',
+        opacity: loadingPeriod ? 0.45 : 1,
+        transition: 'opacity 0.2s ease'
       }}>
         {/* KPI 1: Total Study Time */}
         <div style={{
@@ -399,7 +468,9 @@ export default function ActivityHistoryChart({
           overflowX: 'auto',
           paddingBottom: '0.5rem',
           paddingTop: '1rem',
-          scrollbarWidth: 'thin'
+          scrollbarWidth: 'thin',
+          opacity: loadingPeriod ? 0.45 : 1,
+          transition: 'opacity 0.2s ease'
         }}
       >
         <div style={{
