@@ -28,7 +28,9 @@ import {
   History,
   CheckCircle,
   XCircle,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { api } from '../../services/api';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
@@ -49,6 +51,16 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [feedbackSuccessNotice, setFeedbackSuccessNotice] = useState('');
 
+  // Audit Sessions Pagination State
+  const [sessions, setSessions] = useState([]);
+  const [sessionsPagination, setSessionsPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1
+  });
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
   const hasAuth = !!currentUser || !!localStorage.getItem('token');
 
   const resolveTargetUsername = () => {
@@ -68,6 +80,17 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
       .then(res => {
         if (res.success && res.data) {
           setStatsData(res.data);
+          setSessions(res.data.recentSessions || []);
+          if (res.data.sessionsPagination) {
+            setSessionsPagination(res.data.sessionsPagination);
+          } else {
+            setSessionsPagination({
+              page: 1,
+              limit: 10,
+              total: res.data.recentSessions?.length || 0,
+              totalPages: Math.ceil((res.data.recentSessions?.length || 0) / 10) || 1
+            });
+          }
         } else {
           setError(res.error || 'Không tìm thấy hồ sơ học tập công khai này.');
         }
@@ -78,6 +101,40 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  const handleSessionsPageChange = async (newPage) => {
+    if (newPage < 1 || newPage > sessionsPagination.totalPages || newPage === sessionsPagination.page || loadingSessions) return;
+    setLoadingSessions(true);
+    const target = resolveTargetUsername();
+    try {
+      const res = await api.getPublicSessions(target, newPage, sessionsPagination.limit);
+      if (res.success && res.data) {
+        setSessions(res.data.sessions || []);
+        setSessionsPagination(res.data.pagination);
+      }
+    } catch (err) {
+      console.error('Error fetching sessions page:', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleSessionsLimitChange = async (newLimit) => {
+    if (newLimit === sessionsPagination.limit || loadingSessions) return;
+    setLoadingSessions(true);
+    const target = resolveTargetUsername();
+    try {
+      const res = await api.getPublicSessions(target, 1, newLimit);
+      if (res.success && res.data) {
+        setSessions(res.data.sessions || []);
+        setSessionsPagination(res.data.pagination);
+      }
+    } catch (err) {
+      console.error('Error changing sessions limit:', err);
+    } finally {
+      setLoadingSessions(false);
+    }
   };
 
   useEffect(() => {
@@ -896,54 +953,193 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             </span>
           </div>
 
-          {recentSessions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          {sessions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               Chưa có phiên học nào được ghi lại trong hệ thống.
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Thời Gian</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Nội Dung Hoạt Động</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Thời Lượng</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Chế Độ</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Ghi Chú Phiên Học</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentSessions.map(session => (
-                    <tr key={session.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s ease' }}>
-                      <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                        {formatSessionTime(session.started_at)}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {session.activity_title}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                        {session.duration_minutes} phút
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '6px',
-                          background: session.mode === 'pomodoro' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(2, 132, 199, 0.12)',
-                          color: session.mode === 'pomodoro' ? '#ef4444' : 'var(--accent-primary)'
-                        }}>
-                          {session.mode === 'pomodoro' ? '🍅 Pomodoro' : '⏱️ Bấm giờ'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)', fontStyle: session.notes ? 'normal' : 'italic' }}>
-                        {session.notes || 'Không có ghi chú'}
-                      </td>
+            <>
+              <div style={{ overflowX: 'auto', position: 'relative' }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontSize: '0.88rem',
+                  opacity: loadingSessions ? 0.4 : 1,
+                  transition: 'opacity 0.2s ease'
+                }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '0.75rem 1rem' }}>Thời Gian</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Nội Dung Hoạt Động</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Thời Lượng</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Chế Độ</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>Ghi Chú Phiên Học</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {sessions.map(session => (
+                      <tr key={session.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.2s ease' }}>
+                        <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                          {formatSessionTime(session.started_at)}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {session.activity_title}
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                          {session.duration_minutes} phút
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: '6px',
+                            background: session.mode === 'pomodoro' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(2, 132, 199, 0.12)',
+                            color: session.mode === 'pomodoro' ? '#ef4444' : 'var(--accent-primary)'
+                          }}>
+                            {session.mode === 'pomodoro' ? '🍅 Pomodoro' : '⏱️ Bấm giờ'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)', fontStyle: session.notes ? 'normal' : 'italic' }}>
+                          {session.notes || 'Không có ghi chú'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {sessionsPagination.total > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '1.25rem',
+                  paddingTop: '1rem',
+                  borderTop: '1px solid var(--border-color)',
+                  flexWrap: 'wrap',
+                  gap: '1rem'
+                }}>
+                  {/* Left: Summary text & Limit selector */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                      Hiển thị <strong style={{ color: 'var(--text-primary)' }}>
+                        {(sessionsPagination.page - 1) * sessionsPagination.limit + 1} - {Math.min(sessionsPagination.page * sessionsPagination.limit, sessionsPagination.total)}
+                      </strong> trên <strong style={{ color: 'var(--text-primary)' }}>{sessionsPagination.total}</strong> phiên học
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      <span>Mỗi trang:</span>
+                      {[5, 10, 20].map(lim => (
+                        <button
+                          key={lim}
+                          onClick={() => handleSessionsLimitChange(lim)}
+                          disabled={loadingSessions}
+                          style={{
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            border: '1px solid var(--border-color)',
+                            background: sessionsPagination.limit === lim ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                            color: sessionsPagination.limit === lim ? '#ffffff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {lim}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: Page Navigation Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => handleSessionsPageChange(sessionsPagination.page - 1)}
+                      disabled={sessionsPagination.page <= 1 || loadingSessions}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-tertiary)',
+                        color: sessionsPagination.page <= 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                        cursor: sessionsPagination.page <= 1 ? 'not-allowed' : 'pointer',
+                        opacity: sessionsPagination.page <= 1 ? 0.5 : 1
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                      <span>Trước</span>
+                    </button>
+
+                    {/* Page numbers */}
+                    {Array.from({ length: sessionsPagination.totalPages }, (_, i) => i + 1)
+                      .filter(p => {
+                        return p === 1 || p === sessionsPagination.totalPages || Math.abs(p - sessionsPagination.page) <= 1;
+                      })
+                      .map((p, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && p - prev > 1;
+                        return (
+                          <React.Fragment key={p}>
+                            {showEllipsis && <span style={{ padding: '0 0.3rem', color: 'var(--text-muted)' }}>...</span>}
+                            <button
+                              onClick={() => handleSessionsPageChange(p)}
+                              disabled={loadingSessions}
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                border: '1px solid var(--border-color)',
+                                background: sessionsPagination.page === p ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                                color: sessionsPagination.page === p ? '#ffffff' : 'var(--text-primary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {p}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })
+                    }
+
+                    <button
+                      onClick={() => handleSessionsPageChange(sessionsPagination.page + 1)}
+                      disabled={sessionsPagination.page >= sessionsPagination.totalPages || loadingSessions}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '8px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-tertiary)',
+                        color: sessionsPagination.page >= sessionsPagination.totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                        cursor: sessionsPagination.page >= sessionsPagination.totalPages ? 'not-allowed' : 'pointer',
+                        opacity: sessionsPagination.page >= sessionsPagination.totalPages ? 0.5 : 1
+                      }}
+                    >
+                      <span>Sau</span>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -421,6 +421,19 @@ export const api = {
     }
   },
 
+  // Get Public Sessions with Pagination (No token needed)
+  getPublicSessions: async (username = '', page = 1, limit = 10) => {
+    try {
+      const base = username 
+        ? `${API_BASE}/public/sessions/${encodeURIComponent(username)}` 
+        : `${API_BASE}/public/sessions`;
+      const res = await fetch(`${base}?page=${page}&limit=${limit}`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
   // Post Supervisor Feedback / Nudge (No token needed)
   postSupervisorFeedback: async ({ username, supervisor_name, type, message }) => {
     try {

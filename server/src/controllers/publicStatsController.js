@@ -228,14 +228,24 @@ export const publicStatsController = {
         lastActiveAt: todaySessionsRow?.last_started || (todaySeconds > 0 ? `${todayStr}T12:00:00Z` : null)
       };
 
-      // 10. RECENT STUDY SESSIONS (Nhật ký phiên học cụ thể để người giám sát kiểm tra)
+      // 10. RECENT STUDY SESSIONS WITH PAGINATION (Nhật ký phiên học cụ thể để người giám sát kiểm tra)
+      const sessionsPage = Math.max(1, parseInt(req.query.session_page || req.query.page, 10) || 1);
+      const sessionsLimit = Math.max(1, Math.min(50, parseInt(req.query.session_limit || req.query.limit, 10) || 10));
+      const sessionsOffset = (sessionsPage - 1) * sessionsLimit;
+
+      const totalSessionsCount = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM study_sessions 
+        WHERE ${userClause}
+      `).get(userId)?.count || 0;
+
       const recentSessions = db.prepare(`
         SELECT id, activity_type, activity_title, duration_seconds, mode, notes, started_at, ended_at
         FROM study_sessions
         WHERE ${userClause}
         ORDER BY started_at DESC
-        LIMIT 15
-      `).all(userId).map(s => ({
+        LIMIT ? OFFSET ?
+      `).all(userId, sessionsLimit, sessionsOffset).map(s => ({
         id: s.id,
         activity_type: s.activity_type || 'general',
         activity_title: s.activity_title || 'Phiên học tập trung',
@@ -246,6 +256,13 @@ export const publicStatsController = {
         started_at: s.started_at,
         ended_at: s.ended_at
       }));
+
+      const sessionsPagination = {
+        page: sessionsPage,
+        limit: sessionsLimit,
+        total: totalSessionsCount,
+        totalPages: Math.ceil(totalSessionsCount / sessionsLimit) || 1
+      };
 
       // 11. SUPERVISOR FEEDBACKS & NUDGES (Các lời nhắc từ người giám sát)
       const supervisorFeedbacks = db.prepare(`
@@ -290,6 +307,7 @@ export const publicStatsController = {
           },
           todayAccountability,
           recentSessions,
+          sessionsPagination,
           supervisorFeedbacks,
           retentionBreakdown: {
             mastered: wordCounts.mastered || 0,
@@ -363,6 +381,90 @@ export const publicStatsController = {
     } catch (err) {
       console.error('[Supervisor Feedback Error]', err);
       return res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  // GET /api/public/sessions or /api/public/sessions/:username (Phân trang nhật ký phiên học cho người giám sát)
+  getPublicSessions: async (req, res) => {
+    try {
+      const db = getDb();
+      const targetIdentifier = req.params?.username || req.query?.user || req.query?.username || null;
+
+      let user = null;
+      if (targetIdentifier) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE username = ? OR id = ?
+        `).get(targetIdentifier, targetIdentifier);
+      }
+
+      if (!user) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE role = 'admin' OR id = 'admin_master_user_id' 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get() || db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get();
+      }
+
+      const userId = user?.id || 'admin_master_user_id';
+      const isAdmin = (userId === 'admin_master_user_id' || user?.role === 'admin');
+      const userClause = isAdmin 
+        ? "(user_id = ? OR user_id IS NULL OR user_id = '')" 
+        : "user_id = ?";
+
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 10));
+      const offset = (page - 1) * limit;
+
+      const totalCount = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM study_sessions 
+        WHERE ${userClause}
+      `).get(userId)?.count || 0;
+
+      const sessions = db.prepare(`
+        SELECT id, activity_type, activity_title, duration_seconds, mode, notes, started_at, ended_at
+        FROM study_sessions
+        WHERE ${userClause}
+        ORDER BY started_at DESC
+        LIMIT ? OFFSET ?
+      `).all(userId, limit, offset).map(s => ({
+        id: s.id,
+        activity_type: s.activity_type || 'general',
+        activity_title: s.activity_title || 'Phiên học tập trung',
+        duration_seconds: s.duration_seconds,
+        duration_minutes: Math.max(1, Math.round(s.duration_seconds / 60)),
+        mode: s.mode || 'stopwatch',
+        notes: s.notes || '',
+        started_at: s.started_at,
+        ended_at: s.ended_at
+      }));
+
+      const totalPages = Math.ceil(totalCount / limit) || 1;
+
+      return res.json({
+        success: true,
+        data: {
+          sessions,
+          pagination: {
+            page,
+            limit,
+            total: totalCount,
+            totalPages
+          }
+        }
+      });
+    } catch (err) {
+      console.error('[Public Sessions Error]', err);
+      return res.status(500).json({ success: false, error: 'Không thể tải nhật ký phiên học: ' + err.message });
     }
   }
 };
