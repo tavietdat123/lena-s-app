@@ -1,4 +1,4 @@
-import { db, ensureDefaultPatternCategories, defaultPatternCategories } from "../db/database.js";
+import { db, ensureDefaultPatternCategories, ensureMasterPatterns, defaultPatternCategories } from "../db/database.js";
 import crypto from "node:crypto";
 
 function slugify(text) {
@@ -166,15 +166,32 @@ export const patternCategoryController = {
     }
   },
 
-  // 5. Reset to default categories
+  // 5. Reset to default categories & auto-sync master patterns
   resetToDefaults: (req, res) => {
     try {
       ensureDefaultPatternCategories(db);
+      const userId = req.user?.id || 'admin_master_user_id';
+      const addedPatterns = ensureMasterPatterns(db, userId);
       const categories = db.prepare("SELECT * FROM pattern_categories ORDER BY created_at ASC").all();
+
+      const countStmt = db.prepare("SELECT category, COUNT(*) as count FROM patterns GROUP BY category");
+      const counts = countStmt.all();
+      const countMap = {};
+      counts.forEach(c => {
+        if (c.category) countMap[c.category] = c.count;
+      });
+
+      const enriched = (categories || []).map(c => ({
+        ...c,
+        patterns_count: countMap[c.id] || 0
+      }));
+
       res.json({
         success: true,
-        message: "Đã khôi phục toàn bộ danh mục chức năng mặc định",
-        data: categories
+        message: addedPatterns > 0
+          ? `Đã khôi phục 24 nhóm chức năng và nạp thêm ${addedPatterns} cấu trúc câu chuẩn!`
+          : "Đã đồng bộ toàn bộ 24 nhóm chức năng câu mặc định!",
+        data: enriched
       });
     } catch (err) {
       console.error('resetToDefaults error:', err);

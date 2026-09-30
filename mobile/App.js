@@ -543,7 +543,13 @@ const DEFAULT_PATTERN_CATEGORIES = [
   { id: 'sequence', name: 'Thời gian & Trình tự', emoji: '⏳', color: '#d97706', description: 'Chuỗi sự kiện kế tiếp, mốc thời gian và hành động tức thì' },
   { id: 'conclusion', name: 'Tóm tắt & Kết luận', emoji: '🏁', color: '#059669', description: 'Tóm lược các ý chính, đưa ra kết luận hoặc bài học tổng thể' },
   { id: 'request', name: 'Yêu cầu & Đề nghị lịch sự', emoji: '🤝', color: '#2563eb', description: 'Đề nghị lịch sự, phản biện ngoại giao trong công việc' },
-  { id: 'definition', name: 'Định nghĩa & Khái niệm', emoji: '📖', color: '#7c3aed', description: 'Định nghĩa thuật ngữ, giải thích bản chất khái niệm' }
+  { id: 'definition', name: 'Định nghĩa & Khái niệm', emoji: '📖', color: '#7c3aed', description: 'Định nghĩa thuật ngữ, giải thích bản chất khái niệm' },
+  { id: 'counter_argument', name: 'Phản bác & Phản đề', emoji: '🛡️', color: '#e11d48', description: 'Bác bỏ lập luận đối phương, vạch ra thiếu sót và đưa ra lý lẽ phản biện' },
+  { id: 'agreement', name: 'Đồng thuận & Tán thành', emoji: '✅', color: '#10b981', description: 'Bày tỏ sự đồng tình hoàn toàn hoặc một phần với luận điểm' },
+  { id: 'disagreement', name: 'Bất đồng & Nghi vấn', emoji: '❌', color: '#f43f5e', description: 'Thể hiện sự không đồng ý một cách khéo léo hoặc trực tiếp' },
+  { id: 'problem_solution', name: 'Vấn đề & Giải pháp', emoji: '🛠️', color: '#0284c7', description: 'Nêu thực trạng nan giải và đề xuất phương án xử lý, khắc phục' },
+  { id: 'evaluation', name: 'Đánh giá & Tầm quan trọng', emoji: '🌟', color: '#8b5cf6', description: 'Đánh giá tính hiệu quả, tầm quan trọng hoặc mức độ tác động' },
+  { id: 'degree_extent', name: 'Mức độ & Phạm vi', emoji: '📏', color: '#0d9488', description: 'Chỉ rõ mức độ ảnh hưởng, biên độ hoặc phạm vi áp dụng' }
 ];
 
 

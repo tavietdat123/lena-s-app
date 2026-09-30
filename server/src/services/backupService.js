@@ -63,6 +63,11 @@ export const backupService = {
       topics = db.prepare('SELECT * FROM topics').all();
     } catch (e) {}
 
+    let pattern_categories = [];
+    try {
+      pattern_categories = db.prepare('SELECT * FROM pattern_categories ORDER BY created_at ASC').all();
+    } catch (e) {}
+
     let quiz_history = [];
     try {
       quiz_history = db.prepare(`
@@ -108,6 +113,7 @@ export const backupService = {
       data: {
         words,
         patterns,
+        pattern_categories,
         notes,
         study_logs,
         study_sessions,
@@ -131,6 +137,7 @@ export const backupService = {
 
     const words = Array.isArray(payload.words) ? payload.words : [];
     const patterns = Array.isArray(payload.patterns) ? payload.patterns : [];
+    const pattern_categories = Array.isArray(payload.pattern_categories) ? payload.pattern_categories : [];
     const notes = Array.isArray(payload.notes) ? payload.notes : [];
     const study_logs = Array.isArray(payload.study_logs) ? payload.study_logs : [];
     const study_sessions = Array.isArray(payload.study_sessions) ? payload.study_sessions : [];
@@ -139,7 +146,7 @@ export const backupService = {
     const quiz_history = Array.isArray(payload.quiz_history) ? payload.quiz_history : [];
     const user_settings = payload.user_settings || null;
 
-    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && study_sessions.length === 0 && study_schedules.length === 0) {
+    if (words.length === 0 && patterns.length === 0 && notes.length === 0 && topics.length === 0 && pattern_categories.length === 0 && study_sessions.length === 0 && study_schedules.length === 0) {
       throw new Error('File sao lưu không chứa dữ liệu từ vựng hoặc cấu trúc nào để khôi phục.');
     }
 
@@ -167,6 +174,32 @@ export const backupService = {
             t.description || '',
             t.created_at || new Date().toISOString(),
             t.updated_at || new Date().toISOString()
+          );
+        }
+      }
+
+      // 1b. Restore Pattern Categories
+      if (pattern_categories.length > 0) {
+        const insertCategory = db.prepare(`
+          INSERT INTO pattern_categories (id, name, emoji, color, description, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            emoji = excluded.emoji,
+            color = excluded.color,
+            description = excluded.description,
+            updated_at = excluded.updated_at
+        `);
+        for (const c of pattern_categories) {
+          if (!c.id || !c.name) continue;
+          insertCategory.run(
+            c.id,
+            c.name,
+            c.emoji || '🧩',
+            c.color || '#8b5cf6',
+            c.description || '',
+            c.created_at || new Date().toISOString(),
+            c.updated_at || new Date().toISOString()
           );
         }
       }
@@ -531,6 +564,7 @@ export const backupService = {
     const summaryParts = [];
     if (words.length > 0) summaryParts.push(`${words.length} từ vựng`);
     if (patterns.length > 0) summaryParts.push(`${patterns.length} cấu trúc`);
+    if (pattern_categories.length > 0) summaryParts.push(`${pattern_categories.length} nhóm chức năng`);
     if (notes.length > 0) summaryParts.push(`${notes.length} ghi chú`);
     if (topics.length > 0) summaryParts.push(`${topics.length} chủ đề`);
     if (study_logs.length > 0) summaryParts.push(`${study_logs.length} ngày lịch sử`);
@@ -543,6 +577,7 @@ export const backupService = {
       stats: {
         words: words.length,
         patterns: patterns.length,
+        pattern_categories: pattern_categories.length,
         notes: notes.length,
         topics: topics.length,
         study_logs: study_logs.length,

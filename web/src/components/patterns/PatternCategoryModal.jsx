@@ -179,10 +179,10 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                   disabled={isResetting} 
                   className="btn-secondary" 
                   style={{ padding: "0.45rem 0.85rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  title="Khôi phục danh sách 18 danh mục câu chuẩn"
+                  title="Khôi phục danh sách 24 danh mục câu chuẩn"
                 >
                   <RotateCcw size={14} className={isResetting ? "animate-spin" : ""} />
-                  <span>{isResetting ? "Đang nạp..." : "Nạp 18 Nhóm Chuẩn"}</span>
+                  <span>{isResetting ? "Đang nạp..." : "Nạp 24 Nhóm Chuẩn"}</span>
                 </button>
                 <button onClick={handleStartCreate} className="btn-primary" style={{ padding: "0.45rem 0.9rem", fontSize: "0.85rem" }}>
                   <Plus size={16} />

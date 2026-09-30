@@ -124,5 +124,47 @@ export const DEFAULT_PATTERN_CATEGORIES = [
     emoji: '📖',
     color: '#7c3aed',
     description: 'Định nghĩa thuật ngữ, giải thích bản chất khái niệm (Is defined as, Refers to, Constitutes, Characterized by)'
+  },
+  {
+    id: 'counter_argument',
+    name: 'Phản bác & Phản đề',
+    emoji: '🛡️',
+    color: '#e11d48',
+    description: 'Bác bỏ lập luận đối phương, vạch ra thiếu sót và đưa ra lý lẽ phản biện (Contrary to popular belief, It is misleading to claim, While it is often argued that)'
+  },
+  {
+    id: 'agreement',
+    name: 'Đồng thuận & Tán thành',
+    emoji: '✅',
+    color: '#10b981',
+    description: 'Bày tỏ sự đồng tình hoàn toàn hoặc một phần với luận điểm (I am in full agreement with, There is widespread consensus, Echoes the viewpoint)'
+  },
+  {
+    id: 'disagreement',
+    name: 'Bất đồng & Nghi vấn',
+    emoji: '❌',
+    color: '#f43f5e',
+    description: 'Thể hiện sự không đồng ý một cách khéo léo hoặc trực tiếp (I respectfully beg to differ, That is not necessarily the case, Cast doubt on)'
+  },
+  {
+    id: 'problem_solution',
+    name: 'Vấn đề & Giải pháp',
+    emoji: '🛠️',
+    color: '#0284c7',
+    description: 'Nêu thực trạng nan giải và đề xuất phương án xử lý, khắc phục (A viable solution lies in, Urgent measures must be taken, To mitigate the impact)'
+  },
+  {
+    id: 'evaluation',
+    name: 'Đánh giá & Tầm quan trọng',
+    emoji: '🌟',
+    color: '#8b5cf6',
+    description: 'Đánh giá tính hiệu quả, tầm quan trọng hoặc mức độ tác động (Plays a pivotal role in, Is of paramount importance, Profound implications)'
+  },
+  {
+    id: 'degree_extent',
+    name: 'Mức độ & Phạm vi',
+    emoji: '📏',
+    color: '#0d9488',
+    description: 'Chỉ rõ mức độ ảnh hưởng, biên độ hoặc phạm vi áp dụng (To a significant extent, Far outweighs, In large measure due to)'
   }
 ];
