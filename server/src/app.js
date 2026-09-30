@@ -149,6 +149,8 @@ function mountPublicRoutes(app, authLimiter) {
   // Public Learning Statistics & Supervision (Guest accessible)
   app.get('/api/public/stats', rateLimit({ name: 'public-stats', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicStats));
   app.get('/api/public/stats/:username', rateLimit({ name: 'public-stats', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicStats));
+  app.get('/api/public/daily-breakdown', rateLimit({ name: 'daily-breakdown', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getDailyBreakdown));
+  app.get('/api/public/daily-breakdown/:username', rateLimit({ name: 'daily-breakdown', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getDailyBreakdown));
   app.get('/api/public/sessions', rateLimit({ name: 'public-sessions', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicSessions));
   app.get('/api/public/sessions/:username', rateLimit({ name: 'public-sessions', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicSessions));
   app.post('/api/public/supervisor-feedback', rateLimit({ name: 'supervisor-feedback', max: 30, windowMs: 60_000 }), asyncHandler(publicStatsController.postSupervisorFeedback));

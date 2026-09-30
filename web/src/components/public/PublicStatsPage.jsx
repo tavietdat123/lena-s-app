@@ -61,6 +61,33 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
   });
   const [loadingSessions, setLoadingSessions] = useState(false);
 
+  // CEFR & Activity Daily Breakdown Filter State
+  const todayStr = (() => {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  })();
+
+  const yesterdayStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  })();
+
+  const [selectedBreakdownDate, setSelectedBreakdownDate] = useState(todayStr);
+  const [selectedDatePreset, setSelectedDatePreset] = useState('today'); // 'today' | 'yesterday' | 'custom' | 'all'
+  const [breakdownData, setBreakdownData] = useState({
+    date: todayStr,
+    isAll: false,
+    totalWords: 0,
+    totalSessions: 0,
+    totalMinutes: 0,
+    levelsBreakdown: { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 },
+    activityDistribution: []
+  });
+  const [loadingBreakdown, setLoadingBreakdown] = useState(false);
+
   const hasAuth = !!currentUser || !!localStorage.getItem('token');
 
   const resolveTargetUsername = () => {
@@ -69,6 +96,36 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
       target = '';
     }
     return target;
+  };
+
+  const fetchDailyBreakdown = async (dateVal, preset = 'custom') => {
+    setSelectedDatePreset(preset);
+    setSelectedBreakdownDate(dateVal);
+    setLoadingBreakdown(true);
+    const target = resolveTargetUsername();
+    try {
+      const res = await api.getPublicDailyBreakdown(target, dateVal);
+      if (res.success && res.data) {
+        setBreakdownData(res.data);
+      }
+    } catch (err) {
+      console.error('Error fetching daily breakdown:', err);
+    } finally {
+      setLoadingBreakdown(false);
+    }
+  };
+
+  const formatDateVi = (dateStr) => {
+    if (!dateStr || dateStr === 'all') return 'Toàn bộ thời gian';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   const loadData = () => {
@@ -81,6 +138,19 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
         if (res.success && res.data) {
           setStatsData(res.data);
           setSessions(res.data.recentSessions || []);
+          if (res.data.dailyBreakdown) {
+            setBreakdownData(res.data.dailyBreakdown);
+          } else {
+            setBreakdownData({
+              date: todayStr,
+              isAll: false,
+              totalWords: 0,
+              totalSessions: 0,
+              totalMinutes: 0,
+              levelsBreakdown: res.data.levelsBreakdown || { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 },
+              activityDistribution: res.data.activityDistribution || []
+            });
+          }
           if (res.data.sessionsPagination) {
             setSessionsPagination(res.data.sessionsPagination);
           } else {
@@ -1130,64 +1200,274 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           )}
         </div>
 
-        {/* 7. CEFR LEVEL BREAKDOWN & ACTIVITY BREAKDOWN */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {/* CEFR Level distribution */}
-          <div className="card" style={{ padding: '1.75rem' }}>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>Trình Độ Chuẩn CEFR Phân Bổ</span>
-            </h4>
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-              {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(lvl => {
-                const count = levelsBreakdown[lvl] || 0;
-                return (
-                  <div
-                    key={lvl}
-                    style={{
-                      flex: '1 1 calc(33.333% - 0.65rem)',
-                      background: 'var(--bg-tertiary)',
-                      padding: '0.85rem 1rem',
-                      borderRadius: '14px',
-                      border: '1px solid var(--border-color)',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)' }}>{lvl}</div>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900, marginTop: '2px' }}>{count}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>từ vựng</div>
-                  </div>
-                );
-              })}
+        {/* 7. CEFR LEVEL BREAKDOWN & ACTIVITY BREAKDOWN WITH DATE FILTER */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Date Filter Toolbar */}
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '20px',
+            border: '1px solid var(--border-color)',
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                <Calendar size={18} style={{ color: 'var(--accent-primary)' }} />
+                <span>Bộ Lọc Ngày: Phân Bổ CEFR & Hoạt Động Rèn Luyện</span>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                {selectedDatePreset === 'all'
+                  ? 'Đang hiển thị toàn bộ dữ liệu tích lũy từ trước đến nay'
+                  : `Đang lọc dữ liệu ngày: ${selectedBreakdownDate === todayStr ? 'Hôm nay (' + formatDateVi(selectedBreakdownDate) + ')' : formatDateVi(selectedBreakdownDate)}`}
+              </div>
+            </div>
+
+            {/* Filter Buttons & Date Picker */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => fetchDailyBreakdown(todayStr, 'today')}
+                disabled={loadingBreakdown}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: selectedDatePreset === 'today' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: selectedDatePreset === 'today' ? '#ffffff' : 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Hôm nay
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fetchDailyBreakdown(yesterdayStr, 'yesterday')}
+                disabled={loadingBreakdown}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: selectedDatePreset === 'yesterday' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: selectedDatePreset === 'yesterday' ? '#ffffff' : 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Hôm qua
+              </button>
+
+              {/* Date Input */}
+              <input
+                type="date"
+                value={selectedBreakdownDate !== 'all' ? selectedBreakdownDate : todayStr}
+                max={todayStr}
+                disabled={loadingBreakdown}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const mode = e.target.value === todayStr ? 'today' : (e.target.value === yesterdayStr ? 'yesterday' : 'custom');
+                    fetchDailyBreakdown(e.target.value, mode);
+                  }
+                }}
+                style={{
+                  padding: '0.42rem 0.75rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: selectedDatePreset === 'custom'
+                    ? 'rgba(2, 132, 199, 0.12)'
+                    : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => fetchDailyBreakdown('all', 'all')}
+                disabled={loadingBreakdown}
+                style={{
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: selectedDatePreset === 'all' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: selectedDatePreset === 'all' ? '#ffffff' : 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Tất cả thời gian
+              </button>
             </div>
           </div>
 
-          {/* Study Activity Distribution */}
-          <div className="card" style={{ padding: '1.75rem' }}>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '1.25rem' }}>
-              Cơ Cấu Hoạt Động Rèn Luyện
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {activityDistribution.map(act => (
-                <div
-                  key={act.label}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.6rem 0.85rem',
+          {/* Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.5rem',
+            opacity: loadingBreakdown ? 0.4 : 1,
+            transition: 'opacity 0.2s ease',
+            position: 'relative'
+          }}>
+            {/* CEFR Level distribution */}
+            <div className="card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>Trình Độ Chuẩn CEFR Phân Bổ</span>
+                  </h4>
+                  <span style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '8px',
                     background: 'var(--bg-tertiary)',
-                    borderRadius: '12px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>{act.emoji}</span>
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{act.label}</span>
-                  </div>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {act.sessions} phiên ({Math.round(act.seconds / 60)} phút)
+                    color: 'var(--accent-primary)',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {breakdownData.isAll 
+                      ? `${breakdownData.totalWords} từ vựng`
+                      : (breakdownData.totalWords > 0 ? `${breakdownData.totalWords} từ tương tác` : '0 từ tương tác')}
                   </span>
                 </div>
-              ))}
+
+                <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  {['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map(lvl => {
+                    const count = breakdownData.levelsBreakdown?.[lvl] || 0;
+                    return (
+                      <div
+                        key={lvl}
+                        style={{
+                          flex: '1 1 calc(33.333% - 0.65rem)',
+                          background: 'var(--bg-tertiary)',
+                          padding: '0.85rem 1rem',
+                          borderRadius: '14px',
+                          border: '1px solid var(--border-color)',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)' }}>{lvl}</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 900, marginTop: '2px' }}>{count}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>từ vựng</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{
+                marginTop: '1.25rem',
+                paddingTop: '0.85rem',
+                borderTop: '1px solid var(--border-color)',
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span>
+                  {breakdownData.isAll
+                    ? '📊 Toàn bộ từ vựng đã lưu trong kho'
+                    : `📅 Từ vựng nạp mới hoặc ôn tập ngày ${formatDateVi(breakdownData.date)}`}
+                </span>
+                <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  Tổng: {breakdownData.totalWords} từ
+                </span>
+              </div>
+            </div>
+
+            {/* Study Activity Distribution */}
+            <div className="card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                    Cơ Cấu Hoạt Động Rèn Luyện
+                  </h4>
+                  <span style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '8px',
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--accent-primary)',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {breakdownData.totalSessions} phiên • {breakdownData.totalMinutes} phút
+                  </span>
+                </div>
+
+                {breakdownData.totalSessions === 0 && !breakdownData.isAll ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '2rem 1rem',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '14px',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.86rem'
+                  }}>
+                    Chưa có phiên học nào được ghi nhận trong ngày này.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {(breakdownData.activityDistribution || []).map(act => (
+                      <div
+                        key={act.label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.6rem 0.85rem',
+                          background: 'var(--bg-tertiary)',
+                          borderRadius: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <span style={{ fontSize: '1.2rem' }}>{act.emoji}</span>
+                          <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{act.label}</span>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          {act.sessions} phiên ({Math.round((act.seconds || 0) / 60)} phút)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                marginTop: '1.25rem',
+                paddingTop: '0.85rem',
+                borderTop: '1px solid var(--border-color)',
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span>
+                  {breakdownData.isAll
+                    ? '⏱️ Toàn bộ thời lượng rèn luyện tích lũy'
+                    : `⏱️ Phiên học ghi nhận ngày ${formatDateVi(breakdownData.date)}`}
+                </span>
+                <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
+                  Tổng: {breakdownData.totalMinutes} phút
+                </span>
+              </div>
             </div>
           </div>
         </div>

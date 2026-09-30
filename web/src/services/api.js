@@ -434,6 +434,20 @@ export const api = {
     }
   },
 
+  // Get Public Daily Breakdown for CEFR & Activities (No token needed)
+  getPublicDailyBreakdown: async (username = '', date = '') => {
+    try {
+      const base = username 
+        ? `${API_BASE}/public/daily-breakdown/${encodeURIComponent(username)}` 
+        : `${API_BASE}/public/daily-breakdown`;
+      const query = date ? `?date=${encodeURIComponent(date)}` : '';
+      const res = await fetch(`${base}${query}`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
   // Post Supervisor Feedback / Nudge (No token needed)
   postSupervisorFeedback: async ({ username, supervisor_name, type, message }) => {
     try {

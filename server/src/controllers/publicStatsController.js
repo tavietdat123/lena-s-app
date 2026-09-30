@@ -2,6 +2,98 @@ import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { activityChartService } from '../services/activityChartService.js';
 
+function getBreakdownForDate(db, userId, userClause, dateStr) {
+  const isAll = (dateStr === 'all' || !dateStr);
+
+  // 1. CEFR Levels Breakdown
+  let levelRows;
+  let totalWordsCount = 0;
+  if (isAll) {
+    levelRows = db.prepare(`
+      SELECT level, COUNT(*) as count 
+      FROM words 
+      WHERE ${userClause}
+      GROUP BY level
+    `).all(userId);
+    totalWordsCount = db.prepare(`SELECT COUNT(*) as count FROM words WHERE ${userClause}`).get(userId)?.count || 0;
+  } else {
+    levelRows = db.prepare(`
+      SELECT level, COUNT(*) as count 
+      FROM words 
+      WHERE ${userClause}
+        AND (created_at LIKE ? OR last_reviewed_at LIKE ?)
+      GROUP BY level
+    `).all(userId, `${dateStr}%`, `${dateStr}%`);
+    totalWordsCount = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM words 
+      WHERE ${userClause}
+        AND (created_at LIKE ? OR last_reviewed_at LIKE ?)
+    `).get(userId, `${dateStr}%`, `${dateStr}%`)?.count || 0;
+  }
+
+  const levelsBreakdown = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
+  levelRows.forEach(r => {
+    const lvl = (r.level || '').toUpperCase();
+    if (levelsBreakdown[lvl] !== undefined) {
+      levelsBreakdown[lvl] = r.count;
+    }
+  });
+
+  // 2. Activity Distribution
+  let sessionDistRows;
+  if (isAll) {
+    sessionDistRows = db.prepare(`
+      SELECT activity_type, SUM(duration_seconds) as total_seconds, COUNT(*) as sessions_count
+      FROM study_sessions
+      WHERE ${userClause}
+      GROUP BY activity_type
+    `).all(userId);
+  } else {
+    sessionDistRows = db.prepare(`
+      SELECT activity_type, SUM(duration_seconds) as total_seconds, COUNT(*) as sessions_count
+      FROM study_sessions
+      WHERE ${userClause}
+        AND started_at LIKE ?
+      GROUP BY activity_type
+    `).all(userId, `${dateStr}%`);
+  }
+
+  const activityMap = {
+    vocab: { label: 'Học Từ Vựng', emoji: '📚', seconds: 0, sessions: 0 },
+    patterns: { label: 'Cấu Trúc Câu', emoji: '🧩', seconds: 0, sessions: 0 },
+    reading: { label: 'Đọc Hiểu', emoji: '📖', seconds: 0, sessions: 0 },
+    speaking: { label: 'Luyện Nói AI', emoji: '🗣️', seconds: 0, sessions: 0 },
+    quiz: { label: 'Kiểm Tra & Quiz', emoji: '🎯', seconds: 0, sessions: 0 },
+    coding: { label: 'Lập Trình & Dev', emoji: '💻', seconds: 0, sessions: 0 },
+    general: { label: 'Tự Học Chung', emoji: '⏱️', seconds: 0, sessions: 0 }
+  };
+
+  let totalSessions = 0;
+  let totalMinutes = 0;
+
+  sessionDistRows.forEach(r => {
+    const key = r.activity_type || 'general';
+    if (!activityMap[key]) {
+      activityMap[key] = { label: key, emoji: '📌', seconds: 0, sessions: 0 };
+    }
+    activityMap[key].seconds += (r.total_seconds || 0);
+    activityMap[key].sessions += (r.sessions_count || 0);
+    totalSessions += (r.sessions_count || 0);
+    totalMinutes += Math.round((r.total_seconds || 0) / 60);
+  });
+
+  return {
+    date: isAll ? 'all' : dateStr,
+    isAll,
+    totalWords: totalWordsCount,
+    totalSessions,
+    totalMinutes,
+    levelsBreakdown,
+    activityDistribution: Object.values(activityMap)
+  };
+}
+
 export const publicStatsController = {
   // GET /api/public/stats or /api/public/stats/:username
   getPublicStats: async (req, res) => {
@@ -59,7 +151,7 @@ export const publicStatsController = {
       // Account Isolation Clause
       const isAdmin = (userId === 'admin_master_user_id' || user?.role === 'admin');
       const userClause = isAdmin 
-        ? `(user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)` 
+        ? `(user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL OR user_id = '')` 
         : `(user_id = ?)`;
 
       // 3. Words & Memory Retention Statistics
@@ -276,6 +368,11 @@ export const publicStatsController = {
       // Total focused study hours
       const totalStudyHours = ((logsSummary.total_seconds || 0) / 3600).toFixed(1);
 
+      // 12. Breakdowns for Today and All-Time (CEFR Levels & Study Activities)
+      const queryDate = req.query.date || todayStr;
+      const dailyBreakdown = getBreakdownForDate(db, userId, userClause, queryDate);
+      const allTimeBreakdown = getBreakdownForDate(db, userId, userClause, 'all');
+
       return res.json({
         success: true,
         data: {
@@ -315,8 +412,10 @@ export const publicStatsController = {
             learning: wordCounts.learning || 0,
             newWords: wordCounts.new_words || 0
           },
-          levelsBreakdown,
-          activityDistribution: Object.values(activityMap),
+          levelsBreakdown: dailyBreakdown.levelsBreakdown,
+          activityDistribution: dailyBreakdown.activityDistribution,
+          dailyBreakdown,
+          allTimeBreakdown,
           recentLogs,
           periodsData: activityChartService.buildPeriodsData(db, userId),
           topWords
@@ -465,6 +564,59 @@ export const publicStatsController = {
     } catch (err) {
       console.error('[Public Sessions Error]', err);
       return res.status(500).json({ success: false, error: 'Không thể tải nhật ký phiên học: ' + err.message });
+    }
+  },
+
+  // GET /api/public/daily-breakdown or /api/public/daily-breakdown/:username (Phân bổ CEFR & hoạt động theo ngày)
+  getDailyBreakdown: async (req, res) => {
+    try {
+      const db = getDb();
+      const targetIdentifier = req.params?.username || req.query?.user || req.query?.username || null;
+
+      let user = null;
+      if (targetIdentifier) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE username = ? OR id = ?
+        `).get(targetIdentifier, targetIdentifier);
+      }
+
+      if (!user) {
+        user = db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          WHERE role = 'admin' OR id = 'admin_master_user_id' 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get() || db.prepare(`
+          SELECT id, username, full_name, avatar_url, role, created_at 
+          FROM users 
+          ORDER BY created_at ASC 
+          LIMIT 1
+        `).get();
+      }
+
+      const userId = user?.id || 'admin_master_user_id';
+      const isAdmin = (userId === 'admin_master_user_id' || user?.role === 'admin');
+      const userClause = isAdmin 
+        ? "(user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL OR user_id = '')" 
+        : "user_id = ?";
+
+      const pad = n => String(n).padStart(2, '0');
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const queryDate = req.query.date || todayStr;
+
+      const breakdown = getBreakdownForDate(db, userId, userClause, queryDate);
+
+      return res.json({
+        success: true,
+        data: breakdown
+      });
+    } catch (err) {
+      console.error('[Daily Breakdown Error]', err);
+      return res.status(500).json({ success: false, error: 'Không thể tải phân bổ dữ liệu theo ngày: ' + err.message });
     }
   }
 };
