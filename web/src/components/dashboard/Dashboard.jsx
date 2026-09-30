@@ -27,7 +27,8 @@ export default function Dashboard({
   audioSpeed = 1.0,
   gamificationProfile,
   onOpenAIMasteryReport,
-  onSharePublicStats
+  onSharePublicStats,
+  onOpenSupervisorPortal
 }) {
   const [playingWordId, setPlayingWordId] = useState(null);
 
@@ -220,10 +221,10 @@ export default function Dashboard({
 
           {/* Button 1: Open Supervisor UI in a new tab immediately */}
           <button
-            onClick={() => {
-              const url = `${window.location.origin}/monitor`;
+            onClick={onOpenSupervisorPortal || (() => {
+              const url = `${window.location.origin}/giam-sat`;
               window.open(url, '_blank');
-            }}
+            })}
             style={{
               background: 'rgba(255,255,255,0.22)',
               color: '#ffffff',
@@ -242,7 +243,7 @@ export default function Dashboard({
             title="Mở giao diện Cổng Giám Sát Học Tập trong tab mới"
           >
             <Eye size={18} />
-            <span>Xem Giao Diện Giám Sát</span>
+            <span>Xem Cổng Giám Sát</span>
           </button>
 
           {/* Button 2: Copy Supervisor Link */}
@@ -251,7 +252,7 @@ export default function Dashboard({
               if (onSharePublicStats) {
                 onSharePublicStats();
               } else {
-                const url = `${window.location.origin}/monitor`;
+                const url = `${window.location.origin}/giam-sat`;
                 navigator.clipboard.writeText(url);
                 window.open(url, '_blank');
               }
@@ -304,10 +305,10 @@ export default function Dashboard({
             </div>
           </div>
           <button
-            onClick={() => {
-              const url = `${window.location.origin}/monitor`;
+            onClick={onOpenSupervisorPortal || (() => {
+              const url = `${window.location.origin}/giam-sat`;
               window.open(url, '_blank');
-            }}
+            })}
             className="btn-secondary"
             style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', borderRadius: '10px' }}
           >

@@ -20,7 +20,7 @@ import {
   Eye
 } from 'lucide-react';
 
-export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickAdd, onOpenSettings, onOpenCommandPalette, onSharePublicStats }) {
+export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickAdd, onOpenSettings, onOpenCommandPalette, onSharePublicStats, onOpenSupervisorPortal }) {
   const navItems = [
     { id: 'dashboard', path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { 
@@ -299,10 +299,10 @@ export default function Sidebar({ currentTab, setCurrentTab, stats, onOpenQuickA
         {/* Public stats portfolio share button */}
         {/* Cổng Giám Sát Học Tập */}
         <button 
-          onClick={() => {
-            const url = `${window.location.origin}/monitor`;
+          onClick={onOpenSupervisorPortal || (() => {
+            const url = `${window.location.origin}/giam-sat`;
             window.open(url, '_blank');
-          }}
+          })}
           className="btn-secondary glow-hover" 
           style={{ 
             width: '100%', 

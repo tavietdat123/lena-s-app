@@ -33,7 +33,7 @@ import {
 import { api } from '../../services/api';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
 
-export default function PublicStatsPage({ isDark, toggleTheme }) {
+export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
   const { username } = useParams();
   const navigate = useNavigate();
 
@@ -49,11 +49,22 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [feedbackSuccessNotice, setFeedbackSuccessNotice] = useState('');
 
+  const hasAuth = !!currentUser || !!localStorage.getItem('token');
+
+  const resolveTargetUsername = () => {
+    let target = (username || '').trim();
+    if (['monitor', 'giam-sat', 'supervisor', 'public', 'null', 'undefined'].includes(target.toLowerCase())) {
+      target = '';
+    }
+    return target;
+  };
+
   const loadData = () => {
     setLoading(true);
     setError(null);
+    const target = resolveTargetUsername();
 
-    api.getPublicStats(username || '')
+    api.getPublicStats(target)
       .then(res => {
         if (res.success && res.data) {
           setStatsData(res.data);
@@ -74,8 +85,13 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
   }, [username]);
 
   const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+    const origin = window.location.origin;
+    const target = resolveTargetUsername();
+    const cleanUrl = (target && target.toLowerCase() !== 'admin')
+      ? `${origin}/giam-sat/${encodeURIComponent(target)}`
+      : `${origin}/giam-sat`;
+
+    navigator.clipboard.writeText(cleanUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     });
@@ -87,10 +103,11 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
 
     setIsSendingFeedback(true);
     setFeedbackSuccessNotice('');
+    const target = resolveTargetUsername();
 
     try {
       const res = await api.postSupervisorFeedback({
-        username: username || statsData?.user?.username || 'admin',
+        username: target || statsData?.user?.username || 'admin',
         supervisor_name: supervisorName.trim() || 'Người Giám Sát',
         type: feedbackType,
         message: feedbackMessage.trim()
@@ -100,7 +117,7 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
         setFeedbackSuccessNotice('Đã gửi lời nhắc/động viên tới học viên thành công! 🎉');
         setFeedbackMessage('');
         // Reload data to show updated feedback
-        api.getPublicStats(username || '').then(r => {
+        api.getPublicStats(target).then(r => {
           if (r.success && r.data) setStatsData(r.data);
         });
         setTimeout(() => setFeedbackSuccessNotice(''), 4000);
@@ -164,11 +181,11 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
             {error || 'Không thể tìm thấy thông tin giám sát người dùng này.'}
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate(hasAuth ? '/dashboard' : '/login')}
             className="btn-primary"
             style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}
           >
-            Quay Về Trang Chủ
+            {hasAuth ? 'Quay Về Không Gian Học' : 'Quay Về Trang Chủ'}
           </button>
         </div>
       </div>
@@ -241,8 +258,9 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
         }}>
           {/* Brand Logo & Supervision Tag */}
           <div
-            onClick={() => navigate('/')}
+            onClick={() => navigate(hasAuth ? '/dashboard' : '/login')}
             style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+            title={hasAuth ? 'Quay về không gian học tập' : 'Về trang chủ'}
           >
             <div style={{
               width: '38px',
@@ -329,22 +347,44 @@ export default function PublicStatsPage({ isDark, toggleTheme }) {
               </button>
             )}
 
-            <button
-              onClick={() => navigate('/login')}
-              className="btn-primary"
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '12px',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-            >
-              <span>Vào App Học</span>
-              <ArrowRight size={14} />
-            </button>
+            {hasAuth ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="btn-primary glow-hover"
+                style={{
+                  padding: '0.5rem 1.1rem',
+                  borderRadius: '12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>← Quay Về Không Gian Học</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="btn-primary"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <span>Vào App Học</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
           </div>
         </div>
       </header>

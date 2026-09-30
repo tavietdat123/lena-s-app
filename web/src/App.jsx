@@ -228,9 +228,10 @@ export default function App() {
 
   const getSupervisorUrl = () => {
     const username = currentUser?.username || '';
-    return username 
-      ? `${window.location.origin}/monitor/${encodeURIComponent(username)}`
-      : `${window.location.origin}/monitor`;
+    if (!username || username === 'admin') {
+      return `${window.location.origin}/giam-sat`;
+    }
+    return `${window.location.origin}/giam-sat/${encodeURIComponent(username)}`;
   };
 
   const handleOpenSupervisorPortal = () => {
@@ -430,7 +431,38 @@ export default function App() {
     );
   }
 
-  // 2. Full-Screen Standalone Auth Page at route /login & Public Showcase at /public/stats
+  // 2. Full-Screen Standalone Supervisor & Public Monitoring Routes
+  // Must render standalone full-screen (without sidebar or app header),
+  // for both logged-in users and outside guests/supervisors!
+  const currentPath = (location.pathname || '').toLowerCase();
+  const normalizedPath = currentPath.replace(/\/+$/, '') || '/';
+  const isPublicStandalone = [
+    '/giam-sat',
+    '/monitor',
+    '/supervisor',
+    '/public/stats',
+    '/share/stats'
+  ].some(base => normalizedPath === base || normalizedPath.startsWith(base + '/'));
+
+  if (isPublicStandalone) {
+    return (
+      <Routes>
+        <Route path="/giam-sat" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/giam-sat/:username" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/monitor" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/monitor/:username" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/supervisor" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/supervisor/:username" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/public/stats" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/public/stats/:username" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        <Route path="/share/stats" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+        {/* Fallback for any trailing slash or subpaths under supervisor routes */}
+        <Route path="*" element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} currentUser={currentUser} />} />
+      </Routes>
+    );
+  }
+
+  // 3. Full-Screen Standalone Auth Page at route /login
   if (!currentUser) {
     return (
       <Routes>
@@ -446,42 +478,6 @@ export default function App() {
               toggleTheme={toggleTheme}
             />
           }
-        />
-        <Route
-          path="/public/stats"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/public/stats/:username"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/monitor"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/monitor/:username"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/supervisor"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/supervisor/:username"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/giam-sat"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/giam-sat/:username"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
-        />
-        <Route
-          path="/share/stats"
-          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -501,6 +497,7 @@ export default function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onSharePublicStats={handleSharePublicStats}
+        onOpenSupervisorPortal={handleOpenSupervisorPortal}
       />
 
       {/* 2. Main Content Area */}
@@ -537,6 +534,7 @@ export default function App() {
                     gamificationProfile={gamificationProfile}
                     onOpenAIMasteryReport={() => setIsAIMasteryReportOpen(true)}
                     onSharePublicStats={handleSharePublicStats}
+                    onOpenSupervisorPortal={handleOpenSupervisorPortal}
                   />
                 } 
               />
@@ -552,6 +550,7 @@ export default function App() {
                     gamificationProfile={gamificationProfile}
                     onOpenAIMasteryReport={() => setIsAIMasteryReportOpen(true)}
                     onSharePublicStats={handleSharePublicStats}
+                    onOpenSupervisorPortal={handleOpenSupervisorPortal}
                   />
                 } 
               />
@@ -647,42 +646,6 @@ export default function App() {
                     onAddToast={addToast}
                   />
                 } 
-              />
-              <Route 
-                path="/public/stats" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/public/stats/:username" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/monitor" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/monitor/:username" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/supervisor" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/supervisor/:username" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/giam-sat" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/giam-sat/:username" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
-              />
-              <Route 
-                path="/share/stats" 
-                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
