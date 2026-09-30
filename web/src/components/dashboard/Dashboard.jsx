@@ -11,7 +11,8 @@ import {
   Brain,
   Award,
   Clock,
-  Target
+  Target,
+  Share2
 } from 'lucide-react';
 import { playAudio } from '../../services/audioService';
 
@@ -22,7 +23,8 @@ export default function Dashboard({
   onNavigate, 
   audioSpeed = 1.0,
   gamificationProfile,
-  onOpenAIMasteryReport
+  onOpenAIMasteryReport,
+  onSharePublicStats
 }) {
   const [playingWordId, setPlayingWordId] = useState(null);
 
@@ -212,6 +214,37 @@ export default function Dashboard({
               <span>Báo Cáo Đánh Giá AI</span>
             </button>
           )}
+
+          <button
+            onClick={() => {
+              if (onSharePublicStats) {
+                onSharePublicStats();
+              } else {
+                const url = `${window.location.origin}/public/stats`;
+                navigator.clipboard.writeText(url);
+                window.open(url, '_blank');
+              }
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.18)',
+              color: '#ffffff',
+              padding: '0.9rem 1.35rem',
+              borderRadius: 'var(--radius-lg)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.35)',
+              cursor: 'pointer'
+            }}
+            className="glow-hover"
+            title="Mở & sao chép liên kết bảng thống kê công khai cho người khác xem"
+          >
+            <Share2 size={18} />
+            <span>Chia Sẻ Bảng Thống Kê</span>
+          </button>
         </div>
       </div>
 

@@ -24,6 +24,7 @@ import AIMasteryReportModal from './components/gamification/AIMasteryReportModal
 import TopicManagerModal from './components/topics/TopicManagerModal';
 import AuthPage from './components/auth/AuthPage';
 import ProfileEditModal from './components/auth/ProfileEditModal';
+import PublicStatsPage from './components/public/PublicStatsPage';
 import { api } from './services/api';
 import { audioService } from './services/audioService';
 
@@ -225,6 +226,18 @@ export default function App() {
     addToast('Đã cập nhật hồ sơ cá nhân thành công!', 'success');
   };
 
+  const handleSharePublicStats = () => {
+    const username = currentUser?.username || '';
+    const publicUrl = username 
+      ? `${window.location.origin}/public/stats/${encodeURIComponent(username)}`
+      : `${window.location.origin}/public/stats`;
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      addToast('Đã sao chép liên kết Bảng Thống Kê Công Khai! 🎉 Bạn có thể gửi cho người khác xem.', 'success');
+    }).catch(() => {
+      window.open(publicUrl, '_blank');
+    });
+  };
+
   // ⏰ AUTOMATIC ALARM WATCHER (Checks every 15s and fires alarm only once at designated time)
   const isAlarmModalOpenRef = useRef(false);
   const lastAlarmDateKeyRef = useRef('');
@@ -408,7 +421,7 @@ export default function App() {
     );
   }
 
-  // 2. Full-Screen Standalone Auth Page at route /login (Unauthorized users cannot access any other screens)
+  // 2. Full-Screen Standalone Auth Page at route /login & Public Showcase at /public/stats
   if (!currentUser) {
     return (
       <Routes>
@@ -424,6 +437,18 @@ export default function App() {
               toggleTheme={toggleTheme}
             />
           }
+        />
+        <Route
+          path="/public/stats"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/public/stats/:username"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
+        />
+        <Route
+          path="/share/stats"
+          element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />}
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -442,6 +467,7 @@ export default function App() {
         onOpenQuickAdd={handleAddWord}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onSharePublicStats={handleSharePublicStats}
       />
 
       {/* 2. Main Content Area */}
@@ -477,6 +503,7 @@ export default function App() {
                     audioSpeed={audioSpeed}
                     gamificationProfile={gamificationProfile}
                     onOpenAIMasteryReport={() => setIsAIMasteryReportOpen(true)}
+                    onSharePublicStats={handleSharePublicStats}
                   />
                 } 
               />
@@ -491,6 +518,7 @@ export default function App() {
                     audioSpeed={audioSpeed}
                     gamificationProfile={gamificationProfile}
                     onOpenAIMasteryReport={() => setIsAIMasteryReportOpen(true)}
+                    onSharePublicStats={handleSharePublicStats}
                   />
                 } 
               />
@@ -586,6 +614,18 @@ export default function App() {
                     onAddToast={addToast}
                   />
                 } 
+              />
+              <Route 
+                path="/public/stats" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/public/stats/:username" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
+              />
+              <Route 
+                path="/share/stats" 
+                element={<PublicStatsPage isDark={isDark} toggleTheme={toggleTheme} />} 
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

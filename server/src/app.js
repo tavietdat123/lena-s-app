@@ -26,6 +26,7 @@ import { topicController } from './controllers/topicController.js';
 import { patternCategoryController } from './controllers/patternCategoryController.js';
 import { authController } from './controllers/authController.js';
 import { studyTimerController } from './controllers/studyTimerController.js';
+import { publicStatsController } from './controllers/publicStatsController.js';
 import { systemAlarmService } from './services/systemAlarmService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -144,6 +145,10 @@ function mountPublicRoutes(app, authLimiter) {
   // Stateless tokens: logging out is a client-side discard, so this stays
   // reachable even with an expired token.
   app.post('/api/auth/logout', authController.logout);
+
+  // Public Learning Statistics & Portfolio (Guest accessible)
+  app.get('/api/public/stats', rateLimit({ name: 'public-stats', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicStats));
+  app.get('/api/public/stats/:username', rateLimit({ name: 'public-stats', max: 60, windowMs: 60_000 }), asyncHandler(publicStatsController.getPublicStats));
 
   app.get('/api/audio/tts', rateLimit({ name: 'tts', max: 240, windowMs: 60_000 }), asyncHandler(streamTts));
 }

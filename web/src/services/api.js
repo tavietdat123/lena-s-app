@@ -410,6 +410,17 @@ export const api = {
     return json;
   },
 
+  // Public Learning Statistics (No token needed, guest accessible)
+  getPublicStats: async (username = '') => {
+    try {
+      const url = username ? `${API_BASE}/public/stats/${encodeURIComponent(username)}` : `${API_BASE}/public/stats`;
+      const res = await fetch(url);
+      return await res.json();
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
   // Telegram Bot & Goal Settings
   getTelegramSettings: async () => {
     try {
