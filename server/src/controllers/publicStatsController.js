@@ -326,7 +326,8 @@ export const publicStatsController = {
         SELECT daily_goal FROM user_settings WHERE user_id = ?
       `).get(userId);
       const targetGoalReviews = userSettings?.daily_goal || 15;
-      const targetGoalMinutes = 30; // 30 minutes daily study target
+      const targetGoalMinutes = 360; // 6 hours daily study target (6 tiếng)
+      const targetGoalHours = 6;
 
       const isTimeGoalMet = todayMinutes >= targetGoalMinutes;
       const isReviewsGoalMet = todayReviews >= targetGoalReviews;
@@ -346,7 +347,7 @@ export const publicStatsController = {
       if (isCompliant) {
         overallStatus = 'completed';
         statusLabel = 'Đạt Chuẩn Kỷ Luật Xuất Sắc';
-        statusMessage = `Đã hoàn thành xuất sắc mục tiêu ngày hôm nay (${todayMinutes} phút / ${targetGoalMinutes} phút)!`;
+        statusMessage = `Đã hoàn thành xuất sắc mục tiêu 6 tiếng ngày hôm nay (${todayMinutes} phút / ${targetGoalMinutes} phút • ${(todayMinutes / 60).toFixed(1)}/6.0 giờ)!`;
         statusColor = '#22c55e'; // Green
 
         // Base 80 points for meeting goals
@@ -365,7 +366,7 @@ export const publicStatsController = {
       } else if (todayMinutes > 0 || todayReviews > 0) {
         overallStatus = 'in_progress';
         statusLabel = 'Đang Rèn Luyện (Chưa Đủ Mục Tiêu)';
-        statusMessage = `Đã tích lũy ${todayMinutes}/${targetGoalMinutes} phút. Cần học thêm để hoàn thành ngày.`;
+        statusMessage = `Đã tích lũy ${(todayMinutes / 60).toFixed(1)}/6.0 tiếng (${todayMinutes}/360 phút). Cần học thêm ${360 - todayMinutes} phút để hoàn thành chỉ tiêu 6 tiếng ngày.`;
         statusColor = '#f59e0b'; // Amber
 
         disciplineScore = Math.min(75, Math.round((todayMinutes / targetGoalMinutes) * 40 + (todayReviews / targetGoalReviews) * 35));
@@ -377,20 +378,20 @@ export const publicStatsController = {
       let recommendation = '';
 
       if (isCompliant) {
-        if (todayMinutes >= 180) {
-          auditVerdict = `Học viên duy trì cường độ tập trung vượt trội với ${todayMinutes} phút (${(todayMinutes / 60).toFixed(1)} giờ) học tập qua ${todaySessionsCount} phiên riêng biệt! Đạt mức độ Deep Work xuất sắc.`;
+        if (todayMinutes >= targetGoalMinutes) {
+          auditVerdict = `Học viên duy trì cường độ tập trung vượt trội với ${todayMinutes} phút (${(todayMinutes / 60).toFixed(1)} giờ) học tập qua ${todaySessionsCount} phiên riêng biệt! Đã chính thức cán mốc và vượt mục tiêu 6 tiếng học tập kỷ luật Deep Work.`;
         } else {
-          auditVerdict = `Đã hoàn thành xuất sắc mục tiêu ngày hôm nay với ${todayMinutes} phút học tập tập trung, bảo vệ thành công chuỗi kỷ luật!`;
+          auditVerdict = `Đã tích lũy ${todayMinutes} phút học tập tập trung (${(todayMinutes / 60).toFixed(1)}/6.0 giờ), bảo vệ thành công chuỗi kỷ luật!`;
         }
         
         if (todayReviews < targetGoalReviews) {
-          recommendation = `Thời lượng học đã vượt rất xa chỉ tiêu (+${todayMinutes - targetGoalMinutes} phút). Để cân bằng toàn diện, học viên nên dành thêm 10-15 phút ôn tập nhanh thẻ Flashcards SM-2!`;
+          recommendation = `Thời lượng học đã vượt chỉ tiêu 6 tiếng (+${todayMinutes - targetGoalMinutes} phút). Để cân bằng toàn diện, học viên nên dành thêm 10-15 phút ôn tập nhanh thẻ Flashcards SM-2!`;
         } else {
-          recommendation = `Kỷ luật hoàn hảo ở cả thời lượng và ôn tập thẻ! Hãy giữ gìn năng lượng và duy trì phong độ cho ngày mai.`;
+          recommendation = `Kỷ luật hoàn hảo ở cả thời lượng 6 tiếng và ôn tập thẻ! Hãy giữ gìn năng lượng và duy trì phong độ cho ngày mai.`;
         }
       } else if (todayMinutes > 0 || todayReviews > 0) {
-        auditVerdict = `Đã ghi nhận ${todayMinutes}/${targetGoalMinutes} phút và ${todayReviews}/${targetGoalReviews} thẻ. Chưa đạt ngưỡng chuẩn tối thiểu của ngày.`;
-        recommendation = `Cần học thêm tối thiểu ${Math.max(0, targetGoalMinutes - todayMinutes)} phút hoặc ôn thêm ${Math.max(0, targetGoalReviews - todayReviews)} thẻ để hoàn thành chỉ tiêu ngày trước 24:00!`;
+        auditVerdict = `Đã ghi nhận ${todayMinutes}/${targetGoalMinutes} phút (${(todayMinutes / 60).toFixed(1)}/6.0 tiếng) và ${todayReviews}/${targetGoalReviews} thẻ. Chưa đạt chỉ tiêu 6 tiếng của ngày.`;
+        recommendation = `Cần học thêm tối thiểu ${Math.max(0, targetGoalMinutes - todayMinutes)} phút nữa để cán mốc chỉ tiêu 6 tiếng trước 24:00!`;
       } else {
         auditVerdict = `Học viên hôm nay chưa ghi nhận phiên học nào trong hệ thống!`;
         recommendation = `Hãy mở ứng dụng và bắt đầu phiên Pomodoro hoặc lướt thẻ từ vựng ngay bây giờ để không bị đứt chuỗi streak!`;
@@ -409,6 +410,7 @@ export const publicStatsController = {
         earliestSession,
         latestSession,
         targetGoalMinutes,
+        targetGoalHours,
         targetGoalReviews,
         completionRatePercent,
         reviewsCompletionPercent,

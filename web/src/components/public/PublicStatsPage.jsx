@@ -734,10 +734,10 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 justifyContent: 'space-between'
               }}>
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.3rem' }}>
                     <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ Thời Lượng Học Tập</span>
                     <b style={{ color: todayAccountability.isTimeGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
-                      {todayAccountability.todayMinutes} / {todayAccountability.targetGoalMinutes} phút
+                      {Math.floor(todayAccountability.todayMinutes / 60)}h {todayAccountability.todayMinutes % 60}m / {todayAccountability.targetGoalHours || 6} tiếng ({todayAccountability.todayMinutes}/{todayAccountability.targetGoalMinutes}p)
                     </b>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -752,8 +752,8 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 </div>
                 <div style={{ fontSize: '0.74rem', color: todayAccountability.isTimeGoalMet ? '#16a34a' : 'var(--text-muted)', marginTop: '0.5rem', fontWeight: 600 }}>
                   {todayAccountability.isTimeGoalMet 
-                    ? `⚡ Đạt ${todayAccountability.completionRatePercent}% chỉ tiêu (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} phút)`
-                    : `Cần học thêm ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} phút để đủ mục tiêu`}
+                    ? `⚡ Đạt ${todayAccountability.completionRatePercent}% chỉ tiêu 6 tiếng (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} phút)`
+                    : `Cần học thêm ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} phút để cán mốc 6 tiếng`}
                 </div>
               </div>
 
