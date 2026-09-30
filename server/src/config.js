@@ -2,9 +2,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
-dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env from cwd, then fallback to repo root .env
+dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const DEFAULT_JWT_SECRET = 'linguavault_secure_jwt_local_secret_2026_super_key';
 const DEFAULT_ADMIN_PASSWORD = '123456';
