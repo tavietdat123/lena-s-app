@@ -201,8 +201,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
     retentionBreakdown, 
     levelsBreakdown, 
     activityDistribution, 
-    periodsData, 
-    topWords 
+    periodsData 
   } = statsData;
 
   const totalWords = summary.totalWords || 0;
@@ -1074,76 +1073,6 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             </div>
           </div>
         </div>
-
-        {/* 9. SHOWCASE TOP WORDS MASTERED */}
-        {topWords && topWords.length > 0 && (
-          <div className="card" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Sparkles size={20} style={{ color: '#eab308' }} />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                  Từ Vựng Tiêu Biểu Đã Chinh Phục
-                </h3>
-              </div>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                (Lặp lại ngắt quãng &gt; 3 lần)
-              </span>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-              gap: '1rem'
-            }}>
-              {topWords.map((w, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    background: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    padding: '1rem 1.15rem',
-                    borderRadius: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-                      <span style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                        {w.word}
-                      </span>
-                      {w.level && (
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          background: 'var(--accent-primary-light)',
-                          color: 'var(--accent-primary)',
-                          padding: '0.15rem 0.45rem',
-                          borderRadius: '6px'
-                        }}>
-                          {w.level}
-                        </span>
-                      )}
-                    </div>
-                    {w.phonetic && (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginBottom: '0.35rem' }}>
-                        {w.phonetic}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                      {w.meaning_vi}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
-                    ✓ Đã thuộc: {w.repetition} lần lặp lại
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </main>
     </div>
