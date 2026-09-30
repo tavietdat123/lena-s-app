@@ -14,6 +14,7 @@ import {
 import { playAudio } from '../../services/audioService';
 import { api } from '../../services/api';
 import PatternCategoryModal from './PatternCategoryModal';
+import { DEFAULT_PATTERN_CATEGORIES } from '../../constants/patternCategories';
 
 // Helper: Remove Vietnamese Tones for Accent-Insensitive Smart Search
 const removeVietnameseTones = (str) => {
@@ -41,7 +42,7 @@ const removeVietnameseTones = (str) => {
 export default function PatternHub({ patterns = [], onAddPattern, onEditPattern, onDeletePattern }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_PATTERN_CATEGORIES);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   useEffect(() => {
@@ -49,9 +50,13 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
   }, []);
 
   const loadCategories = async () => {
-    const res = await api.getPatternCategories();
-    if (res.success) {
-      setCategories(res.data || []);
+    try {
+      const res = await api.getPatternCategories();
+      if (res.success && res.data && res.data.length > 0) {
+        setCategories(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to load categories:', e);
     }
   };
 

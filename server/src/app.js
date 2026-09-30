@@ -335,6 +335,7 @@ function buildProtectedRouter() {
 
   api.get('/pattern-categories', patternCategoryController.getAllCategories);
   api.post('/pattern-categories', validateBody({ name: { type: 'string', required: true, max: 120, label: 'Tên nhóm' } }), patternCategoryController.createCategory);
+  api.post('/pattern-categories/reset-defaults', patternCategoryController.resetToDefaults);
   api.put('/pattern-categories/:id', patternCategoryController.updateCategory);
   api.delete('/pattern-categories/:id', patternCategoryController.deleteCategory);
 

@@ -394,6 +394,10 @@ export const mobileApi = {
     return await requestApi(`/api/pattern-categories/${id}`, { method: 'DELETE' });
   },
 
+  resetPatternCategories: async () => {
+    return await requestApi('/api/pattern-categories/reset-defaults', { method: 'POST' });
+  },
+
   // 3. Notes & Smart Reader (Ghi chú & Bài đọc)
   getNotes: async (params = {}) => {
     try {

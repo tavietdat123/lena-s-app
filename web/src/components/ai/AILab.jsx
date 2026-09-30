@@ -28,6 +28,7 @@ import {
 import { api } from '../../services/api';
 import { playAudio } from '../../services/audioService';
 import PatternCategoryModal from '../patterns/PatternCategoryModal';
+import { DEFAULT_PATTERN_CATEGORIES } from '../../constants/patternCategories';
 
 export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [activeTab, setActiveTab] = useState('parser'); // 'parser' | 'paraphrase' | 'writer' | 'collocations' | 'dialogue' | 'story'
@@ -38,7 +39,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [parseResult, setParseResult] = useState(null);
   const [savedWordIndex, setSavedWordIndex] = useState({});
   const [savedPatternIndex, setSavedPatternIndex] = useState({});
-  const [patternCategories, setPatternCategories] = useState([]);
+  const [patternCategories, setPatternCategories] = useState(DEFAULT_PATTERN_CATEGORIES);
   const [selectedPatternCategories, setSelectedPatternCategories] = useState({});
   const [selectedPatternTones, setSelectedPatternTones] = useState({});
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -74,7 +75,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const loadPatternCategories = async () => {
     try {
       const res = await api.getPatternCategories();
-      if (res.success && Array.isArray(res.data)) {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         setPatternCategories(res.data);
       }
     } catch (e) {

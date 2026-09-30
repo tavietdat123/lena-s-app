@@ -526,13 +526,25 @@ const playMobileAudio = async (wordText, rate = null, lang = null) => {
 };
 
 const DEFAULT_PATTERN_CATEGORIES = [
-{ id: 'emphasis', name: 'Nhấn mạnh & Đảo ngữ', emoji: '💥', color: '#8b5cf6', description: 'Làm nổi bật hành động, đảo ngữ, câu chẻ' },
-{ id: 'concession', name: 'Nhượng bộ & Đối lập', emoji: '⚖️', color: '#3b82f6', description: 'Nêu sự tương phản, bất chấp trở ngại' },
-{ id: 'purpose', name: 'Mục đích & Kết quả', emoji: '🎯', color: '#10b981', description: 'Giải thích lý do, mục đích hướng tới' },
-{ id: 'condition', name: 'Điều kiện & Giả định', emoji: '⚠️', color: '#f59e0b', description: 'Đặt giả thuyết, câu điều kiện loại 3' },
-{ id: 'opinion', name: 'Khẳng định Quan điểm', emoji: '💬', color: '#06b6d4', description: 'Mở đầu luận điểm, nhấn mạnh sự thật' },
-{ id: 'sequence', name: 'Thời gian & Trình tự', emoji: '⏳', color: '#f97316', description: 'Diễn tả chuỗi hành động tức thì' },
-{ id: 'advice', name: 'Khuyên bảo & Thúc giục', emoji: '⏰', color: '#ec4899', description: 'Đã đến lúc cần phải làm gì' }];
+  { id: 'cause_effect', name: 'Nguyên nhân & Hệ quả', emoji: '⚡', color: '#f59e0b', description: 'Diễn giải nguyên nhân, căn nguyên, hệ quả và mối quan hệ nhân quả' },
+  { id: 'purpose', name: 'Mục đích & Dự định', emoji: '🎯', color: '#10b981', description: 'Chỉ rõ mục đích hướng đến, dự định tương lai và hành động có chủ đích' },
+  { id: 'condition', name: 'Điều kiện & Giả định', emoji: '⚠️', color: '#eab308', description: 'Giả định tình huống, câu điều kiện, thể giả định' },
+  { id: 'concession', name: 'Nhượng bộ & Đối lập', emoji: '⚖️', color: '#3b82f6', description: 'Nêu sự tương phản bất chấp trở ngại hoặc nghịch cảnh' },
+  { id: 'comparison', name: 'So sánh & Đối chiếu', emoji: '🔍', color: '#06b6d4', description: 'So sánh tương quan, mức độ, cấu trúc càng... càng' },
+  { id: 'exception', name: 'Ngoại lệ & Giới hạn', emoji: '🚫', color: '#ef4444', description: 'Loại trừ, giới hạn phạm vi áp dụng hoặc nêu trường hợp cá biệt' },
+  { id: 'emphasis', name: 'Nhấn mạnh & Đảo ngữ', emoji: '💥', color: '#8b5cf6', description: 'Làm nổi bật hành động, đảo ngữ, câu chẻ nhấn mạnh' },
+  { id: 'advice', name: 'Khuyên bảo & Thúc giục', emoji: '⏰', color: '#ec4899', description: 'Khuyên răn, đề xuất giải pháp, đã đến lúc cần hành động' },
+  { id: 'speculation', name: 'Phỏng đoán & Khả năng', emoji: '🔮', color: '#a855f7', description: 'Đánh giá xác suất, phỏng đoán tình huống dựa trên chứng cứ' },
+  { id: 'opinion', name: 'Khẳng định Quan điểm', emoji: '💬', color: '#0ea5e9', description: 'Bày tỏ quan điểm cá nhân, nhận định chuyên môn' },
+  { id: 'addition', name: 'Bổ sung & Phát triển ý', emoji: '➕', color: '#14b8a6', description: 'Thêm thông tin hỗ trợ, phát triển luận cứ và mở rộng ý tưởng' },
+  { id: 'example', name: 'Ví dụ & Minh họa', emoji: '💡', color: '#f97316', description: 'Đưa ra dẫn chứng thực tế, số liệu hoặc trường hợp minh họa cụ thể' },
+  { id: 'clarification', name: 'Làm rõ & Diễn giải lại', emoji: '✨', color: '#6366f1', description: 'Giải thích chi tiết hơn, diễn đạt lại bằng từ ngữ dễ hiểu' },
+  { id: 'transition', name: 'Chuyển ý & Dẫn dắt', emoji: '🔄', color: '#64748b', description: 'Chuyển sang luận điểm mới, mở rộng phạm vi chủ đề' },
+  { id: 'sequence', name: 'Thời gian & Trình tự', emoji: '⏳', color: '#d97706', description: 'Chuỗi sự kiện kế tiếp, mốc thời gian và hành động tức thì' },
+  { id: 'conclusion', name: 'Tóm tắt & Kết luận', emoji: '🏁', color: '#059669', description: 'Tóm lược các ý chính, đưa ra kết luận hoặc bài học tổng thể' },
+  { id: 'request', name: 'Yêu cầu & Đề nghị lịch sự', emoji: '🤝', color: '#2563eb', description: 'Đề nghị lịch sự, phản biện ngoại giao trong công việc' },
+  { id: 'definition', name: 'Định nghĩa & Khái niệm', emoji: '📖', color: '#7c3aed', description: 'Định nghĩa thuật ngữ, giải thích bản chất khái niệm' }
+];
 
 
 class MobileErrorBoundary extends React.Component {

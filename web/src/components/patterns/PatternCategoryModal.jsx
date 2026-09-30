@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Plus, Edit2, Trash2, Layers, Check, AlertCircle } from "lucide-react";
+import { X, Plus, Edit2, Trash2, Layers, Check, AlertCircle, RotateCcw } from "lucide-react";
 import { api } from "../../services/api";
 
 const COLOR_PRESETS = [
@@ -22,6 +22,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
   const [color, setColor] = useState("#8b5cf6");
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -103,6 +104,24 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
     }
   };
 
+  const handleResetDefaults = async () => {
+    if (!window.confirm("Bạn có chắc muốn khôi phục đầy đủ 18 nhóm chức năng diễn đạt chuẩn học thuật?")) return;
+    setIsResetting(true);
+    setErrorMsg("");
+    try {
+      const res = await api.resetPatternCategories();
+      if (res.success) {
+        if (onCategoriesChange) onCategoriesChange();
+      } else {
+        setErrorMsg(res.error || "Không thể khôi phục danh mục");
+      }
+    } catch (err) {
+      setErrorMsg(err.message || "Lỗi kết nối máy chủ");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1000 }}>
       <div 
@@ -148,15 +167,28 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
         <div style={{ padding: "1.25rem", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           
           {/* Top Actions */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 600 }}>
               Đang có <b style={{ color: "var(--text-primary)" }}>{categories.length}</b> nhóm chức năng
             </span>
             {!showAddForm && (
-              <button onClick={handleStartCreate} className="btn-primary" style={{ padding: "0.45rem 0.9rem", fontSize: "0.85rem" }}>
-                <Plus size={16} />
-                <span>Thêm Chức Năng Mới</span>
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <button 
+                  type="button" 
+                  onClick={handleResetDefaults} 
+                  disabled={isResetting} 
+                  className="btn-secondary" 
+                  style={{ padding: "0.45rem 0.85rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  title="Khôi phục danh sách 18 danh mục câu chuẩn"
+                >
+                  <RotateCcw size={14} className={isResetting ? "animate-spin" : ""} />
+                  <span>{isResetting ? "Đang nạp..." : "Nạp 18 Nhóm Chuẩn"}</span>
+                </button>
+                <button onClick={handleStartCreate} className="btn-primary" style={{ padding: "0.45rem 0.9rem", fontSize: "0.85rem" }}>
+                  <Plus size={16} />
+                  <span>Thêm Mới</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -292,8 +324,39 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
           )}
 
           {/* Categories List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {categories.map(cat => (
+          {categories.length === 0 ? (
+            <div style={{
+              textAlign: "center",
+              padding: "2.5rem 1.5rem",
+              background: "var(--bg-secondary)",
+              borderRadius: "var(--radius-lg)",
+              border: "1px dashed var(--border-color)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.75rem"
+            }}>
+              <Layers size={36} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
+              <div>
+                <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Chưa có danh mục chức năng nào</h4>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                  Bạn có thể tạo mới thủ công hoặc nhấn nút bên dưới để tự động nạp 18 nhóm chức năng câu chuẩn.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                disabled={isResetting}
+                className="btn-primary"
+                style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <RotateCcw size={15} className={isResetting ? "animate-spin" : ""} />
+                <span>Nạp 18 Nhóm Chức Năng Chuẩn</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {categories.map(cat => (
               <div
                 key={cat.id}
                 style={{
@@ -367,6 +430,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
               </div>
             ))}
           </div>
+        )}
 
         </div>
 

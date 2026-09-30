@@ -239,6 +239,11 @@ export const api = {
     return res.json();
   },
 
+  resetPatternCategories: async () => {
+    const res = await authFetch(`${API_BASE}/pattern-categories/reset-defaults`, { method: 'POST' });
+    return res.json();
+  },
+
   // Notes & Smart Reader
   getNotes: async (params = {}) => {
     try {
