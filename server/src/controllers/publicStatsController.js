@@ -160,10 +160,10 @@ export const publicStatsController = {
       const wordsQuery = `
         SELECT 
           COUNT(*) as total,
-          SUM(CASE WHEN repetition >= 5 OR interval >= 21 THEN 1 ELSE 0 END) as mastered,
-          SUM(CASE WHEN repetition >= 2 AND repetition < 5 AND interval < 21 THEN 1 ELSE 0 END) as reviewing,
-          SUM(CASE WHEN repetition = 1 THEN 1 ELSE 0 END) as learning,
-          SUM(CASE WHEN repetition = 0 OR repetition IS NULL THEN 1 ELSE 0 END) as new_words
+          SUM(CASE WHEN status = 'mastered' THEN 1 ELSE 0 END) as mastered,
+          SUM(CASE WHEN status = 'reviewing' THEN 1 ELSE 0 END) as reviewing,
+          SUM(CASE WHEN status = 'learning' THEN 1 ELSE 0 END) as learning,
+          SUM(CASE WHEN status = 'new' OR status IS NULL THEN 1 ELSE 0 END) as new_words
         FROM words
         WHERE ${userClause}
       `;
@@ -189,6 +189,12 @@ export const publicStatsController = {
       const categoriesCount = db.prepare('SELECT COUNT(*) as count FROM pattern_categories').get()?.count || 0;
 
       // 5. Study Logs & Time Investment
+      const totalSessionsSecRow = db.prepare(`
+        SELECT COALESCE(SUM(duration_seconds), 0) as sec
+        FROM study_sessions
+        WHERE ${userClause}
+      `).get(userId);
+
       const logsSummary = db.prepare(`
         SELECT 
           COUNT(DISTINCT date) as active_days,
@@ -198,6 +204,9 @@ export const publicStatsController = {
         FROM study_logs
         WHERE ${userClause}
       `).get(userId) || { active_days: 0, total_seconds: 0, total_reviews: 0, total_new_words: 0 };
+
+      const totalInvestedSeconds = Math.max(logsSummary.total_seconds || 0, totalSessionsSecRow?.sec || 0);
+      const totalStudyHours = (totalInvestedSeconds / 3600).toFixed(1);
 
       // Last 14 days activity trail
       const recentLogs = db.prepare(`
@@ -260,8 +269,8 @@ export const publicStatsController = {
         SELECT SUM(duration_seconds) as sec, COUNT(*) as count, MAX(started_at) as last_started
         FROM study_sessions
         WHERE ${userClause}
-          AND substr(started_at, 1, 10) = ?
-      `).get(userId, todayStr);
+          AND (date(started_at, 'localtime') = ? OR substr(started_at, 1, 10) = ?)
+      `).get(userId, todayStr, todayStr);
 
       const todayLogRow = db.prepare(`
         SELECT duration_seconds, reviews_count, new_words_count
@@ -280,9 +289,9 @@ export const publicStatsController = {
       const todaySessions = db.prepare(`
         SELECT id, activity_type, activity_title, duration_seconds, mode, started_at, ended_at
         FROM study_sessions 
-        WHERE ${userClause} AND substr(started_at, 1, 10) = ?
+        WHERE ${userClause} AND (date(started_at, 'localtime') = ? OR substr(started_at, 1, 10) = ?)
         ORDER BY started_at ASC
-      `).all(userId, todayStr);
+      `).all(userId, todayStr, todayStr);
 
       const pomodoroCount = todaySessions.filter(s => s.mode === 'pomodoro').length;
       const stopwatchCount = todaySessions.filter(s => s.mode !== 'pomodoro').length;
@@ -475,9 +484,6 @@ export const publicStatsController = {
         LIMIT 10
       `).all(userId);
 
-      // Total focused study hours
-      const totalStudyHours = ((logsSummary.total_seconds || 0) / 3600).toFixed(1);
-
       // 12. Breakdowns for Today and All-Time (CEFR Levels & Study Activities)
       const queryDate = req.query.date || todayStr;
       const dailyBreakdown = getBreakdownForDate(db, userId, userClause, queryDate);
@@ -507,7 +513,7 @@ export const publicStatsController = {
             totalPatterns: patternsCount,
             totalCategories: categoriesCount,
             totalStudyHours: parseFloat(totalStudyHours),
-            activeDays: logsSummary.active_days || 0,
+            activeDays: Math.max(logsSummary.active_days || 0, streakInfo.activeDaysCount || 0),
             totalReviews: logsSummary.total_reviews || 0,
             quizzesTaken: quizSummary?.count || 0,
             avgQuizScore: quizSummary?.avg_score ? Math.round(quizSummary.avg_score) : null

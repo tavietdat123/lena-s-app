@@ -213,26 +213,39 @@ export const studyTimerController = {
       const userId = req.user?.id || 'admin_master_user_id';
 
       // Total study seconds & total sessions count
-      const totalRow = db.prepare(`
+      const totalSessionsRow = db.prepare(`
         SELECT COALESCE(SUM(duration_seconds), 0) as total_seconds, COUNT(*) as count 
         FROM study_sessions 
         WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `).get(userId, userId, userId);
 
-      const totalSeconds = totalRow?.total_seconds || 0;
-      const totalSessions = totalRow?.count || 0;
+      const totalLogsRow = db.prepare(`
+        SELECT COALESCE(SUM(duration_seconds), 0) as sec
+        FROM study_logs 
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+      `).get(userId, userId, userId);
+
+      const totalSeconds = Math.max(totalSessionsRow?.total_seconds || 0, totalLogsRow?.sec || 0);
+      const totalSessions = totalSessionsRow?.count || 0;
 
       // Today's seconds (local date match)
       const todayDate = new Date().toISOString().slice(0, 10);
-      const todayRow = db.prepare(`
+      const todaySessionsRow = db.prepare(`
         SELECT COALESCE(SUM(duration_seconds), 0) as today_seconds, COUNT(*) as count 
         FROM study_sessions 
         WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
           AND (date(started_at, 'localtime') = date('now', 'localtime') OR started_at LIKE ?)
       `).get(userId, userId, userId, `${todayDate}%`);
 
-      const todaySeconds = todayRow?.today_seconds || 0;
-      const todaySessions = todayRow?.count || 0;
+      const todayLogRow = db.prepare(`
+        SELECT COALESCE(SUM(duration_seconds), 0) as sec 
+        FROM study_logs 
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+          AND date = ?
+      `).get(userId, userId, userId, todayDate);
+
+      const todaySeconds = Math.max(todaySessionsRow?.today_seconds || 0, todayLogRow?.sec || 0);
+      const todaySessions = todaySessionsRow?.count || 0;
 
       // This week (past 7 days)
       const weekRow = db.prepare(`

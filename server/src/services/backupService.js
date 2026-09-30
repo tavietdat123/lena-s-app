@@ -1,4 +1,5 @@
 import { getDb } from '../db/database.js';
+import { calculateUserStreak } from './streakService.js';
 
 function safeParse(val, fallback = []) {
   if (val === null || val === undefined) return fallback;
@@ -161,11 +162,33 @@ export const backupService = {
       }
     } catch (e) {}
 
+    let supervisor_feedbacks = [];
+    try {
+      supervisor_feedbacks = db.prepare(`
+        SELECT * FROM supervisor_feedbacks 
+        WHERE user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id')
+        ORDER BY created_at DESC
+      `).all(userId, userId, userId);
+    } catch (e) {}
+
     let user_profile = null;
     try {
-      user_profile = db.prepare('SELECT * FROM user_profile WHERE user_id = ? OR id = ? LIMIT 1').get(userId, userId)
-        || db.prepare('SELECT * FROM user_profile LIMIT 1').get()
-        || null;
+      const streakInfo = calculateUserStreak(db, userId);
+      const profileRow = db.prepare(`
+        SELECT * FROM user_profile 
+        WHERE user_id = ? OR id = ? OR (id = 'default_user' AND ? = 'admin_master_user_id')
+        ORDER BY CASE WHEN id = ? THEN 1 WHEN user_id = ? THEN 2 ELSE 3 END
+        LIMIT 1
+      `).get(userId, userId, userId, userId, userId);
+
+      if (profileRow) {
+        user_profile = {
+          ...profileRow,
+          user_id: userId,
+          streak_record: Math.max(streakInfo.maxStreak, profileRow.streak_record || 0),
+          current_streak: streakInfo.currentStreak
+        };
+      }
     } catch (e) {}
 
     return {
@@ -181,6 +204,7 @@ export const backupService = {
         study_logs,
         study_sessions,
         study_schedules,
+        supervisor_feedbacks,
         topics,
         quiz_history,
         speaking_history,
@@ -211,6 +235,7 @@ export const backupService = {
     const topics = Array.isArray(payload.topics) ? payload.topics : [];
     const quiz_history = Array.isArray(payload.quiz_history) ? payload.quiz_history : [];
     const speaking_history = Array.isArray(payload.speaking_history) ? payload.speaking_history : [];
+    const supervisor_feedbacks = Array.isArray(payload.supervisor_feedbacks) ? payload.supervisor_feedbacks : [];
     const user_settings = payload.user_settings || null;
     const notification_settings = payload.notification_settings || null;
     const user_profile = payload.user_profile || null;
@@ -711,7 +736,7 @@ export const backupService = {
               updated_at = excluded.updated_at,
               user_id = excluded.user_id
           `).run(
-            user_profile.id || userId,
+            userId,
             userId,
             user_profile.total_xp || 0,
             user_profile.current_level || 1,
@@ -724,10 +749,50 @@ export const backupService = {
         }
       }
 
+      // 13. Restore Supervisor Feedbacks (Lời nhắn từ người giám sát)
+      if (supervisor_feedbacks.length > 0) {
+        try {
+          const insertFeedback = db.prepare(`
+            INSERT INTO supervisor_feedbacks (id, user_id, supervisor_name, type, message, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              user_id = excluded.user_id,
+              supervisor_name = excluded.supervisor_name,
+              type = excluded.type,
+              message = excluded.message,
+              created_at = excluded.created_at
+          `);
+
+          for (const fb of supervisor_feedbacks) {
+            if (fb && fb.id && fb.message) {
+              insertFeedback.run(
+                fb.id,
+                userId,
+                fb.supervisor_name || 'Người Giám Sát',
+                fb.type || 'cheer',
+                fb.message,
+                fb.created_at || new Date().toISOString()
+              );
+            }
+          }
+        } catch (e) {
+          console.warn('[Import Supervisor Feedbacks Warning]', e.message);
+        }
+      }
+
       db.exec('COMMIT;');
     } catch (txErr) {
       try { db.exec('ROLLBACK;'); } catch (e) {}
       throw txErr;
+    }
+
+    // Immediately recalculate & synchronize streak across all surfaces after restore
+    let restoredStreak = 0;
+    try {
+      const streakInfo = calculateUserStreak(db, userId);
+      restoredStreak = streakInfo.currentStreak;
+    } catch (e) {
+      console.warn('[Post-restore streak calculation warning]', e.message);
     }
 
     const summaryParts = [];
@@ -739,9 +804,10 @@ export const backupService = {
     if (study_logs.length > 0) summaryParts.push(`${study_logs.length} ngày lịch sử`);
     if (study_sessions.length > 0) summaryParts.push(`${study_sessions.length} phiên bấm giờ học`);
     if (study_schedules.length > 0) summaryParts.push(`${study_schedules.length} lịch học dài hạn`);
+    if (supervisor_feedbacks.length > 0) summaryParts.push(`${supervisor_feedbacks.length} lời nhắn giám sát`);
     if (speaking_history.length > 0) summaryParts.push(`${speaking_history.length} bài phát âm AI`);
     if (user_settings || notification_settings) summaryParts.push(`cài đặt thông báo & Telegram`);
-    if (user_profile) summaryParts.push(`hồ sơ điểm thưởng XP & Streak`);
+    if (user_profile) summaryParts.push(`hồ sơ điểm thưởng XP & Streak (🔥 ${restoredStreak} ngày)`);
 
     return {
       success: true,
@@ -755,7 +821,9 @@ export const backupService = {
         study_logs: study_logs.length,
         study_sessions: study_sessions.length,
         study_schedules: study_schedules.length,
-        speaking_history: speaking_history.length
+        supervisor_feedbacks: supervisor_feedbacks.length,
+        speaking_history: speaking_history.length,
+        current_streak: restoredStreak
       }
     };
   }
