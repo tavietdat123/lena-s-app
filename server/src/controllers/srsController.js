@@ -3,6 +3,7 @@ import { calculateNextSRS, previewNextIntervals } from '../services/srsAlgorithm
 import crypto from 'node:crypto';
 import { gamificationService } from '../services/gamificationService.js';
 import { activityChartService } from '../services/activityChartService.js';
+import { calculateUserStreak } from '../services/streakService.js';
 
 export const srsController = {
   // 1. Get all items due for review today for specific account
@@ -189,31 +190,17 @@ export const srsController = {
       `);
       const noteStats = notesCountStmt.get(userId, userId, userId) || {};
 
-      // Calculate Daily Streak from study_logs for specific user
+      // Calculate Daily Streak synchronized with study sessions, timer, and words
+      const streakInfo = calculateUserStreak(db, userId);
+      const streak = streakInfo.currentStreak;
+      const maxStreak = streakInfo.maxStreak;
+
       const logsStmt = db.prepare(`
-        SELECT date, reviews_count FROM study_logs 
+        SELECT date, reviews_count, duration_seconds FROM study_logs 
         WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
         ORDER BY date DESC LIMIT 30
       `);
       const logs = logsStmt.all(userId, userId, userId);
-
-      let streak = 0;
-      let checkDate = new Date();
-
-      for (let i = 0; i < 30; i++) {
-        const dateStr = checkDate.toISOString().split('T')[0];
-        const logForDay = logs.find(l => l.date === dateStr);
-
-        if (logForDay && logForDay.reviews_count > 0) {
-          streak += 1;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else if (i === 0) {
-          // If haven't reviewed today yet, check yesterday to keep streak alive
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
 
       res.json({
         success: true,
@@ -236,6 +223,9 @@ export const srsController = {
           },
           total_due_today: (wordStats.due_today || 0) + (patternStats.due_today || 0),
           streak,
+          max_streak: maxStreak,
+          active_days_count: streakInfo.activeDaysCount,
+          has_studied_today: streakInfo.hasToday,
           recent_logs: logs,
           periodsData: activityChartService.buildPeriodsData(db, userId),
           supervisorFeedbacks: db.prepare(`

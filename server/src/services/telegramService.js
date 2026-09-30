@@ -1,6 +1,7 @@
 import https from 'node:https';
 import { getDb } from '../db/database.js';
 import { backupService } from './backupService.js';
+import { calculateUserStreak } from './streakService.js';
 
 const telegramAgent = new https.Agent({
   keepAlive: true,
@@ -174,8 +175,8 @@ Hệ thống sẽ <b>nhắc nhở rung chuông liên tục mỗi 10 phút</b> ch
       WHERE date(created_at, 'localtime') = date('now', 'localtime')
     `).get();
 
-    const streakRow = db.prepare("SELECT value FROM settings WHERE key = 'streak'").get();
-    const streak = streakRow ? parseInt(streakRow.value, 10) || 0 : 0;
+    const streakInfo = calculateUserStreak(db, 'admin_master_user_id');
+    const streak = streakInfo.currentStreak;
 
     // Get Due Words for review
     const nowIso = new Date().toISOString();
@@ -457,8 +458,8 @@ ${featured.meaning_en ? `🇬🇧 <b>Definition:</b> ${featured.meaning_en}` : '
 
     const totalWords = db.prepare("SELECT COUNT(*) as count FROM words").get()?.count || 0;
     const masteredWords = db.prepare("SELECT COUNT(*) as count FROM words WHERE repetition >= 5 OR interval >= 45").get()?.count || 0;
-    const streakRow = db.prepare("SELECT value FROM settings WHERE key = 'streak'").get();
-    const streak = streakRow ? parseInt(streakRow.value, 10) || 0 : 0;
+    const streakInfo = calculateUserStreak(db, 'admin_master_user_id');
+    const streak = streakInfo.currentStreak;
 
     const totalReviews = weekLogs?.total_reviews || 0;
     const totalNew = weekLogs?.total_new || 0;

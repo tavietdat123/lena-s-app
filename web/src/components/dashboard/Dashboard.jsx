@@ -355,9 +355,16 @@ export default function Dashboard({
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Daily Streak:</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-warning)' }}>
-              🔥 {streak} ngày liên tục
-            </span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-warning)' }}>
+                🔥 {streak} ngày liên tục
+              </span>
+              {stats?.max_streak > 0 && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  (Kỷ lục: {stats.max_streak})
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

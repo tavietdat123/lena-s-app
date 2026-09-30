@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { gamificationService } from '../services/gamificationService.js';
 import { activityChartService } from '../services/activityChartService.js';
+import { calculateUserStreak } from '../services/streakService.js';
 
 const ACTIVITY_META = {
   vocab: { label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7' },
@@ -314,31 +315,9 @@ export const studyTimerController = {
         });
       }
 
-      // Calculate streak
-      const streakLogs = db.prepare(`
-        SELECT date FROM study_logs 
-        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-          AND (duration_seconds > 0 OR reviews_count > 0)
-        ORDER BY date DESC
-      `).all(userId, userId, userId).map(r => r.date);
-
-      let streakDays = 0;
-      let checkDate = new Date();
-      // If no activity today, check if yesterday was active
-      const todayHasActivity = streakLogs.includes(todayDate);
-      if (!todayHasActivity) {
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-
-      while (true) {
-        const checkStr = checkDate.toISOString().slice(0, 10);
-        if (streakLogs.includes(checkStr)) {
-          streakDays++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
+      // Calculate streak synchronized across all account surfaces
+      const streakInfo = calculateUserStreak(db, userId);
+      const streakDays = streakInfo.currentStreak;
 
       // Compute multi-period historical breakdown (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian từ trước đến nay)
       const periodsData = activityChartService.buildPeriodsData(db, userId);
@@ -356,7 +335,9 @@ export const studyTimerController = {
           activityBreakdown,
           dailyHistory,
           periodsData,
-          streakDays
+          streakDays,
+          streak: streakDays,
+          maxStreak: streakInfo.maxStreak
         }
       });
     } catch (err) {

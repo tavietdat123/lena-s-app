@@ -607,7 +607,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 <span>{user.currentStreak} Ngày</span>
               </div>
               <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px', fontWeight: 600 }}>
-                Chuỗi học liên tục 🔥
+                {user.maxStreak > user.currentStreak ? `Kỷ lục: ${user.maxStreak} ngày` : 'Chuỗi học liên tục 🔥'}
               </div>
             </div>
 

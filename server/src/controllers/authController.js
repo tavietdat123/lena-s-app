@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { db } from '../db/database.js';
 import { hashPassword, verifyPassword, generateToken } from '../services/authService.js';
+import { calculateUserStreak } from '../services/streakService.js';
 
 export const authController = {
   // 1. Register new user
@@ -131,12 +132,16 @@ export const authController = {
       const profile = db.prepare(`
         SELECT * FROM user_profile 
         WHERE user_id = ? OR id = ? OR (id = 'default_user' AND ? = 'admin_master_user_id')
-      `).get(user.id, user.id, user.id) || {
+        ORDER BY CASE WHEN id = ? THEN 1 WHEN user_id = ? THEN 2 ELSE 3 END
+        LIMIT 1
+      `).get(user.id, user.id, user.id, user.id, user.id) || {
         total_xp: 150,
         current_level: 1,
         title: 'Novice Scholar 🌱',
-        streak_record: 1
+        streak_record: 0
       };
+
+      const streakInfo = calculateUserStreak(db, user.id);
 
       const userResponse = {
         id: user.id,
@@ -149,7 +154,10 @@ export const authController = {
           total_xp: profile.total_xp,
           current_level: profile.current_level,
           title: profile.title,
-          streak_record: profile.streak_record
+          streak_record: streakInfo.maxStreak,
+          streak: streakInfo.currentStreak,
+          current_streak: streakInfo.currentStreak,
+          max_streak: streakInfo.maxStreak
         },
         created_at: user.created_at
       };
@@ -197,8 +205,10 @@ export const authController = {
         total_xp: 250,
         current_level: 2,
         title: 'Curious Explorer 🚀',
-        streak_record: 3
+        streak_record: 0
       };
+
+      const streakInfo = calculateUserStreak(db, guest.id);
 
       const userResponse = {
         id: guest.id,
@@ -211,7 +221,10 @@ export const authController = {
           total_xp: profile.total_xp,
           current_level: profile.current_level,
           title: profile.title,
-          streak_record: profile.streak_record
+          streak_record: streakInfo.maxStreak,
+          streak: streakInfo.currentStreak,
+          current_streak: streakInfo.currentStreak,
+          max_streak: streakInfo.maxStreak
         },
         created_at: guest.created_at
       };
@@ -245,12 +258,16 @@ export const authController = {
       const profile = db.prepare(`
         SELECT * FROM user_profile 
         WHERE user_id = ? OR id = ? OR (id = 'default_user' AND ? = 'admin_master_user_id')
-      `).get(user.id, user.id, user.id) || {
+        ORDER BY CASE WHEN id = ? THEN 1 WHEN user_id = ? THEN 2 ELSE 3 END
+        LIMIT 1
+      `).get(user.id, user.id, user.id, user.id, user.id) || {
         total_xp: 150,
         current_level: 1,
         title: 'Novice Scholar 🌱',
-        streak_record: 1
+        streak_record: 0
       };
+
+      const streakInfo = calculateUserStreak(db, user.id);
 
       const userResponse = {
         id: user.id,
@@ -263,7 +280,10 @@ export const authController = {
           total_xp: profile.total_xp,
           current_level: profile.current_level,
           title: profile.title,
-          streak_record: profile.streak_record
+          streak_record: streakInfo.maxStreak,
+          streak: streakInfo.currentStreak,
+          current_streak: streakInfo.currentStreak,
+          max_streak: streakInfo.maxStreak
         },
         created_at: user.created_at
       };

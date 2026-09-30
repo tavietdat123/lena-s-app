@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { getDb } from '../db/database.js';
 import { activityChartService } from '../services/activityChartService.js';
+import { calculateUserStreak } from '../services/streakService.js';
 
 function getBreakdownForDate(db, userId, userClause, dateStr) {
   const isAll = (dateStr === 'all' || !dateStr);
@@ -136,17 +137,18 @@ export const publicStatsController = {
       const profileRow = db.prepare(`
         SELECT total_xp, current_level, title, streak_record 
         FROM user_profile 
-        WHERE user_id = ? OR id = ? OR id = 'default_user' 
+        WHERE user_id = ? OR id = ? OR (id = 'default_user' AND ? = 'admin_master_user_id')
+        ORDER BY CASE WHEN id = ? THEN 1 WHEN user_id = ? THEN 2 ELSE 3 END
         LIMIT 1
-      `).get(userId, userId);
+      `).get(userId, userId, userId, userId, userId);
 
-      const streakRow = db.prepare("SELECT value FROM settings WHERE key = 'streak'").get();
-      const currentStreak = streakRow ? parseInt(streakRow.value, 10) || 0 : (profileRow?.streak_record || 0);
+      const streakInfo = calculateUserStreak(db, userId);
+      const currentStreak = streakInfo.currentStreak;
+      const maxStreak = streakInfo.maxStreak;
 
       const totalXp = profileRow?.total_xp || 0;
       const currentLevel = profileRow?.current_level || 1;
       const userTitle = profileRow?.title || 'Scholar 🌱';
-      const maxStreak = Math.max(currentStreak, profileRow?.streak_record || 0);
 
       // Account Isolation Clause
       const isAdmin = (userId === 'admin_master_user_id' || user?.role === 'admin');

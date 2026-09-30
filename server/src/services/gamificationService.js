@@ -1,4 +1,5 @@
 import { getDb } from '../db/database.js';
+import { calculateUserStreak } from './streakService.js';
 
 export const LEVEL_LADDER = [
   // 🥉 BRONZE TIER (Cơ Bản & Nhập Môn: A1 - A2)
@@ -59,7 +60,9 @@ export const gamificationService = {
     let row = db.prepare(`
       SELECT * FROM user_profile 
       WHERE user_id = ? OR id = ? OR (id = 'default_user' AND ? = 'admin_master_user_id')
-    `).get(userId, userId, userId);
+      ORDER BY CASE WHEN id = ? THEN 1 WHEN user_id = ? THEN 2 ELSE 3 END
+      LIMIT 1
+    `).get(userId, userId, userId, userId, userId);
     
     if (!row) {
       const now = new Date().toISOString();
@@ -81,12 +84,20 @@ export const gamificationService = {
       `).run(levelDetails.level, levelDetails.title, new Date().toISOString(), row.id);
     }
 
+    const streakInfo = calculateUserStreak(db, userId);
+
     return {
       userId: row.user_id || userId,
       totalXp: row.total_xp,
       total_xp: row.total_xp,
       ...levelDetails,
-      streakRecord: row.streak_record || 1,
+      streakRecord: streakInfo.maxStreak,
+      streak_record: streakInfo.maxStreak,
+      currentStreak: streakInfo.currentStreak,
+      maxStreak: streakInfo.maxStreak,
+      streak: streakInfo.currentStreak,
+      activeDaysCount: streakInfo.activeDaysCount,
+      hasStudiedToday: streakInfo.hasToday,
       ladder: LEVEL_LADDER
     };
   },
