@@ -56,6 +56,12 @@ export const publicStatsController = {
       const userTitle = profileRow?.title || 'Scholar 🌱';
       const maxStreak = Math.max(currentStreak, profileRow?.streak_record || 0);
 
+      // Account Isolation Clause
+      const isAdmin = (userId === 'admin_master_user_id' || user?.role === 'admin');
+      const userClause = isAdmin 
+        ? `(user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)` 
+        : `(user_id = ?)`;
+
       // 3. Words & Memory Retention Statistics
       const wordsQuery = `
         SELECT 
@@ -65,7 +71,7 @@ export const publicStatsController = {
           SUM(CASE WHEN repetition = 1 THEN 1 ELSE 0 END) as learning,
           SUM(CASE WHEN repetition = 0 OR repetition IS NULL THEN 1 ELSE 0 END) as new_words
         FROM words
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
       `;
       const wordCounts = db.prepare(wordsQuery).get(userId) || { total: 0, mastered: 0, reviewing: 0, learning: 0, new_words: 0 };
 
@@ -73,7 +79,7 @@ export const publicStatsController = {
       const levelRows = db.prepare(`
         SELECT level, COUNT(*) as count 
         FROM words 
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
         GROUP BY level
       `).all(userId);
       const levelsBreakdown = {};
@@ -83,7 +89,7 @@ export const publicStatsController = {
       const patternsCount = db.prepare(`
         SELECT COUNT(*) as count 
         FROM patterns 
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
       `).get(userId)?.count || 0;
 
       const categoriesCount = db.prepare('SELECT COUNT(*) as count FROM pattern_categories').get()?.count || 0;
@@ -96,14 +102,14 @@ export const publicStatsController = {
           SUM(reviews_count) as total_reviews,
           SUM(new_words_count) as total_new_words
         FROM study_logs
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
       `).get(userId) || { active_days: 0, total_seconds: 0, total_reviews: 0, total_new_words: 0 };
 
       // Last 14 days activity trail
       const recentLogs = db.prepare(`
         SELECT date, duration_seconds, reviews_count, new_words_count
         FROM study_logs
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
         ORDER BY date DESC
         LIMIT 14
       `).all(userId).reverse();
@@ -112,7 +118,7 @@ export const publicStatsController = {
       const sessionDistRows = db.prepare(`
         SELECT activity_type, SUM(duration_seconds) as total_seconds, COUNT(*) as sessions_count
         FROM study_sessions
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
         GROUP BY activity_type
       `).all(userId);
 
@@ -138,14 +144,14 @@ export const publicStatsController = {
       const quizSummary = db.prepare(`
         SELECT COUNT(*) as count, AVG(best_score) as avg_score
         FROM quiz_history
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
       `).get(userId);
 
       // 8. Showcase: Top Mastered Words
       const topWords = db.prepare(`
         SELECT word, phonetic, part_of_speech, meaning_vi, level, repetition
         FROM words
-        WHERE (user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)
+        WHERE ${userClause}
           AND (repetition >= 2 OR interval >= 7)
         ORDER BY repetition DESC, interval DESC
         LIMIT 8
@@ -159,14 +165,14 @@ export const publicStatsController = {
       const todaySessionsRow = db.prepare(`
         SELECT SUM(duration_seconds) as sec, COUNT(*) as count, MAX(started_at) as last_started
         FROM study_sessions
-        WHERE (user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)
+        WHERE ${userClause}
           AND substr(started_at, 1, 10) = ?
       `).get(userId, todayStr);
 
       const todayLogRow = db.prepare(`
         SELECT duration_seconds, reviews_count, new_words_count
         FROM study_logs
-        WHERE (user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)
+        WHERE ${userClause}
           AND date = ?
       `).get(userId, todayStr);
 
@@ -226,7 +232,7 @@ export const publicStatsController = {
       const recentSessions = db.prepare(`
         SELECT id, activity_type, activity_title, duration_seconds, mode, notes, started_at, ended_at
         FROM study_sessions
-        WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+        WHERE ${userClause}
         ORDER BY started_at DESC
         LIMIT 15
       `).all(userId).map(s => ({
@@ -245,7 +251,7 @@ export const publicStatsController = {
       const supervisorFeedbacks = db.prepare(`
         SELECT id, supervisor_name, type, message, created_at
         FROM supervisor_feedbacks
-        WHERE user_id = ? OR user_id = 'admin_master_user_id'
+        WHERE ${userClause}
         ORDER BY created_at DESC
         LIMIT 10
       `).all(userId);

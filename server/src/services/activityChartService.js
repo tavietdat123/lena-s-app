@@ -5,11 +5,16 @@
 
 export const activityChartService = {
   buildPeriodsData: (db, userId) => {
+    const isAdmin = (userId === 'admin_master_user_id');
+    const userClause = isAdmin 
+      ? `(user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL)` 
+      : `(user_id = ?)`;
+
     // 1. Fetch all session rows grouped by date (local substring)
     const sessionRows = db.prepare(`
       SELECT substr(started_at, 1, 10) as date, SUM(duration_seconds) as sec, COUNT(*) as count
       FROM study_sessions
-      WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+      WHERE ${userClause}
       GROUP BY substr(started_at, 1, 10)
     `).all(userId);
 
@@ -17,7 +22,7 @@ export const activityChartService = {
     const logRows = db.prepare(`
       SELECT date, SUM(duration_seconds) as sec, SUM(reviews_count) as reviews, SUM(new_words_count) as new_words
       FROM study_logs
-      WHERE user_id = ? OR user_id = 'admin_master_user_id' OR user_id IS NULL
+      WHERE ${userClause}
       GROUP BY date
     `).all(userId);
 
