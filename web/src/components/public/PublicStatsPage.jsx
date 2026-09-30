@@ -645,127 +645,343 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             boxShadow: 'var(--shadow-md)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.25rem'
+            gap: '1.5rem'
           }}>
             {/* Top Status Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                  {todayAccountability.overallStatus === 'completed' && <CheckCircle size={24} style={{ color: '#22c55e' }} />}
-                  {todayAccountability.overallStatus === 'in_progress' && <Clock size={24} style={{ color: '#f59e0b' }} />}
-                  {todayAccountability.overallStatus === 'not_started' && <AlertTriangle size={24} style={{ color: '#ef4444' }} />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                  {todayAccountability.overallStatus === 'completed' && <CheckCircle size={26} style={{ color: '#22c55e' }} />}
+                  {todayAccountability.overallStatus === 'in_progress' && <Clock size={26} style={{ color: '#f59e0b' }} />}
+                  {todayAccountability.overallStatus === 'not_started' && <AlertTriangle size={26} style={{ color: '#ef4444' }} />}
                   
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 900, color: todayAccountability.statusColor, margin: 0 }}>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: todayAccountability.statusColor, margin: 0 }}>
                     HÔM NAY: {todayAccountability.statusLabel.toUpperCase()}
                   </h3>
+
+                  {todayAccountability.disciplineGrade && (
+                    <span style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(8px)',
+                      border: `1px solid ${todayAccountability.statusColor}`,
+                      color: todayAccountability.statusColor,
+                      padding: '0.2rem 0.65rem',
+                      borderRadius: '999px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}>
+                      🏆 Hạng {todayAccountability.disciplineGrade} • {todayAccountability.disciplineScore || 0}/100 Điểm
+                    </span>
+                  )}
                 </div>
-                <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   {todayAccountability.statusMessage}
                 </p>
               </div>
 
-              {todayAccountability.lastActiveAt && (
-                <div style={{
-                  background: 'var(--bg-secondary)',
-                  padding: '0.5rem 0.85rem',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-secondary)'
-                }}>
-                  Hoạt động gần nhất: <b style={{ color: 'var(--text-primary)' }}>{formatSessionTime(todayAccountability.lastActiveAt)}</b>
-                </div>
-              )}
+              {/* Header Badges */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {user.currentStreak > 0 && todayAccountability.isCompliant && (
+                  <div style={{
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#f59e0b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}>
+                    <Flame size={15} fill="currentColor" />
+                    <span>Chuỗi {user.currentStreak} ngày an toàn</span>
+                  </div>
+                )}
+
+                {todayAccountability.lastActiveAt && (
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    Hoạt động gần nhất: <b style={{ color: 'var(--text-primary)' }}>{formatSessionTime(todayAccountability.lastActiveAt)}</b>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* 3 Metric Progress Targets */}
+            {/* 4 Metric Progress Targets */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '1rem',
-              paddingTop: '0.5rem'
+              gap: '1rem'
             }}>
               {/* Target 1: Study Time */}
               <div style={{
                 background: 'var(--bg-secondary)',
-                padding: '1.15rem',
+                padding: '1.2rem',
                 borderRadius: '16px',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ Thời Gian Học Hôm Nay</span>
-                  <b style={{ color: todayAccountability.isTimeGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
-                    {todayAccountability.todayMinutes} / {todayAccountability.targetGoalMinutes} phút
-                  </b>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ Thời Lượng Học Tập</span>
+                    <b style={{ color: todayAccountability.isTimeGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
+                      {todayAccountability.todayMinutes} / {todayAccountability.targetGoalMinutes} phút
+                    </b>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.round((todayAccountability.todayMinutes / todayAccountability.targetGoalMinutes) * 100))}%`,
+                      height: '100%',
+                      background: todayAccountability.isTimeGoalMet ? 'linear-gradient(90deg, #22c55e, #10b981)' : '#0284c7',
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
                 </div>
-                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${Math.min(100, Math.round((todayAccountability.todayMinutes / todayAccountability.targetGoalMinutes) * 100))}%`,
-                    height: '100%',
-                    background: todayAccountability.isTimeGoalMet ? '#22c55e' : '#0284c7',
-                    borderRadius: '4px',
-                    transition: 'width 0.5s ease'
-                  }} />
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                  {todayAccountability.isTimeGoalMet ? '✓ Đạt chỉ tiêu thời lượng ngày' : 'Cần học thêm để đủ mục tiêu'}
+                <div style={{ fontSize: '0.74rem', color: todayAccountability.isTimeGoalMet ? '#16a34a' : 'var(--text-muted)', marginTop: '0.5rem', fontWeight: 600 }}>
+                  {todayAccountability.isTimeGoalMet 
+                    ? `⚡ Đạt ${todayAccountability.completionRatePercent}% chỉ tiêu (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} phút)`
+                    : `Cần học thêm ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} phút để đủ mục tiêu`}
                 </div>
               </div>
 
-              {/* Target 2: Flashcards Reviewed */}
+              {/* Target 2: Sessions & Intensity */}
               <div style={{
                 background: 'var(--bg-secondary)',
-                padding: '1.15rem',
+                padding: '1.2rem',
                 borderRadius: '16px',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎴 Thẻ Flashcards Đã Ôn</span>
-                  <b style={{ color: todayAccountability.isReviewsGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
-                    {todayAccountability.todayReviews} / {todayAccountability.targetGoalReviews} thẻ
-                  </b>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎯 Số Phiên Tập Trung</span>
+                    <b style={{ color: 'var(--accent-primary)' }}>
+                      {todayAccountability.todaySessionsCount} phiên
+                    </b>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, todayAccountability.todaySessionsCount * 20)}%`,
+                      height: '100%',
+                      background: '#f59e0b',
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
                 </div>
-                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${Math.min(100, Math.round((todayAccountability.todayReviews / todayAccountability.targetGoalReviews) * 100))}%`,
-                    height: '100%',
-                    background: todayAccountability.isReviewsGoalMet ? '#22c55e' : '#8b5cf6',
-                    borderRadius: '4px',
-                    transition: 'width 0.5s ease'
-                  }} />
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                  {todayAccountability.todayReviews > 0 ? `Đã ôn ${todayAccountability.todayReviews} lượt lặp ngắt quãng` : 'Hôm nay chưa thực hiện phiên ôn thẻ nào'}
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>⏱️ {todayAccountability.stopwatchCount || 0} Bấm giờ • 🍅 {todayAccountability.pomodoroCount || 0} Pomodoro</span>
+                  {todayAccountability.longestSessionMinutes > 0 && (
+                    <b style={{ color: 'var(--text-secondary)' }}>Max: {todayAccountability.longestSessionMinutes}'</b>
+                  )}
                 </div>
               </div>
 
-              {/* Target 3: Sessions Count */}
+              {/* Target 3: Flashcards Reviewed */}
               <div style={{
                 background: 'var(--bg-secondary)',
-                padding: '1.15rem',
+                padding: '1.2rem',
                 borderRadius: '16px',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎯 Số Phiên Bấm Giờ</span>
-                  <b style={{ color: 'var(--accent-primary)' }}>
-                    {todayAccountability.todaySessionsCount} phiên
-                  </b>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎴 Thẻ Flashcards Đã Ôn</span>
+                    <b style={{ color: todayAccountability.isReviewsGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
+                      {todayAccountability.todayReviews} / {todayAccountability.targetGoalReviews} thẻ
+                    </b>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, Math.round((todayAccountability.todayReviews / todayAccountability.targetGoalReviews) * 100))}%`,
+                      height: '100%',
+                      background: todayAccountability.isReviewsGoalMet ? '#22c55e' : '#8b5cf6',
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
                 </div>
-                <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${Math.min(100, todayAccountability.todaySessionsCount * 25)}%`,
-                    height: '100%',
-                    background: '#f59e0b',
-                    borderRadius: '4px',
-                    transition: 'width 0.5s ease'
-                  }} />
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                  {todayAccountability.todayReviews > 0 ? `Đã ôn ${todayAccountability.todayReviews} thẻ lặp ngắt quãng` : 'Hôm nay chưa thực hiện phiên ôn thẻ nào'}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                  {todayAccountability.todaySessionsCount > 0 ? 'Đã ghi nhận dữ liệu bấm giờ Pomodoro' : 'Chưa có phiên bấm giờ nào hôm nay'}
+              </div>
+
+              {/* Target 4: Discipline Score */}
+              <div style={{
+                background: 'var(--bg-secondary)',
+                padding: '1.2rem',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🏅 Điểm Kỷ Luật Ngày</span>
+                    <b style={{ color: '#f59e0b' }}>
+                      {todayAccountability.disciplineScore || 0} / 100
+                    </b>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${todayAccountability.disciplineScore || 0}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #f59e0b, #eab308)',
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Hạng đánh giá: <b style={{ color: '#f59e0b' }}>{todayAccountability.disciplineGrade}</b></span>
+                  <span>Deep Work cao</span>
                 </div>
               </div>
             </div>
+
+            {/* Skill / Activity Breakdown Today (if any) */}
+            {todayAccountability.todayActivities && todayAccountability.todayActivities.length > 0 && (
+              <div style={{
+                background: 'var(--bg-secondary)',
+                padding: '1.2rem 1.4rem',
+                borderRadius: '18px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>📊 Cơ Cấu Hoạt Động Đã Rèn Luyện Hôm Nay:</span>
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {todayAccountability.todayActivities.length} nội dung rèn luyện
+                  </span>
+                </div>
+
+                {/* Progress bar showing breakdown */}
+                <div style={{
+                  width: '100%',
+                  height: '10px',
+                  background: 'var(--bg-tertiary)',
+                  borderRadius: '5px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  marginBottom: '1rem'
+                }}>
+                  {todayAccountability.todayActivities.map(act => {
+                    const pct = todayAccountability.todaySeconds > 0 
+                      ? Math.max(2, Math.round((act.seconds / todayAccountability.todaySeconds) * 100))
+                      : 0;
+                    return (
+                      <div
+                        key={act.type}
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: act.color,
+                          transition: 'width 0.5s ease'
+                        }}
+                        title={`${act.label}: ${act.minutes} phút (${pct}%)`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Badges list */}
+                <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  {todayAccountability.todayActivities.map(act => (
+                    <div
+                      key={act.type}
+                      style={{
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1rem' }}>{act.emoji}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{act.label}:</span>
+                      <b style={{ color: act.color }}>{act.minutes} phút</b>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({act.sessions} phiên)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* AI Supervisor Audit Verdict & Actionable Recommendation */}
+            {(todayAccountability.auditVerdict || todayAccountability.recommendation) && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1rem'
+              }}>
+                {todayAccountability.auditVerdict && (
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '1.15rem',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.75rem'
+                  }}>
+                    <span style={{ fontSize: '1.4rem' }}>📋</span>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                        Đánh Giá Kỷ Luật & Cường Độ
+                      </div>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {todayAccountability.auditVerdict}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {todayAccountability.recommendation && (
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '1.15rem',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.75rem'
+                  }}>
+                    <span style={{ fontSize: '1.4rem' }}>💡</span>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b', marginBottom: '0.25rem' }}>
+                        Khuyến Nghị Của Giám Sát
+                      </div>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        {todayAccountability.recommendation}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

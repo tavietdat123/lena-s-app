@@ -274,6 +274,53 @@ export const publicStatsController = {
       const todayNewWords = todayLogRow?.new_words_count || 0;
       const todaySessionsCount = todaySessionsRow?.count || 0;
 
+      // Fetch all today's sessions to compute detailed rhythm & structure
+      const todaySessions = db.prepare(`
+        SELECT id, activity_type, activity_title, duration_seconds, mode, started_at, ended_at
+        FROM study_sessions 
+        WHERE ${userClause} AND substr(started_at, 1, 10) = ?
+        ORDER BY started_at ASC
+      `).all(userId, todayStr);
+
+      const pomodoroCount = todaySessions.filter(s => s.mode === 'pomodoro').length;
+      const stopwatchCount = todaySessions.filter(s => s.mode !== 'pomodoro').length;
+      const maxDurationSec = todaySessions.length > 0 ? Math.max(...todaySessions.map(s => s.duration_seconds || 0)) : 0;
+      const longestSessionMinutes = Math.round(maxDurationSec / 60);
+
+      const earliestSession = todaySessions.length > 0 ? todaySessions[0].started_at : null;
+      const latestSession = todaySessions.length > 0 ? todaySessions[todaySessions.length - 1].started_at : null;
+
+      const activityMapInfo = {
+        vocab: { label: 'Học Từ Vựng', emoji: '📚', color: '#6366f1' },
+        patterns: { label: 'Cấu Trúc Câu', emoji: '🧩', color: '#0284c7' },
+        reading: { label: 'Đọc Hiểu', emoji: '📖', color: '#10b981' },
+        speaking: { label: 'Luyện Nói AI', emoji: '🗣️', color: '#ec4899' },
+        quiz: { label: 'Kiểm Tra & Quiz', emoji: '🎯', color: '#8b5cf6' },
+        coding: { label: 'Lập Trình & Dev', emoji: '💻', color: '#f59e0b' },
+        general: { label: 'Tự Học Chung', emoji: '⏱️', color: '#64748b' }
+      };
+
+      const skillMap = {};
+      todaySessions.forEach(s => {
+        const t = s.activity_type || 'general';
+        if (!skillMap[t]) {
+          skillMap[t] = {
+            type: t,
+            label: activityMapInfo[t]?.label || t,
+            emoji: activityMapInfo[t]?.emoji || '📌',
+            color: activityMapInfo[t]?.color || '#0284c7',
+            minutes: 0,
+            seconds: 0,
+            sessions: 0
+          };
+        }
+        skillMap[t].seconds += (s.duration_seconds || 0);
+        skillMap[t].minutes += Math.round((s.duration_seconds || 0) / 60);
+        skillMap[t].sessions += 1;
+      });
+
+      const todayActivities = Object.values(skillMap).sort((a, b) => b.seconds - a.seconds);
+
       // Target goals
       const userSettings = db.prepare(`
         SELECT daily_goal FROM user_settings WHERE user_id = ?
@@ -284,22 +331,69 @@ export const publicStatsController = {
       const isTimeGoalMet = todayMinutes >= targetGoalMinutes;
       const isReviewsGoalMet = todayReviews >= targetGoalReviews;
       const isCompliant = isTimeGoalMet || isReviewsGoalMet;
+      const completionRatePercent = targetGoalMinutes > 0 ? Math.round((todayMinutes / targetGoalMinutes) * 100) : 0;
+      const reviewsCompletionPercent = targetGoalReviews > 0 ? Math.round((todayReviews / targetGoalReviews) * 100) : 0;
 
       let overallStatus = 'not_started';
       let statusLabel = 'Chưa Hoàn Thành Kỷ Luật';
       let statusMessage = 'Học viên hôm nay chưa học phiên nào hoặc chưa đạt mục tiêu tối thiểu!';
       let statusColor = '#ef4444'; // Red
 
+      // Discipline Score & Grade
+      let disciplineScore = 0;
+      let disciplineGrade = 'Chưa đạt';
+
       if (isCompliant) {
         overallStatus = 'completed';
         statusLabel = 'Đạt Chuẩn Kỷ Luật Xuất Sắc';
-        statusMessage = `Đã hoàn thành mục tiêu ngày hôm nay (${todayMinutes} phút / ${targetGoalMinutes} phút)!`;
+        statusMessage = `Đã hoàn thành xuất sắc mục tiêu ngày hôm nay (${todayMinutes} phút / ${targetGoalMinutes} phút)!`;
         statusColor = '#22c55e'; // Green
+
+        // Base 80 points for meeting goals
+        disciplineScore = 80;
+        if (todayMinutes > targetGoalMinutes) {
+          disciplineScore += Math.min(10, Math.round(((todayMinutes - targetGoalMinutes) / targetGoalMinutes) * 10));
+        }
+        if (todayReviews >= targetGoalReviews) {
+          disciplineScore += 5;
+        }
+        if (todaySessions.length >= 3) {
+          disciplineScore += 5;
+        }
+        disciplineScore = Math.min(100, Math.max(80, disciplineScore));
+        disciplineGrade = disciplineScore >= 95 ? 'S' : (disciplineScore >= 85 ? 'A+' : 'A');
       } else if (todayMinutes > 0 || todayReviews > 0) {
         overallStatus = 'in_progress';
         statusLabel = 'Đang Rèn Luyện (Chưa Đủ Mục Tiêu)';
         statusMessage = `Đã tích lũy ${todayMinutes}/${targetGoalMinutes} phút. Cần học thêm để hoàn thành ngày.`;
         statusColor = '#f59e0b'; // Amber
+
+        disciplineScore = Math.min(75, Math.round((todayMinutes / targetGoalMinutes) * 40 + (todayReviews / targetGoalReviews) * 35));
+        disciplineGrade = disciplineScore >= 60 ? 'B' : 'C';
+      }
+
+      // Detailed Audit Verdict & Recommendation
+      let auditVerdict = '';
+      let recommendation = '';
+
+      if (isCompliant) {
+        if (todayMinutes >= 180) {
+          auditVerdict = `Học viên duy trì cường độ tập trung vượt trội với ${todayMinutes} phút (${(todayMinutes / 60).toFixed(1)} giờ) học tập qua ${todaySessionsCount} phiên riêng biệt! Đạt mức độ Deep Work xuất sắc.`;
+        } else {
+          auditVerdict = `Đã hoàn thành xuất sắc mục tiêu ngày hôm nay với ${todayMinutes} phút học tập tập trung, bảo vệ thành công chuỗi kỷ luật!`;
+        }
+        
+        if (todayReviews < targetGoalReviews) {
+          recommendation = `Thời lượng học đã vượt rất xa chỉ tiêu (+${todayMinutes - targetGoalMinutes} phút). Để cân bằng toàn diện, học viên nên dành thêm 10-15 phút ôn tập nhanh thẻ Flashcards SM-2!`;
+        } else {
+          recommendation = `Kỷ luật hoàn hảo ở cả thời lượng và ôn tập thẻ! Hãy giữ gìn năng lượng và duy trì phong độ cho ngày mai.`;
+        }
+      } else if (todayMinutes > 0 || todayReviews > 0) {
+        auditVerdict = `Đã ghi nhận ${todayMinutes}/${targetGoalMinutes} phút và ${todayReviews}/${targetGoalReviews} thẻ. Chưa đạt ngưỡng chuẩn tối thiểu của ngày.`;
+        recommendation = `Cần học thêm tối thiểu ${Math.max(0, targetGoalMinutes - todayMinutes)} phút hoặc ôn thêm ${Math.max(0, targetGoalReviews - todayReviews)} thẻ để hoàn thành chỉ tiêu ngày trước 24:00!`;
+      } else {
+        auditVerdict = `Học viên hôm nay chưa ghi nhận phiên học nào trong hệ thống!`;
+        recommendation = `Hãy mở ứng dụng và bắt đầu phiên Pomodoro hoặc lướt thẻ từ vựng ngay bây giờ để không bị đứt chuỗi streak!`;
       }
 
       const todayAccountability = {
@@ -309,14 +403,26 @@ export const publicStatsController = {
         todayReviews,
         todayNewWords,
         todaySessionsCount,
+        pomodoroCount,
+        stopwatchCount,
+        longestSessionMinutes,
+        earliestSession,
+        latestSession,
         targetGoalMinutes,
         targetGoalReviews,
+        completionRatePercent,
+        reviewsCompletionPercent,
         isTimeGoalMet,
         isReviewsGoalMet,
         overallStatus,
         statusLabel,
         statusMessage,
         statusColor,
+        disciplineScore,
+        disciplineGrade,
+        auditVerdict,
+        recommendation,
+        todayActivities,
         lastActiveAt: todaySessionsRow?.last_started || (todaySeconds > 0 ? `${todayStr}T12:00:00Z` : null)
       };
 
