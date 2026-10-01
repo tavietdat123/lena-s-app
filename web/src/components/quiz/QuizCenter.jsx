@@ -232,7 +232,26 @@ export default function QuizCenter({ onOpenReview }) {
       }
 
       if (res.success && res.data.questions?.length > 0) {
-        setQuizData(res.data);
+        // Guarantee no duplicates on client side as an extra safeguard
+        const seenWords = new Set();
+        const seenTexts = new Set();
+        const filteredQuestions = res.data.questions.filter((q) => {
+          const w = String(q.word || '').trim().toLowerCase();
+          const t = String(q.questionText || '').trim().toLowerCase();
+          if (w && seenWords.has(w)) return false;
+          if (t && seenTexts.has(t)) return false;
+          if (w) seenWords.add(w);
+          if (t) seenTexts.add(t);
+          return true;
+        });
+
+        const finalQuizData = {
+          ...res.data,
+          totalQuestions: filteredQuestions.length,
+          questions: filteredQuestions
+        };
+
+        setQuizData(finalQuizData);
         setCurrentIndex(0);
         setUserAnswers([]);
         setSelectedOption(null);
@@ -1331,6 +1350,10 @@ export default function QuizCenter({ onOpenReview }) {
                       <small>{cnt === 5 ? 'Nhanh (2p)' : cnt === 10 ? 'Chuẩn (5p)' : 'Chuyên sâu (8p)'}</small>
                     </button>
                   ))}
+                </div>
+                <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>🛡️</span>
+                  <span>Đảm bảo 100% câu hỏi không trùng lặp (Mỗi câu 1 từ vựng riêng biệt)</span>
                 </div>
               </div>
 

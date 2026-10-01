@@ -141,7 +141,23 @@ export function normalizeAndRandomizeQuestions(parsed, defaultPrefix = 'ai_q') {
 
   if (!list || list.length === 0) return [];
 
-  return list.map((q, idx) => {
+  // Deduplicate items from AI response (guarantee no duplicate questions or target words)
+  const seenWords = new Set();
+  const seenTexts = new Set();
+  const uniqueList = [];
+
+  for (const q of list) {
+    if (!q || typeof q !== 'object') continue;
+    const w = String(q.word || q.targetWord || q.term || '').trim().toLowerCase();
+    const t = String(q.questionText || '').trim().toLowerCase();
+    if (w && seenWords.has(w)) continue;
+    if (t && seenTexts.has(t)) continue;
+    if (w) seenWords.add(w);
+    if (t) seenTexts.add(t);
+    uniqueList.push(q);
+  }
+
+  return uniqueList.map((q, idx) => {
     let rawOptions = [];
     if (Array.isArray(q.options)) {
       rawOptions = [...q.options];
@@ -733,11 +749,13 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
   const db = getDb();
   let candidateWords = [];
   let topicDisplay = 'Tất cả (All)';
+  let allWords = [];
 
   if (words && words.length > 0) {
     candidateWords = words;
+    allWords = words;
   } else {
-    const allWords = db.prepare('SELECT id, word, meaning_vi, meaning_en, part_of_speech, examples, level, topic_id, created_at FROM words').all();
+    allWords = db.prepare('SELECT id, word, meaning_vi, meaning_en, part_of_speech, examples, level, topic_id, created_at FROM words').all();
     const dateFiltered = filterItemsByDate(allWords, date_scope, date);
     const resolved = resolveTopics(db, topic);
     if (!resolved.isAll) {
@@ -783,17 +801,40 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
 
   const targetCount = Math.max(1, parseInt(count, 10) || 5);
 
+  // Deduplicate candidate words by normalized word text
+  const seenCandidate = new Set();
+  const uniqueCandidates = [];
+  for (const w of candidateWords) {
+    const norm = (w.word || '').trim().toLowerCase();
+    if (norm && !seenCandidate.has(norm)) {
+      seenCandidate.add(norm);
+      uniqueCandidates.push(w);
+    }
+  }
+
+  const shuffled = [...uniqueCandidates].sort(() => 0.5 - Math.random());
   let selected = [];
-  const shuffled = [...candidateWords].sort(() => 0.5 - Math.random());
 
   if (shuffled.length >= targetCount) {
-    // 1. Số từ của topic >= targetCount -> Chọn ngẫu nhiên KHÔNG LẶP LẠI
     selected = shuffled.slice(0, targetCount);
   } else {
-    // 2. Số từ của topic < targetCount -> Lặp đi lặp lại các từ đó để tạo đủ số câu hỏi
-    for (let i = 0; i < targetCount; i++) {
-      selected.push(shuffled[i % shuffled.length]);
+    selected = [...shuffled];
+    const seenSelected = new Set(selected.map(w => (w.word || '').trim().toLowerCase()));
+    const otherWords = (allWords || []).filter(w => {
+      const norm = (w.word || '').trim().toLowerCase();
+      return norm && !seenSelected.has(norm);
+    });
+    const uniqueOther = [];
+    for (const w of otherWords) {
+      const norm = (w.word || '').trim().toLowerCase();
+      if (norm && !seenSelected.has(norm)) {
+        seenSelected.add(norm);
+        uniqueOther.push(w);
+      }
     }
+    uniqueOther.sort(() => 0.5 - Math.random());
+    const needed = targetCount - selected.length;
+    selected.push(...uniqueOther.slice(0, needed));
   }
 
   const ieltsRequirementMap = {
@@ -891,8 +932,8 @@ ${currentModeInstruction}
 Danh sách mục tiêu từng câu:
 ${wordsInput}
 
-LƯU Ý ĐẶC BIỆT:
-- Nếu một từ vựng xuất hiện ở nhiều câu (do chủ đề có ít từ), hãy tạo các tình huống ngữ cảnh, cấu trúc câu và góc nhìn kiểm tra HOÀN TOÀN KHÁC NHAU để người học ghi nhớ sâu.
+LƯU Ý ĐẶC BIỆT (BẮT BUỘC):
+- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG LẶP: Mỗi câu hỏi bắt buộc phải kiểm tra một từ vựng riêng biệt, ngữ cảnh tình huống riêng biệt và các phương án riêng biệt. Tuyệt đối không lặp lại câu hỏi hoặc tình huống đã có.
 - Mỗi câu hỏi bắt buộc phải có giải thích ngữ pháp/ngữ nghĩa chi tiết và dịch nghĩa tiếng Việt cả câu.
 
 Hãy trả về JSON với cấu trúc:
@@ -968,14 +1009,39 @@ export async function generateAIPatternQuiz({ category = 'all', tone = 'all', co
     if (filtered.length > 0) candidatePatterns = filtered;
   }
 
+  // Deduplicate candidate patterns by normalized name
+  const seenCandidatePatterns = new Set();
+  const uniqueCandidatePatterns = [];
+  for (const p of candidatePatterns) {
+    const norm = (p.name || '').trim().toLowerCase();
+    if (norm && !seenCandidatePatterns.has(norm)) {
+      seenCandidatePatterns.add(norm);
+      uniqueCandidatePatterns.push(p);
+    }
+  }
+
   let selected = [];
-  const shuffled = [...candidatePatterns].sort(() => 0.5 - Math.random());
+  const shuffled = [...uniqueCandidatePatterns].sort(() => 0.5 - Math.random());
   if (shuffled.length >= targetCount) {
     selected = shuffled.slice(0, targetCount);
   } else {
-    for (let i = 0; i < targetCount; i++) {
-      selected.push(shuffled[i % shuffled.length]);
+    selected = [...shuffled];
+    const seenSelected = new Set(selected.map(p => (p.name || '').trim().toLowerCase()));
+    const otherPatterns = patterns.filter(p => {
+      const norm = (p.name || '').trim().toLowerCase();
+      return norm && !seenSelected.has(norm);
+    });
+    const uniqueOther = [];
+    for (const p of otherPatterns) {
+      const norm = (p.name || '').trim().toLowerCase();
+      if (norm && !seenSelected.has(norm)) {
+        seenSelected.add(norm);
+        uniqueOther.push(p);
+      }
     }
+    uniqueOther.sort(() => 0.5 - Math.random());
+    const needed = targetCount - selected.length;
+    selected.push(...uniqueOther.slice(0, needed));
   }
 
   const patternsInput = selected.map((p, idx) => `Câu ${idx + 1}: Mẫu câu "${p.name}" (Công thức: ${p.formula} | Nghĩa: ${p.meaning_vi} | Chức năng: ${p.category})`).join('\n');
@@ -988,7 +1054,8 @@ Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm chuyên 
 Danh sách mẫu câu mục tiêu từng câu:
 ${patternsInput}
 
-YÊU CẦU ĐẶC BIỆT:
+YÊU CẦU ĐẶC BIỆT (BẮT BUỘC):
+- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG LẶP: Mỗi câu hỏi phải kiểm tra một mẫu câu riêng biệt và tình huống riêng biệt, không được lặp lại câu hỏi đã có.
 1. Mỗi câu hỏi kiểm tra cách ứng dụng thực tế của mẫu câu trong câu văn hoàn chỉnh (IELTS Writing Task 2, Bài luận học thuật, Thư công việc trang trọng).
 2. Tạo chỗ trống "_______" ở vị trí vế đảo ngữ / từ nối / liên từ / dạng chia động từ đặc trưng của mẫu câu.
 3. Cung cấp 4 lựa chọn (options): 1 đáp án chuẩn ngữ pháp và 3 đáp án gây nhiễu chứa các lỗi ngữ pháp hay gặp (ví dụ: quên đảo trợ từ, chia sai thì, dùng sai liên từ đi kèm).

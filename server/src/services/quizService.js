@@ -281,7 +281,8 @@ export function generateGrammarClozeQuestion({
   examples = [],
   qDifficulty = 'medium',
   questionIndex = 0,
-  otherWords = []
+  otherWords = [],
+  usedQuestionTexts = new Set()
 }) {
   const pos = (targetWord.part_of_speech || '').toLowerCase();
   const forms = inflectEnglishWord(targetWord.word, pos);
@@ -293,6 +294,22 @@ export function generateGrammarClozeQuestion({
   let promptSubtitle = '';
   let correctAnswer = targetWord.word;
   let explanation = '';
+
+  // Helper to pick an unused template from a rich pool
+  const pickUnusedTemplate = (templateList) => {
+    for (let k = 0; k < templateList.length; k++) {
+      const idx = (questionIndex + k) % templateList.length;
+      const candidate = templateList[idx];
+      if (!usedQuestionTexts.has(candidate)) {
+        usedQuestionTexts.add(candidate);
+        return candidate;
+      }
+    }
+    const base = templateList[questionIndex % templateList.length];
+    const uniqueTpl = `[Q${questionIndex + 1}] ${base}`;
+    usedQuestionTexts.add(uniqueTpl);
+    return uniqueTpl;
+  };
 
   // =========================================================================
   // ƯU TIÊN 1: Trích xuất câu từ ví dụ thực tế của chính từ đó (Authentic Context)
@@ -321,9 +338,13 @@ export function generateGrammarClozeQuestion({
       for (const form of candidateForms) {
         const regex = new RegExp(`\\b${form}\\b`, 'i');
         if (regex.test(englishOnly)) {
-          matchedSentence = englishOnly.replace(regex, '_______');
-          matchedWord = form;
-          break;
+          const candidateSentence = englishOnly.replace(regex, '_______');
+          if (!usedQuestionTexts.has(candidateSentence)) {
+            matchedSentence = candidateSentence;
+            matchedWord = form;
+            usedQuestionTexts.add(matchedSentence);
+            break;
+          }
         }
       }
       if (matchedSentence) break;
@@ -361,7 +382,7 @@ export function generateGrammarClozeQuestion({
     }
   } else {
     // =========================================================================
-    // ƯU TIÊN 2 (FALLBACK): Khi không có ví dụ mẫu, dùng các mẫu câu phổ quát tự nhiên
+    // ƯU TIÊN 2 (FALLBACK): Khi không có ví dụ mẫu, dùng các mẫu câu phong phú đa dạng
     // =========================================================================
     if (isVerb) {
       const verbCycle = questionIndex % 3;
@@ -370,9 +391,14 @@ export function generateGrammarClozeQuestion({
         const templates = [
           `She consistently _______ to ensure the best outcome for the entire team.`,
           `Our manager carefully _______ each request before making a final decision.`,
-          `Every specialist regularly _______ all important steps to guarantee quality.`
+          `Every specialist regularly _______ all important steps to guarantee quality.`,
+          `A proficient engineer frequently _______ complex systems to eliminate bottlenecks.`,
+          `The department head actively _______ emerging challenges during daily standup meetings.`,
+          `In our project workflow, each member _______ tasks responsibly to keep momentum.`,
+          `The coordinator diligently _______ all relevant details prior to final deployment.`,
+          `A dedicated mentor continuously _______ the growth and independence of learners.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = qDifficulty === 'easy'
           ? `Chia động từ ở thì Hiện tại đơn - Ngôi thứ 3 số ít (${validTargetMeaning} - Thêm -s/-es):`
           : `Chia động từ ở thì Hiện tại đơn (Chủ ngữ ngôi thứ 3 số ít "She / He / Manager" + V-s/es):`;
@@ -382,9 +408,14 @@ export function generateGrammarClozeQuestion({
         const templates = [
           `During yesterday's meeting, she _______ her perspective with great clarity.`,
           `Last week, the team successfully _______ all pending action items.`,
-          `In the previous session, the committee _______ the revised proposal.`
+          `In the previous session, the committee _______ the revised proposal.`,
+          `Two days ago, the technical director _______ an innovative solution to the problem.`,
+          `Earlier this morning, our specialists _______ all core configurations before release.`,
+          `At the annual conference, the keynote speaker _______ key findings with the audience.`,
+          `During the last sprint, they _______ critical milestones ahead of schedule.`,
+          `Following the incident, the support team _______ the resolution immediately.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = qDifficulty === 'easy'
           ? `Chia động từ ở thì Quá khứ đơn (${validTargetMeaning} - Thêm -ed / V2):`
           : `Chia động từ ở thì Quá khứ đơn (Dấu hiệu "Yesterday / Last week"):`;
@@ -394,9 +425,14 @@ export function generateGrammarClozeQuestion({
         const templates = [
           `They achieved excellent results by _______ the most effective method early.`,
           `She improved productivity by _______ routine tasks in an organized way.`,
-          `After _______ the situation thoroughly, everyone reached a mutual agreement.`
+          `After _______ the situation thoroughly, everyone reached a mutual agreement.`,
+          `Before _______ new features, the team conducted thorough performance tests.`,
+          `Success in this field requires _______ consistent effort and continuous dedication.`,
+          `By _______ proactive measures, they prevented potential security vulnerabilities.`,
+          `Without _______ the underlying causes, resolving the issue permanently is difficult.`,
+          `In addition to _______ daily responsibilities, she devoted time to professional learning.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = `Chọn dạng danh động từ thích hợp sau giới từ ("By / After" + V-ing - ${validTargetMeaning}):`;
         explanation = `Đứng sau các giới từ như "By", "After", "Without", động từ phải ở dạng danh động từ (Gerund V-ing) ➔ Đáp án chính xác là "${correctAnswer}".`;
       }
@@ -407,18 +443,29 @@ export function generateGrammarClozeQuestion({
         const templates = [
           `The committee evaluated several important _______ before granting final approval.`,
           `There are multiple strategic _______ that the team must achieve by the end of this month.`,
-          `Several critical _______ were reviewed carefully during the planning phase.`
+          `Several critical _______ were reviewed carefully during the planning phase.`,
+          `The organization introduced clear _______ to measure ongoing productivity.`,
+          `All designated _______ must be verified and confirmed prior to final release.`,
+          `The report highlighted various _______ that could influence our project roadmap.`,
+          `Effective organizations analyze different _______ to adapt to changing environments.`,
+          `Management assessed numerous _______ submitted during the consultation process.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = `Chọn dạng danh từ số nhiều thích hợp sau lượng từ ("several / multiple" - ${validTargetMeaning}):`;
         explanation = `Các từ chỉ số lượng ("several / multiple") đòi hỏi danh từ đếm được phải ở dạng số nhiều (-s/-es) ➔ Đáp án chính xác là "${correctAnswer}".`;
       } else {
         correctAnswer = forms.base;
         const templates = [
           `Achieving this objective represents an essential _______ for our long-term plan.`,
-          `The coordinator identified an unexpected _______ during the review process.`
+          `The coordinator identified an unexpected _______ during the review process.`,
+          `Establishing a clear _______ is critical for maintaining alignment across departments.`,
+          `The company achieved a major _______ by launching the platform ahead of time.`,
+          `Each team member contributed a significant _______ to the overall success of the project.`,
+          `Maintaining an appropriate _______ helps prevent burnout during intensive periods.`,
+          `The new policy provides a strong _______ for ensuring operational excellence.`,
+          `She provided an insightful _______ that clarified the central issue under discussion.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = `Điền danh từ thích hợp vào chỗ trống (sau mạo từ "a / an" - ${validTargetMeaning}):`;
         explanation = `Vị trí sau mạo từ "a / an" đòi hỏi danh từ đếm được ở dạng số ít ➔ Đáp án chính xác là "${correctAnswer}".`;
       }
@@ -429,9 +476,14 @@ export function generateGrammarClozeQuestion({
         const templates = [
           `It is important to avoid being _______ when communicating with colleagues or clients.`,
           `Her response was considered quite _______ by everyone present in the room.`,
-          `The speaker gave a very _______ presentation that kept the entire audience engaged.`
+          `The speaker gave a very _______ presentation that kept the entire audience engaged.`,
+          `Maintaining a _______ approach to problem-solving helps overcome unexpected obstacles.`,
+          `The team adopted a remarkably _______ strategy that maximized operational efficiency.`,
+          `His explanations were exceptionally _______, making complex concepts easy to understand.`,
+          `Creating an inclusive and _______ environment encourages active collaboration.`,
+          `They demonstrated an extraordinarily _______ attitude throughout demanding circumstances.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = qDifficulty === 'easy'
           ? `Chọn tính từ thích hợp bổ nghĩa cho ngữ cảnh câu (${validTargetMeaning}):`
           : `Chọn tính từ phù hợp với ngữ cảnh câu:`;
@@ -440,15 +492,28 @@ export function generateGrammarClozeQuestion({
         correctAnswer = forms.advForm || (targetWord.word + 'ly');
         const templates = [
           `The team handled the unexpected inquiry _______ and professionally.`,
-          `She addressed the audience's concerns _______ during the session.`
+          `She addressed the audience's concerns _______ during the session.`,
+          `The engineer analyzed the system performance _______ to identify the root cause.`,
+          `All members worked _______ to ensure deliverables met rigorous quality standards.`,
+          `He presented his findings _______, preventing any possible misunderstandings.`,
+          `The service responded _______ even under peak traffic conditions.`,
+          `She adapted _______ to the new workflow and delivered immediate results.`,
+          `They evaluated all available alternatives _______ before reaching a conclusion.`
         ];
-        questionText = templates[questionIndex % templates.length];
+        questionText = pickUnusedTemplate(templates);
         promptSubtitle = `Chọn trạng từ (-ly) thích hợp bổ nghĩa cho động từ (${validTargetMeaning}):`;
         explanation = `Vị trí bổ nghĩa cho động từ đòi hỏi một trạng từ (Adverb -ly) ➔ Đáp án chính xác là "${correctAnswer}".`;
       }
     } else {
       correctAnswer = targetWord.word;
-      questionText = `In everyday communication, it is helpful to _______ in a clear and constructive manner.`;
+      const templates = [
+        `In everyday professional communication, it is helpful to _______ in a clear and constructive manner.`,
+        `Effective collaboration requires individuals to _______ with empathy and mutual respect.`,
+        `To achieve long-term excellence, one must learn how to _______ effectively across varied situations.`,
+        `A robust plan enables the organization to _______ smoothly during times of change.`,
+        `Practicing deliberate habits makes it easier to _______ consistently toward ambitious goals.`
+      ];
+      questionText = pickUnusedTemplate(templates);
       promptSubtitle = `Điền từ vựng thích hợp vào ngữ cảnh câu (${validTargetMeaning}):`;
       explanation = `Điền từ "${targetWord.word}" (${validTargetMeaning}) để hoàn chỉnh câu chuẩn xác.`;
     }
@@ -778,22 +843,52 @@ export const quizService = {
 
     const questionDifficulty = ['easy', 'medium', 'hard'].includes(level) ? level : 'all';
 
-    // 3. Quy tắc chọn từ mục tiêu:
-    // - Nếu số từ candidate >= targetCount -> Chọn ngẫu nhiên KHÔNG LẶP LẠI
-    // - Nếu số từ candidate < targetCount -> Lặp đi lặp lại các từ đó để tạo đủ số câu hỏi
+    // 3. Quy tắc chọn từ mục tiêu (TUYỆT ĐỐI KHÔNG TRÙNG LẶP):
+    // - Lọc bỏ từ trùng lặp trong candidateWords theo từ chuẩn hóa
+    const seenCandidateWords = new Set();
+    const uniqueCandidates = [];
+    for (const w of candidateWords) {
+      const norm = (w.word || '').trim().toLowerCase();
+      if (norm && !seenCandidateWords.has(norm)) {
+        seenCandidateWords.add(norm);
+        uniqueCandidates.push(w);
+      }
+    }
+
+    const shuffledCandidates = [...uniqueCandidates].sort(() => 0.5 - Math.random());
     let selectedWords = [];
-    const shuffledCandidates = [...candidateWords].sort(() => 0.5 - Math.random());
 
     if (shuffledCandidates.length >= targetCount) {
       selectedWords = shuffledCandidates.slice(0, targetCount);
     } else {
-      for (let i = 0; i < targetCount; i++) {
-        selectedWords.push(shuffledCandidates[i % shuffledCandidates.length]);
+      // Ưu tiên toàn bộ các từ ứng viên thuộc phạm vi bộ lọc đã chọn
+      selectedWords = [...shuffledCandidates];
+
+      // Bổ sung các từ vựng khác từ kho từ vựng của người dùng để đủ targetCount mà TUYỆT ĐỐI KHÔNG TRÙNG
+      const seenSelected = new Set(selectedWords.map(w => (w.word || '').trim().toLowerCase()));
+      const otherWords = words.filter(w => {
+        const norm = (w.word || '').trim().toLowerCase();
+        return norm && !seenSelected.has(norm);
+      });
+
+      const uniqueOtherWords = [];
+      for (const w of otherWords) {
+        const norm = (w.word || '').trim().toLowerCase();
+        if (norm && !seenSelected.has(norm)) {
+          seenSelected.add(norm);
+          uniqueOtherWords.push(w);
+        }
       }
+
+      uniqueOtherWords.sort(() => 0.5 - Math.random());
+      const needed = targetCount - selectedWords.length;
+      const supplement = uniqueOtherWords.slice(0, needed);
+      selectedWords.push(...supplement);
     }
 
     // Question types: 'meaning_vi', 'reverse_en', 'cloze_blank', 'listening'
     const questionTypes = ['meaning_vi', 'reverse_en', 'cloze_blank', 'listening'];
+    const usedQuestionTexts = new Set();
 
     const questions = selectedWords.map((targetWord, index) => {
       const qType = mode === 'mixed' 
@@ -851,7 +946,8 @@ export const quizService = {
             examples,
             qDifficulty,
             questionIndex: index,
-            otherWords: words
+            otherWords: words,
+            usedQuestionTexts
           });
           questionText = grammarQ.questionText;
           promptSubtitle = grammarQ.promptSubtitle;
@@ -893,7 +989,8 @@ export const quizService = {
             examples,
             qDifficulty,
             questionIndex: index,
-            otherWords: words
+            otherWords: words,
+            usedQuestionTexts
           });
           questionText = grammarQ.questionText;
           promptSubtitle = grammarQ.promptSubtitle;
@@ -948,7 +1045,8 @@ export const quizService = {
             examples,
             qDifficulty,
             questionIndex: index,
-            otherWords: words
+            otherWords: words,
+            usedQuestionTexts
           });
           questionText = grammarQ.questionText;
           promptSubtitle = grammarQ.promptSubtitle;
@@ -1147,14 +1245,44 @@ export const quizService = {
       if (filtered.length > 0) candidatePatterns = filtered;
     }
 
+    // Deduplicate candidate patterns by normalized name
+    const seenCandidatePatterns = new Set();
+    const uniqueCandidatePatterns = [];
+    for (const p of candidatePatterns) {
+      const norm = (p.name || '').trim().toLowerCase();
+      if (norm && !seenCandidatePatterns.has(norm)) {
+        seenCandidatePatterns.add(norm);
+        uniqueCandidatePatterns.push(p);
+      }
+    }
+
     let selectedPatterns = [];
-    const shuffled = [...candidatePatterns].sort(() => 0.5 - Math.random());
+    const shuffled = [...uniqueCandidatePatterns].sort(() => 0.5 - Math.random());
     if (shuffled.length >= targetCount) {
       selectedPatterns = shuffled.slice(0, targetCount);
     } else {
-      for (let i = 0; i < targetCount; i++) {
-        selectedPatterns.push(shuffled[i % shuffled.length]);
+      // Ưu tiên toàn bộ mẫu câu ứng viên thuộc bộ lọc
+      selectedPatterns = [...shuffled];
+
+      // Bổ sung các mẫu câu khác từ kho mẫu câu mà TUYỆT ĐỐI KHÔNG TRÙNG
+      const seenSelected = new Set(selectedPatterns.map(p => (p.name || '').trim().toLowerCase()));
+      const otherPatterns = patterns.filter(p => {
+        const norm = (p.name || '').trim().toLowerCase();
+        return norm && !seenSelected.has(norm);
+      });
+
+      const uniqueOtherPatterns = [];
+      for (const p of otherPatterns) {
+        const norm = (p.name || '').trim().toLowerCase();
+        if (norm && !seenSelected.has(norm)) {
+          seenSelected.add(norm);
+          uniqueOtherPatterns.push(p);
+        }
       }
+
+      uniqueOtherPatterns.sort(() => 0.5 - Math.random());
+      const needed = targetCount - selectedPatterns.length;
+      selectedPatterns.push(...uniqueOtherPatterns.slice(0, needed));
     }
 
     const questions = selectedPatterns.map((pat, idx) => {
