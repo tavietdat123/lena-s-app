@@ -104,56 +104,157 @@ export function filterItemsByDate(items, dateScope = 'all', specificDate = null,
   return items;
 }
 
-const EASY_DISTRACTORS = [
-  { word: 'apple', meaning_vi: 'Quả táo (trái cây ăn ngọt)' },
-  { word: 'morning', meaning_vi: 'Buổi sáng sớm tinh mơ' },
-  { word: 'water', meaning_vi: 'Nước uống giải khát hàng ngày' },
-  { word: 'house', meaning_vi: 'Ngôi nhà để ở' },
-  { word: 'run', meaning_vi: 'Chạy nhanh bằng hai chân' },
-  { word: 'book', meaning_vi: 'Quyển sách để đọc giải trí' },
-  { word: 'music', meaning_vi: 'Âm nhạc và giai điệu bài hát' },
-  { word: 'sunshine', meaning_vi: 'Ánh nắng mặt trời ấm áp' }
-];
-
 export const CURATED_POS_DISTRACTORS = {
   adj: [
-    { word: 'polite', meaning_vi: 'Lịch sự, nhã nhặn' },
-    { word: 'gentle', meaning_vi: 'Dịu dàng, hòa nhã' },
-    { word: 'careful', meaning_vi: 'Cẩn thận, chu đáo' },
-    { word: 'honest', meaning_vi: 'Trung thực, chân thật' },
-    { word: 'friendly', meaning_vi: 'Thân thiện, cởi mở' },
-    { word: 'patient', meaning_vi: 'Kiên nhẫn, nhẫn nại' },
-    { word: 'calm', meaning_vi: 'Bình tĩnh, điềm đạm' },
-    { word: 'clever', meaning_vi: 'Khéo léo, thông minh' },
-    { word: 'resilient', meaning_vi: 'Kiên cường, bền bỉ' },
-    { word: 'meticulous', meaning_vi: 'Tỉ mỉ, cẩn trọng' },
-    { word: 'eloquent', meaning_vi: 'Lưu loát, hùng biện' },
-    { word: 'proactive', meaning_vi: 'Chủ động tiên phong' }
+    { word: 'meticulous', meaning_vi: 'Tỉ mỉ, cẩn thận từng chi tiết nhỏ' },
+    { word: 'resilient', meaning_vi: 'Kiên cường, bền bỉ trước khó khăn' },
+    { word: 'articulate', meaning_vi: 'Lưu loát, diễn đạt mạch lạc rõ ràng' },
+    { word: 'eloquent', meaning_vi: 'Hùng biện, có sức thuyết phục cao' },
+    { word: 'proactive', meaning_vi: 'Chủ động tiên phong trong hành động' },
+    { word: 'versatile', meaning_vi: 'Đa năng, linh hoạt thích ứng' },
+    { word: 'feasible', meaning_vi: 'Khả thi, có thể triển khai thực tế' },
+    { word: 'comprehensive', meaning_vi: 'Toàn diện, bao quát mọi khía cạnh' },
+    { word: 'rigorous', meaning_vi: 'Nghiêm ngặt, chặt chẽ và chuẩn xác' },
+    { word: 'ambiguous', meaning_vi: 'Mơ hồ, nước đôi, đa nghĩa' },
+    { word: 'skeptical', meaning_vi: 'Hoài nghi, thận trọng đánh giá' },
+    { word: 'sustainable', meaning_vi: 'Bền vững, duy trì ổn định lâu dài' },
+    { word: 'pragmatic', meaning_vi: 'Thực tế, coi trọng hiệu quả ứng dụng' },
+    { word: 'compatible', meaning_vi: 'Tương thích, phù hợp nhịp nhàng' },
+    { word: 'obsolete', meaning_vi: 'Lỗi thời, không còn phù hợp' },
+    { word: 'profound', meaning_vi: 'Sâu sắc, thâm thúy, có tầm ảnh hưởng lớn' },
+    { word: 'vulnerable', meaning_vi: 'Dễ bị tổn thương, có điểm sơ hở' },
+    { word: 'unanimous', meaning_vi: 'Nhất trí, đồng thuận 100%' },
+    { word: 'indispensable', meaning_vi: 'Không thể thiếu, tối quan trọng' },
+    { word: 'subtle', meaning_vi: 'Tinh tế, khó nhận thấy nếu không chú ý' },
+    { word: 'authentic', meaning_vi: 'Chân thực, đáng tin cậy, nguyên bản' },
+    { word: 'dynamic', meaning_vi: 'Năng động, biến đổi linh hoạt' },
+    { word: 'competent', meaning_vi: 'Có năng lực, thành thạo công việc' },
+    { word: 'plausible', meaning_vi: 'Hợp lý, đáng tin cậy về mặt logic' },
+    { word: 'coherent', meaning_vi: 'Mạch lạc, liên kết logic chặt chẽ' }
   ],
   verb: [
-    { word: 'avoid', meaning_vi: 'Tránh, né tránh' },
-    { word: 'delegate', meaning_vi: 'Ủy quyền, giao phó' },
-    { word: 'leverage', meaning_vi: 'Tận dụng đòn bẩy' },
-    { word: 'pivot', meaning_vi: 'Chuyển hướng chiến lược' },
-    { word: 'escalate', meaning_vi: 'Chuyển tiếp lên cấp trên' },
-    { word: 'prioritize', meaning_vi: 'Sắp xếp thứ tự ưu tiên' },
-    { word: 'facilitate', meaning_vi: 'Tạo điều kiện thuận lợi' },
-    { word: 'implement', meaning_vi: 'Triển khai thực hiện' },
-    { word: 'optimize', meaning_vi: 'Tối ưu hóa quy trình' },
-    { word: 'coordinate', meaning_vi: 'Điều phối hoạt động' }
+    { word: 'avoid', meaning_vi: 'Tránh, né tránh rủi ro hoặc tác động' },
+    { word: 'delegate', meaning_vi: 'Ủy quyền, giao phó nhiệm vụ' },
+    { word: 'leverage', meaning_vi: 'Tận dụng tối đa đòn bẩy / thế mạnh' },
+    { word: 'pivot', meaning_vi: 'Chuyển hướng chiến lược linh hoạt' },
+    { word: 'escalate', meaning_vi: 'Chuyển tiếp lên cấp thẩm quyền cao hơn' },
+    { word: 'prioritize', meaning_vi: 'Sắp xếp thứ tự ưu tiên quan trọng' },
+    { word: 'facilitate', meaning_vi: 'Tạo điều kiện thuận lợi, điều phối' },
+    { word: 'implement', meaning_vi: 'Triển khai thực thi kế hoạch' },
+    { word: 'optimize', meaning_vi: 'Tối ưu hóa quy trình và hiệu năng' },
+    { word: 'coordinate', meaning_vi: 'Điều phối, phối hợp nhịp nhàng' },
+    { word: 'mitigate', meaning_vi: 'Giảm nhẹ mức độ rủi ro / tổn thất' },
+    { word: 'articulate', meaning_vi: 'Diễn đạt rõ ràng quan điểm' },
+    { word: 'reconcile', meaning_vi: 'Đối soát, hòa giải sự bất đồng' },
+    { word: 'consolidate', meaning_vi: 'Hợp nhất, củng cố vị thế vững chắc' },
+    { word: 'cultivate', meaning_vi: 'Nuôi dưỡng, vun đắp mối quan hệ/kỹ năng' },
+    { word: 'streamline', meaning_vi: 'Tinh gọn quy trình làm việc' },
+    { word: 'harness', meaning_vi: 'Khai thác và làm chủ tiềm năng' },
+    { word: 'negotiate', meaning_vi: 'Đàm phán, thương lượng thỏa thuận' },
+    { word: 'differentiate', meaning_vi: 'Tạo sự khác biệt, phân biệt rõ ràng' },
+    { word: 'synthesize', meaning_vi: 'Tổng hợp và đúc kết thông tin' },
+    { word: 'initiate', meaning_vi: 'Khởi xướng, bắt đầu tiến trình' },
+    { word: 'accelerate', meaning_vi: 'Đẩy nhanh tiến độ và tốc độ tăng trưởng' },
+    { word: 'advocate', meaning_vi: 'Ủng hộ mạnh mẽ, chủ trương đề xuất' },
+    { word: 'substantiate', meaning_vi: 'Chứng minh bằng bằng chứng xác thực' },
+    { word: 'reiterate', meaning_vi: 'Nhắc lại, nhấn mạnh lại quan điểm' }
   ],
   noun: [
-    { word: 'milestone', meaning_vi: 'Cột mốc quan trọng' },
-    { word: 'deliverable', meaning_vi: 'Kết quả bàn giao' },
-    { word: 'priority', meaning_vi: 'Sự ưu tiên hàng đầu' },
-    { word: 'bottleneck', meaning_vi: 'Điểm nghẽn tiến độ' },
-    { word: 'stakeholder', meaning_vi: 'Bên liên quan dự án' },
-    { word: 'strategy', meaning_vi: 'Chiến lược dài hạn' },
-    { word: 'decision', meaning_vi: 'Quyết định quan trọng' },
-    { word: 'resource', meaning_vi: 'Nguồn lực cần thiết' },
-    { word: 'schedule', meaning_vi: 'Tiến độ, lịch trình' }
+    { word: 'milestone', meaning_vi: 'Cột mốc tiến độ quan trọng' },
+    { word: 'deliverable', meaning_vi: 'Kết quả bàn giao của dự án' },
+    { word: 'priority', meaning_vi: 'Mục tiêu ưu tiên hàng đầu' },
+    { word: 'bottleneck', meaning_vi: 'Điểm nghẽn gây chậm trễ quy trình' },
+    { word: 'stakeholder', meaning_vi: 'Bên liên quan trực tiếp đến dự án' },
+    { word: 'strategy', meaning_vi: 'Chiến lược phát triển dài hạn' },
+    { word: 'decision', meaning_vi: 'Quyết định mang tính bước ngoặt' },
+    { word: 'resource', meaning_vi: 'Nguồn lực nhân sự và tài chính' },
+    { word: 'schedule', meaning_vi: 'Lịch trình, tiến độ triển khai' },
+    { word: 'constraint', meaning_vi: 'Ràng buộc hoặc giới hạn thực tế' },
+    { word: 'contingency', meaning_vi: 'Phương án dự phòng rủi ro phát sinh' },
+    { word: 'feasibility', meaning_vi: 'Tính khả thi của đề án' },
+    { word: 'transparency', meaning_vi: 'Tính minh bạch và rõ ràng' },
+    { word: 'incentive', meaning_vi: 'Động lực hoặc chính sách khen thưởng' },
+    { word: 'dilemma', meaning_vi: 'Tình thế tiến thoái lưỡng nan' },
+    { word: 'discrepancy', meaning_vi: 'Sự chênh lệch, sai số giữa các dữ liệu' },
+    { word: 'initiative', meaning_vi: 'Sáng kiến cải tiến mang tính chủ động' },
+    { word: 'consensus', meaning_vi: 'Sự đồng thuận chung của cả tập thể' },
+    { word: 'resilience', meaning_vi: 'Khả năng phục hồi và chống chịu khó khăn' },
+    { word: 'bandwidth', meaning_vi: 'Năng lực xử lý hoặc dung lượng tải công việc' },
+    { word: 'competence', meaning_vi: 'Năng lực chuyên môn vững vàng' },
+    { word: 'nuance', meaning_vi: 'Sắc thái tinh tế, khác biệt nhỏ' },
+    { word: 'paradigm', meaning_vi: 'Mô hình chuẩn mực hoặc hệ tư duy' },
+    { word: 'rationale', meaning_vi: 'Lý do căn bản, cơ sở lý luận' },
+    { word: 'benchmark', meaning_vi: 'Tiêu chuẩn đánh giá chuẩn đối sánh' }
+  ],
+  adv: [
+    { word: 'meticulously', meaning_vi: 'Một cách tỉ mỉ, cẩn trọng từng chi tiết' },
+    { word: 'resiliently', meaning_vi: 'Một cách kiên cường, bền bỉ vượt khó' },
+    { word: 'articulately', meaning_vi: 'Một cách mạch lạc, lưu loát, rõ ràng' },
+    { word: 'proactively', meaning_vi: 'Một cách chủ động, tiên phong xử lý' },
+    { word: 'pragmatically', meaning_vi: 'Một cách thực tế, chú trọng hiệu quả' },
+    { word: 'rigorously', meaning_vi: 'Một cách nghiêm ngặt, chuẩn xác' },
+    { word: 'comprehensively', meaning_vi: 'Một cách toàn diện, bao quát' },
+    { word: 'consistently', meaning_vi: 'Một cách nhất quán, liên tục đều đặn' },
+    { word: 'substantially', meaning_vi: 'Một cách đáng kể, căn bản' },
+    { word: 'inadvertently', meaning_vi: 'Một cách vô tình, sơ ý ngoài ý muốn' },
+    { word: 'seamlessly', meaning_vi: 'Một cách mượt mà, liền mạch' },
+    { word: 'tentatively', meaning_vi: 'Một cách dè dặt, thăm dò, dự kiến' },
+    { word: 'inherently', meaning_vi: 'Vốn dĩ, mang tính bản chất tự nhiên' },
+    { word: 'inevitably', meaning_vi: 'Tất yếu, chắc chắn sẽ xảy ra' },
+    { word: 'exclusively', meaning_vi: 'Duy nhất, độc quyền, chỉ dành riêng' }
+  ],
+  phrase: [
+    { word: 'take for granted', meaning_vi: 'Xem điều gì là hiển nhiên (không trân trọng)' },
+    { word: 'bear in mind', meaning_vi: 'Ghi nhớ kỹ trong tâm trí' },
+    { word: 'touch base', meaning_vi: 'Trao đổi nhanh, liên lạc để cập nhật tình hình' },
+    { word: 'get the ball rolling', meaning_vi: 'Bắt đầu khởi động công việc' },
+    { word: 'think outside the box', meaning_vi: 'Tư duy sáng tạo, đột phá, vượt khuôn khổ' },
+    { word: 'come up with', meaning_vi: 'Nảy ra ý tưởng hoặc giải pháp mới' },
+    { word: 'put up with', meaning_vi: 'Chịu đựng, nhẫn nại trước điều khó chịu' },
+    { word: 'call it a day', meaning_vi: 'Kết thúc công việc trong ngày' },
+    { word: 'play it by ear', meaning_vi: 'Tùy cơ ứng biến theo diễn biến thực tế' },
+    { word: 'keep an eye on', meaning_vi: 'Để mắt, theo dõi sát sao tiến độ' },
+    { word: 'ahead of the curve', meaning_vi: 'Đi trước đón đầu xu hướng' },
+    { word: 'on the fence', meaning_vi: 'Còn phân vân, chưa thể đưa ra quyết định' }
   ]
 };
+
+export const POS_LABELS = {
+  adj: 'Tính từ (Adjective)',
+  verb: 'Động từ (Verb)',
+  noun: 'Danh từ (Noun)',
+  adv: 'Trạng từ (Adverb)',
+  phrase: 'Cụm từ / Thành ngữ (Phrase)'
+};
+
+export function escapeRegExp(string) {
+  return String(string || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function getWordPos(wordObj) {
+  if (!wordObj) return 'noun';
+  const rawPos = String(wordObj.part_of_speech || '').toLowerCase().trim();
+  const word = String(wordObj.word || '').toLowerCase().trim();
+
+  if (rawPos.includes('adj') || rawPos.includes('tính')) return 'adj';
+  if (rawPos.includes('verb') || rawPos.includes('động') || rawPos.includes('v.')) return 'verb';
+  if (rawPos.includes('noun') || rawPos.includes('danh') || rawPos.includes('n.')) return 'noun';
+  if (rawPos.includes('adv') || rawPos.includes('trạng')) return 'adv';
+  if (rawPos.includes('phrase') || rawPos.includes('idiom') || rawPos.includes('cụm') || word.includes(' ')) return 'phrase';
+
+  if (word.endsWith('ly') && !['friendly', 'lovely', 'lonely', 'early', 'deadly', 'lively'].includes(word)) return 'adv';
+  if (/(?:tion|ment|ness|ity|ance|ence|ship|ism|ist|or|er|ure|hood|dom)$/.test(word)) return 'noun';
+  if (/(?:able|ible|ful|less|ous|ive|ic|al|ant|ent|ish)$/.test(word)) return 'adj';
+  if (/(?:ize|ise|ate|ify)$/.test(word)) return 'verb';
+
+  for (const pos of ['adj', 'verb', 'noun', 'adv', 'phrase']) {
+    if (CURATED_POS_DISTRACTORS[pos]?.some(d => d.word.toLowerCase() === word)) {
+      return pos;
+    }
+  }
+
+  return 'noun';
+}
 
 export const IRREGULAR_VERBS = {
   be: { s: 'is', past: 'was', pp: 'been', ing: 'being' },
@@ -548,9 +649,18 @@ export function generateGrammarClozeQuestion({
     .map(w => w.word);
 
   const curatedPosPool = (posKey && CURATED_POS_DISTRACTORS[posKey]) ? CURATED_POS_DISTRACTORS[posKey].map(d => d.word) : [];
-  const candidatePool = [...samePosFromWords, ...curatedPosPool, ...HIGH_QUALITY_DISTRACTORS.map(d => d.word)];
+  const candidatePool = [...samePosFromWords, ...curatedPosPool];
 
   for (const item of candidatePool) {
+    if (options.length >= 4) break;
+    if (item && !options.includes(item) && item.toLowerCase() !== correctAnswer.toLowerCase()) {
+      options.push(item);
+    }
+  }
+
+  // Fallback to curated same POS pool if still < 4
+  const fallbackPosPool = (posKey && CURATED_POS_DISTRACTORS[posKey]) ? CURATED_POS_DISTRACTORS[posKey].map(d => d.word) : (CURATED_POS_DISTRACTORS.noun.map(d => d.word));
+  for (const item of fallbackPosPool) {
     if (options.length >= 4) break;
     if (item && !options.includes(item) && item.toLowerCase() !== correctAnswer.toLowerCase()) {
       options.push(item);
@@ -642,14 +752,223 @@ const cleanMeaningText = (meaningVi, meaningEn, word) => {
     return CORE_VOCABULARY_DICTIONARY[wKey];
   }
   if (!meaningVi || typeof meaningVi !== 'string' || meaningVi.includes('Tra cứu thêm')) {
-    if (meaningEn && typeof meaningEn === 'string' && !meaningEn.includes('Definition and') && !meaningEn.includes('Definition of')) {
-      return meaningEn.trim();
+    // Check CURATED_POS_DISTRACTORS across all parts of speech
+    for (const posKey of Object.keys(CURATED_POS_DISTRACTORS)) {
+      const match = CURATED_POS_DISTRACTORS[posKey].find(d => d.word.toLowerCase() === wKey);
+      if (match) return match.meaning_vi;
     }
     const found = HIGH_QUALITY_DISTRACTORS.find(d => d.word.toLowerCase() === wKey);
     if (found) return found.meaning_vi;
+    if (meaningEn && typeof meaningEn === 'string' && !meaningEn.includes('Definition and') && !meaningEn.includes('Definition of')) {
+      return meaningEn.trim();
+    }
     return 'Khái niệm, trạng thái hoặc hành động này';
   }
   return meaningVi.trim();
+};
+
+export function extractCollocations(targetWord) {
+  let list = [];
+  if (targetWord && targetWord.collocations) {
+    try {
+      const parsed = typeof targetWord.collocations === 'string' ? JSON.parse(targetWord.collocations) : targetWord.collocations;
+      if (Array.isArray(parsed)) {
+        list = parsed.map(c => typeof c === 'string' ? c : (c?.collocation || c?.phrase || '')).filter(Boolean);
+      }
+    } catch (e) {}
+  }
+  return list.slice(0, 3);
+}
+
+export function getAuthenticContextSentence(targetWord, pos = 'noun') {
+  let examples = [];
+  try {
+    examples = typeof targetWord.examples === 'string' ? JSON.parse(targetWord.examples || '[]') : (targetWord.examples || []);
+  } catch (e) {
+    examples = [];
+  }
+
+  const rawWord = (targetWord.word || '').trim();
+  const forms = inflectEnglishWord(rawWord, pos);
+  const candidateForms = [
+    rawWord,
+    forms.sForm,
+    forms.edForm,
+    forms.ingForm,
+    forms.plural,
+    forms.advForm
+  ].filter(Boolean);
+
+  if (Array.isArray(examples) && examples.length > 0) {
+    for (const ex of examples) {
+      const rawText = typeof ex === 'string' ? ex : (ex?.en || ex?.sentence || '');
+      if (!rawText) continue;
+
+      let englishText = rawText;
+      let sentenceTranslation = '';
+      const viMatch = rawText.match(/\((?:Dịch|Nghĩa|dịch|nghĩa)?\s*:?\s*([^)]+)\)\s*$/i);
+      if (viMatch) {
+        sentenceTranslation = viMatch[1].trim();
+        englishText = rawText.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      }
+
+      for (const form of candidateForms) {
+        const regex = new RegExp(`\\b${escapeRegExp(form)}\\b`, 'i');
+        if (regex.test(englishText)) {
+          const boldedSentence = englishText.replace(regex, `**${form}**`);
+          const blankSentence = englishText.replace(regex, '_______');
+          return {
+            fullSentence: englishText,
+            boldedSentence,
+            blankSentence,
+            matchedForm: form,
+            sentenceTranslation: sentenceTranslation || (targetWord.meaning_vi ? `Dịch câu: ${targetWord.meaning_vi}` : '')
+          };
+        }
+      }
+    }
+  }
+
+  // Fallback high-quality Cambridge / IELTS contextual sentences
+  const meaning = targetWord.meaning_vi || 'từ vựng này';
+  let defaultFull = '';
+  let defaultBold = '';
+  let defaultBlank = '';
+  let defaultTranslation = '';
+
+  if (pos === 'verb') {
+    defaultFull = `To ensure project success, our team must ${rawWord} key objectives proactively.`;
+    defaultBold = `To ensure project success, our team must **${rawWord}** key objectives proactively.`;
+    defaultBlank = `To ensure project success, our team must _______ key objectives proactively.`;
+    defaultTranslation = `Để đảm bảo thành công cho dự án, đội ngũ của chúng ta phải ${meaning.toLowerCase()} các mục tiêu then chốt một cách chủ động.`;
+  } else if (pos === 'adj') {
+    defaultFull = `The leadership praised the specialist for maintaining a ${rawWord} attitude under pressure.`;
+    defaultBold = `The leadership praised the specialist for maintaining a **${rawWord}** attitude under pressure.`;
+    defaultBlank = `The leadership praised the specialist for maintaining a _______ attitude under pressure.`;
+    defaultTranslation = `Ban lãnh đạo khen ngợi chuyên gia vì luôn duy trì thái độ ${meaning.toLowerCase()} dưới áp lực.`;
+  } else if (pos === 'noun') {
+    defaultFull = `Achieving this strategic ${rawWord} was a decisive factor in our long-term roadmap.`;
+    defaultBold = `Achieving this strategic **${rawWord}** was a decisive factor in our long-term roadmap.`;
+    defaultBlank = `Achieving this strategic _______ was a decisive factor in our long-term roadmap.`;
+    defaultTranslation = `Đạt được ${meaning.toLowerCase()} chiến lược này là yếu tố quyết định trong lộ trình dài hạn của chúng tôi.`;
+  } else if (pos === 'adv') {
+    defaultFull = `She analyzed the complex architecture ${rawWord} before presenting recommendations.`;
+    defaultBold = `She analyzed the complex architecture **${rawWord}** before presenting recommendations.`;
+    defaultBlank = `She analyzed the complex architecture _______ before presenting recommendations.`;
+    defaultTranslation = `Cô ấy đã phân tích kiến trúc phức tạp ${meaning.toLowerCase()} trước khi đưa ra đề xuất.`;
+  } else {
+    defaultFull = `In professional environments, experienced team members always ${rawWord} to ensure collaboration.`;
+    defaultBold = `In professional environments, experienced team members always **${rawWord}** to ensure collaboration.`;
+    defaultBlank = `In professional environments, experienced team members always _______ to ensure collaboration.`;
+    defaultTranslation = `Trong môi trường chuyên nghiệp, các thành viên giàu kinh nghiệm luôn ${meaning.toLowerCase()} để đảm bảo sự hợp tác.`;
+  }
+
+  return {
+    fullSentence: defaultFull,
+    boldedSentence: defaultBold,
+    blankSentence: defaultBlank,
+    matchedForm: rawWord,
+    sentenceTranslation: defaultTranslation
+  };
+}
+
+export function getSamePosDistractors({ targetWord, pos, allWords = [], count = 3, difficulty = 'medium' }) {
+  const targetNorm = (targetWord.word || '').trim().toLowerCase();
+
+  // 1. Gather other words with exact same POS from user library
+  const samePosUserWords = (allWords || []).filter(w => {
+    const wNorm = (w.word || '').trim().toLowerCase();
+    if (wNorm === targetNorm) return false;
+    if (!w.meaning_vi || w.meaning_vi.includes('Tra cứu thêm')) return false;
+    return getWordPos(w) === pos;
+  });
+
+  // 2. Gather curated items for this POS
+  const curatedItems = (CURATED_POS_DISTRACTORS[pos] || []).filter(d => d.word.toLowerCase() !== targetNorm);
+
+  const combined = [];
+  const seen = new Set();
+  seen.add(targetNorm);
+
+  // Shuffle user words first
+  const shuffledUser = [...samePosUserWords].sort(() => 0.5 - Math.random());
+  for (const item of shuffledUser) {
+    const key = item.word.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      combined.push({
+        word: item.word,
+        meaning_vi: cleanMeaningText(item.meaning_vi, item.meaning_en, item.word)
+      });
+    }
+  }
+
+  // Then add curated items
+  const shuffledCurated = [...curatedItems].sort(() => 0.5 - Math.random());
+  for (const item of shuffledCurated) {
+    const key = item.word.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      combined.push(item);
+    }
+  }
+
+  // Emergency fallback if pool < count
+  if (combined.length < count) {
+    for (const poolKey of Object.keys(CURATED_POS_DISTRACTORS)) {
+      for (const item of CURATED_POS_DISTRACTORS[poolKey]) {
+        const key = item.word.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          combined.push(item);
+          if (combined.length >= count) break;
+        }
+      }
+      if (combined.length >= count) break;
+    }
+  }
+
+  return combined.slice(0, count);
+}
+
+export function buildPedagogicalExplanation({
+  targetWord,
+  pos,
+  correctAnswer,
+  qType,
+  contextSentence = '',
+  completedSentence = '',
+  translation = '',
+  grammarRule = '',
+  userDifficulty = 'medium'
+}) {
+  const parts = [];
+  const posLabel = POS_LABELS[pos] || 'Từ vựng';
+  const cleanMeaning = cleanMeaningText(targetWord.meaning_vi, targetWord.meaning_en, targetWord.word);
+
+  // 1. Phân tích cốt lõi (Core Grammar & Meaning)
+  if (grammarRule) {
+    parts.push(`💡 **Lý do đáp án đúng**: ${grammarRule}`);
+  } else if (qType === 'meaning_vi' || qType === 'listening') {
+    parts.push(`💡 **Phân tích ngữ cảnh**: Trong câu trên, từ "${targetWord.word}" đóng vai trò là [${posLabel}], mang ý nghĩa chuẩn xác là: "${cleanMeaning}".`);
+  } else if (qType === 'reverse_en') {
+    parts.push(`💡 **Phân tích từ vựng**: Để diễn đạt ý nghĩa "${cleanMeaning}" trong ngữ cảnh trên, từ vựng học thuật chuẩn xác là "${correctAnswer}" [${posLabel}].`);
+  } else {
+    parts.push(`💡 **Giải thích**: Điền "${correctAnswer}" (${cleanMeaning}) để tạo thành câu hoàn chỉnh đúng ngữ pháp và ngữ nghĩa.`);
+  }
+
+  // 2. Collocations thực chiến (High-Yield Collocations)
+  const collocations = extractCollocations(targetWord);
+  if (collocations.length > 0) {
+    parts.push(`⚡ **Cụm từ vàng (Collocations)**: ${collocations.map(c => `\`${c}\``).join(', ')}.`);
+  }
+
+  // 3. Sắc thái & Lưu ý (Nuance / Register / Pitfall)
+  if (targetWord.meaning_en && !targetWord.meaning_en.includes('Definition of')) {
+    parts.push(`🎯 **Định nghĩa Oxford/Cambridge**: "${targetWord.meaning_en}"`);
+  }
+
+  return parts.join('\n\n');
 };
 
 export const quizService = {
@@ -915,177 +1234,158 @@ export const quizService = {
       let promptSubtitle = '';
       let correctAnswer = '';
       let options = [];
-      let grammarExplanation = '';
-
-      if (qDifficulty === 'easy') {
-        // === MỨC DỄ: Câu hỏi trực quan, có gợi ý rõ ràng, đáp án gây nhiễu khác biệt dễ loại trừ ===
-        if (qType === 'meaning_vi' || qType === 'listening') {
-          questionText = targetWord.word;
-          promptSubtitle = qType === 'listening'
-            ? `Nghe phát âm và chọn nghĩa tiếng Việt (Gợi ý phiên âm: /${targetWord.phonetic?.replace(/\//g, '') || ''}/):`
-            : `Chọn nghĩa tiếng Việt của từ "${targetWord.word}" (${targetWord.part_of_speech ? `Từ loại: ${targetWord.part_of_speech}` : 'từ vựng'}):`;
-          correctAnswer = validTargetMeaning;
-
-          const easyPool = EASY_DISTRACTORS.filter(ed => ed.word !== targetWord.word.toLowerCase());
-          easyPool.sort(() => 0.5 - Math.random());
-          options = [validTargetMeaning, ...easyPool.slice(0, 3).map(e => e.meaning_vi)];
-          options = [...new Set(options)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'reverse_en') {
-          questionText = validTargetMeaning;
-          promptSubtitle = `Chọn từ tiếng Anh có nghĩa "${validTargetMeaning}" (Gợi ý: Bắt đầu bằng "${targetWord.word[0].toUpperCase()}...", ${targetWord.word.length} chữ cái):`;
-          correctAnswer = targetWord.word;
-
-          const easyPool = EASY_DISTRACTORS.filter(ed => ed.word !== targetWord.word.toLowerCase());
-          easyPool.sort(() => 0.5 - Math.random());
-          options = [targetWord.word, ...easyPool.slice(0, 3).map(e => e.word)];
-          options = [...new Set(options)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'cloze_blank') {
-          const grammarQ = generateGrammarClozeQuestion({
-            targetWord,
-            validTargetMeaning,
-            examples,
-            qDifficulty,
-            questionIndex: index,
-            otherWords: words,
-            usedQuestionTexts
-          });
-          questionText = grammarQ.questionText;
-          promptSubtitle = grammarQ.promptSubtitle;
-          correctAnswer = grammarQ.correctAnswer;
-          options = grammarQ.options;
-          grammarExplanation = grammarQ.explanation;
-        }
-      } else if (qDifficulty === 'hard') {
-        // === MỨC KHÓ: Đánh đố cao, bẫy họ từ (Word Forms), bẫy từ gần nghĩa, không có gợi ý ===
-        if (qType === 'meaning_vi' || qType === 'listening') {
-          questionText = targetWord.word;
-          promptSubtitle = qType === 'listening'
-            ? 'Nghe phát âm chuẩn và chọn sắc thái nghĩa chính xác nhất theo ngữ cảnh:'
-            : `Phân tích sắc thái chuyên sâu để chọn nghĩa chuẩn xác nhất của từ "${targetWord.word}":`;
-          correctAnswer = validTargetMeaning;
-
-          const otherValidWords = words.filter(w => 
-            w.id !== targetWord.id && 
-            w.word.toLowerCase() !== targetWord.word.toLowerCase() &&
-            w.meaning_vi && !w.meaning_vi.includes('Tra cứu thêm')
-          );
-          otherValidWords.sort(() => 0.5 - Math.random());
-          const subtleDistractors = otherValidWords.slice(0, 3).map(d => cleanMeaningText(d.meaning_vi, d.meaning_en, d.word));
-          options = [validTargetMeaning, ...subtleDistractors];
-          options = [...new Set(options)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'reverse_en') {
-          questionText = validTargetMeaning;
-          promptSubtitle = 'Chọn từ vựng tiếng Anh chính xác nhất theo đúng định nghĩa học thuật:';
-          correctAnswer = targetWord.word;
-
-          const wordFamily = generateTrickyWordFamily(targetWord.word);
-          const otherWords = words.filter(w => w.id !== targetWord.id).map(w => w.word).sort(() => 0.5 - Math.random());
-          options = [targetWord.word, ...wordFamily.slice(0, 2), ...otherWords.slice(0, 3)].slice(0, 4);
-          options = [...new Set(options)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'cloze_blank') {
-          const grammarQ = generateGrammarClozeQuestion({
-            targetWord,
-            validTargetMeaning,
-            examples,
-            qDifficulty,
-            questionIndex: index,
-            otherWords: words,
-            usedQuestionTexts
-          });
-          questionText = grammarQ.questionText;
-          promptSubtitle = grammarQ.promptSubtitle;
-          correctAnswer = grammarQ.correctAnswer;
-          options = grammarQ.options;
-          grammarExplanation = grammarQ.explanation;
-        }
-      } else {
-        // === MỨC TRUNG BÌNH: Tiêu chuẩn, đọc hiểu ngữ cảnh câu, phương án cùng từ loại, không gợi ý lộ liễu ===
-        const otherValidWords = words.filter(w => 
-          w.id !== targetWord.id && 
-          w.word.toLowerCase() !== targetWord.word.toLowerCase() &&
-          w.meaning_vi && !w.meaning_vi.includes('Tra cứu thêm')
-        );
-        otherValidWords.sort(() => 0.5 - Math.random());
-        let distractors = otherValidWords.slice(0, 3);
-        if (distractors.length < 3) {
-          distractors = [...distractors, ...HIGH_QUALITY_DISTRACTORS.filter(f => f.word.toLowerCase() !== targetWord.word.toLowerCase())].slice(0, 3);
-        }
-
-        if (qType === 'meaning_vi' || qType === 'listening') {
-          questionText = targetWord.word;
-          promptSubtitle = qType === 'listening' 
-            ? 'Nghe phát âm và chọn nghĩa tiếng Việt chính xác:' 
-            : 'Chọn nghĩa tiếng Việt chính xác theo ngữ cảnh:';
-          correctAnswer = validTargetMeaning;
-
-          const rawOptions = [
-            validTargetMeaning,
-            ...distractors.map(d => cleanMeaningText(d.meaning_vi, d.meaning_en, d.word))
-          ];
-          options = [...new Set(rawOptions)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'reverse_en') {
-          let cleanDef = validTargetMeaning;
-          if (targetWord.word && cleanDef) {
-            const regex = new RegExp(`\\b${targetWord.word}\\b`, 'gi');
-            cleanDef = cleanDef.replace(regex, '_______');
-          }
-          questionText = cleanDef;
-          promptSubtitle = 'Chọn từ vựng tiếng Anh tương ứng với định nghĩa trên:';
-          correctAnswer = targetWord.word;
-
-          const rawOptions = [
-            targetWord.word,
-            ...distractors.map(d => d.word)
-          ];
-          options = [...new Set(rawOptions)].sort(() => 0.5 - Math.random());
-        } else if (qType === 'cloze_blank') {
-          const grammarQ = generateGrammarClozeQuestion({
-            targetWord,
-            validTargetMeaning,
-            examples,
-            qDifficulty,
-            questionIndex: index,
-            otherWords: words,
-            usedQuestionTexts
-          });
-          questionText = grammarQ.questionText;
-          promptSubtitle = grammarQ.promptSubtitle;
-          correctAnswer = grammarQ.correctAnswer;
-          options = grammarQ.options;
-          grammarExplanation = grammarQ.explanation;
-        }
-      }
-
-      // Ensure 4 distinct options always exist
-      const extraPool = [...HIGH_QUALITY_DISTRACTORS, ...words];
-      while (options.length < 4) {
-        const extra = extraPool.find(e => 
-          !options.includes(e.word) && 
-          !options.includes(e.meaning_vi)
-        );
-        if (extra) {
-          options.push(qType === 'reverse_en' || qType === 'cloze_blank' ? extra.word : extra.meaning_vi);
-        } else {
-          options.push(`Lựa chọn bổ sung ${options.length + 1}`);
-        }
-      }
-
-      // Build detailed explanation and contextual translation
       let explanation = '';
       let translation = '';
-      const cleanExString = examples.length > 0 ? (typeof examples[0] === 'string' ? examples[0] : (examples[0]?.en || examples[0]?.sentence || '')) : '';
 
-      if (qType === 'meaning_vi' || qType === 'listening') {
-        explanation = `Từ "${targetWord.word}" mang nghĩa chuẩn xác là "${validTargetMeaning}". ${targetWord.part_of_speech ? `[Từ loại: ${targetWord.part_of_speech}]` : ''} ${targetWord.meaning_en ? `Định nghĩa tiếng Anh: ${targetWord.meaning_en}.` : ''}`;
-        translation = cleanExString ? `Ví dụ thực tế: "${cleanExString}"` : `Từ vựng: ${targetWord.word} ➔ ${validTargetMeaning}`;
+      const pos = getWordPos(targetWord);
+      const posLabel = POS_LABELS[pos] || 'Từ vựng';
+      const context = getAuthenticContextSentence(targetWord, pos);
+
+      if (qType === 'meaning_vi') {
+        // === 1. ĐỌC HIỂU NGỮ CẢNH & PHÂN BIỆT SẮC THÁI NGHĨA ===
+        questionText = context.boldedSentence;
+        promptSubtitle = qDifficulty === 'easy'
+          ? `[${posLabel}] Dựa vào ngữ cảnh câu trên, từ '**${context.matchedForm || targetWord.word}**' mang ý nghĩa nào:`
+          : qDifficulty === 'hard'
+          ? `[${posLabel} - Nâng cao] Phân tích ngữ cảnh câu trên để chọn nghĩa & sắc thái chuẩn xác nhất của '**${context.matchedForm || targetWord.word}**':`
+          : `[${posLabel}] Đọc câu trên và chọn nghĩa tiếng Việt chính xác nhất của từ in đậm '**${context.matchedForm || targetWord.word}**':`;
+
+        correctAnswer = validTargetMeaning;
+
+        const distractors = getSamePosDistractors({
+          targetWord,
+          pos,
+          allWords: words,
+          count: 3,
+          difficulty: qDifficulty
+        });
+
+        const rawOpts = [validTargetMeaning, ...distractors.map(d => d.meaning_vi)];
+        options = [...new Set(rawOpts)].sort(() => 0.5 - Math.random());
+
+        explanation = buildPedagogicalExplanation({
+          targetWord,
+          pos,
+          correctAnswer,
+          qType,
+          contextSentence: context.fullSentence,
+          completedSentence: context.fullSentence,
+          translation: context.sentenceTranslation,
+          userDifficulty: qDifficulty
+        });
+        translation = context.sentenceTranslation || `Dịch câu: ${context.fullSentence}`;
       } else if (qType === 'reverse_en') {
-        explanation = `Định nghĩa "${validTargetMeaning}" trong tiếng Anh tương ứng với từ "${targetWord.word}". ${targetWord.phonetic ? `Phiên âm IPA: /${targetWord.phonetic.replace(/\//g, '')}/.` : ''} ${targetWord.meaning_en ? `Định nghĩa: ${targetWord.meaning_en}.` : ''}`;
-        translation = cleanExString ? `Ví dụ thực tế: "${cleanExString}"` : `Ý nghĩa: ${validTargetMeaning}`;
+        // === 2. ỨNG DỤNG TỪ VỰNG VÀO CÂU THỰC TẾ (REVERSE ENGLISH) ===
+        questionText = context.blankSentence;
+        promptSubtitle = qDifficulty === 'easy'
+          ? `[${posLabel}] Chọn từ tiếng Anh hoàn chỉnh câu trên (Nghĩa: "${validTargetMeaning}"):`
+          : qDifficulty === 'hard'
+          ? `[${posLabel} - Bẫy từ vựng] Chọn từ tiếng Anh chuẩn xác nhất hoàn thành câu (Nghĩa: "${validTargetMeaning}"):`
+          : `[${posLabel}] Chọn từ vựng tiếng Anh thích hợp nhất điền vào chỗ trống (Nghĩa: "${validTargetMeaning}"):`;
+
+        correctAnswer = context.matchedForm || targetWord.word;
+
+        let distractors = [];
+        if (qDifficulty === 'hard') {
+          const wordFamily = generateTrickyWordFamily(targetWord.word);
+          const samePos = getSamePosDistractors({ targetWord, pos, allWords: words, count: 3, difficulty: qDifficulty });
+          distractors = [...wordFamily.slice(0, 1), ...samePos.map(d => d.word)];
+        } else {
+          const samePos = getSamePosDistractors({ targetWord, pos, allWords: words, count: 3, difficulty: qDifficulty });
+          distractors = samePos.map(d => d.word);
+        }
+
+        const rawOpts = [correctAnswer, ...distractors.filter(w => w.toLowerCase() !== correctAnswer.toLowerCase())];
+        options = [...new Set(rawOpts)].slice(0, 4).sort(() => 0.5 - Math.random());
+
+        explanation = buildPedagogicalExplanation({
+          targetWord,
+          pos,
+          correctAnswer,
+          qType,
+          contextSentence: context.blankSentence,
+          completedSentence: context.fullSentence,
+          translation: context.sentenceTranslation,
+          userDifficulty: qDifficulty
+        });
+        translation = context.sentenceTranslation || `Dịch câu: ${context.fullSentence}`;
       } else if (qType === 'cloze_blank') {
-        const completedSentence = questionText.replace(/_______/g, correctAnswer);
-        explanation = grammarExplanation || `Điền dạng từ "${correctAnswer}" (${validTargetMeaning}) để hoàn chỉnh câu: "${completedSentence}". ${targetWord.phonetic ? `Phiên âm: /${targetWord.phonetic.replace(/\//g, '')}/.` : ''}`;
-        translation = `Câu hoàn chỉnh: "${completedSentence}"`;
+        // === 3. NGỮ PHÁP, BIẾN CÁCH & VỊ TRÍ TỪ LOẠI (CLOZE BLANK) ===
+        const grammarQ = generateGrammarClozeQuestion({
+          targetWord,
+          validTargetMeaning,
+          examples,
+          qDifficulty,
+          questionIndex: index,
+          otherWords: words,
+          usedQuestionTexts
+        });
+
+        questionText = grammarQ.questionText;
+        promptSubtitle = grammarQ.promptSubtitle;
+        correctAnswer = grammarQ.correctAnswer;
+        options = grammarQ.options;
+
+        const completedSent = questionText.replace(/_______/g, correctAnswer);
+        explanation = buildPedagogicalExplanation({
+          targetWord,
+          pos,
+          correctAnswer,
+          qType,
+          contextSentence: questionText,
+          completedSentence: completedSent,
+          grammarRule: grammarQ.explanation,
+          translation: context.sentenceTranslation,
+          userDifficulty: qDifficulty
+        });
+        translation = context.sentenceTranslation || `Câu hoàn chỉnh: "${completedSent}"`;
+      } else if (qType === 'listening') {
+        // === 4. PHẢN XẠ NGHE & ÂM VỊ HỌC (LISTENING & PHONOLOGY) ===
+        questionText = targetWord.word;
+        const phoneticStr = targetWord.phonetic ? ` /${targetWord.phonetic.replace(/\//g, '')}/` : '';
+        promptSubtitle = qDifficulty === 'easy'
+          ? `[Luyện nghe phản xạ] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt [${posLabel}]${phoneticStr}:`
+          : qDifficulty === 'hard'
+          ? `[Nghe & Phân biệt sắc thái] Nghe phát âm và chọn nghĩa tiếng Việt chuẩn xác nhất [${posLabel}]${phoneticStr}:`
+          : `[Luyện nghe] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt tương ứng [${posLabel}]${phoneticStr}:`;
+
+        correctAnswer = validTargetMeaning;
+
+        const distractors = getSamePosDistractors({
+          targetWord,
+          pos,
+          allWords: words,
+          count: 3,
+          difficulty: qDifficulty
+        });
+
+        const rawOpts = [validTargetMeaning, ...distractors.map(d => d.meaning_vi)];
+        options = [...new Set(rawOpts)].sort(() => 0.5 - Math.random());
+
+        explanation = buildPedagogicalExplanation({
+          targetWord,
+          pos,
+          correctAnswer,
+          qType,
+          contextSentence: context.fullSentence,
+          completedSentence: context.fullSentence,
+          translation: context.sentenceTranslation,
+          userDifficulty: qDifficulty
+        });
+        translation = `Phát âm: ${targetWord.word} ${phoneticStr} ➔ ${validTargetMeaning}`;
       }
+
+      // Ensure 4 distinct options always exist (fail-safe strictly drawing from same POS pool)
+      const samePosEmergency = CURATED_POS_DISTRACTORS[pos] || CURATED_POS_DISTRACTORS.noun;
+      let emergencyIdx = 0;
+      while (options.length < 4 && emergencyIdx < samePosEmergency.length) {
+        const item = samePosEmergency[emergencyIdx++];
+        const optVal = (qType === 'reverse_en' || qType === 'cloze_blank') ? item.word : item.meaning_vi;
+        if (!options.includes(optVal) && optVal.toLowerCase() !== correctAnswer.toLowerCase()) {
+          options.push(optVal);
+        }
+      }
+      options = options.slice(0, 4);
 
       return {
         id: `${targetWord.id}_q${index + 1}`,
@@ -1096,6 +1396,8 @@ export const quizService = {
         level: targetWord.level || (qDifficulty === 'easy' ? 'A2' : qDifficulty === 'hard' ? 'C1' : 'B2'),
         meaning_vi: validTargetMeaning,
         meaning_en: targetWord.meaning_en,
+        part_of_speech: targetWord.part_of_speech || posLabel,
+        pos_code: pos,
         questionText,
         promptSubtitle,
         correctAnswer,
@@ -1103,7 +1405,8 @@ export const quizService = {
         explanation,
         translation,
         audio_url: targetWord.audio_url,
-        examples
+        examples,
+        collocations: extractCollocations(targetWord)
       };
     });
 

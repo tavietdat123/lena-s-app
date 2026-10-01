@@ -874,37 +874,37 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
 - type: "cloze_blank"
 `,
     'meaning_vi': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Chọn nghĩa tiếng Việt theo ngữ cảnh (In-context Meaning)"
-- Mỗi câu hỏi đưa ra 1 câu văn tiếng Anh hoàn chỉnh có in đậm từ mục tiêu (ví dụ: "The team was exceptionally **resilient** during the crisis.").
+🎯 YÊU CẦU CHẾ ĐỘ: "Chọn nghĩa tiếng Việt theo ngữ cảnh (In-context Reading & Nuance)"
+- Mỗi câu hỏi đưa ra 1 câu văn tiếng Anh học thuật / thực tế hoàn chỉnh có in đậm từ mục tiêu (ví dụ: "The team conducted a **meticulous** audit before product release.").
 - questionText: Câu văn tiếng Anh chứa từ mục tiêu in đậm **từ vựng**.
-- promptSubtitle: "Chọn nghĩa tiếng Việt chính xác nhất của từ vựng trong câu trên:"
-- options: 4 phương án nghĩa tiếng Việt (1 nghĩa đúng chuẩn xác ngữ cảnh và 3 nghĩa gây nhiễu hợp lý).
+- promptSubtitle: "[Từ loại] Dựa vào ngữ cảnh câu trên, từ '**từ vựng**' mang ý nghĩa và sắc thái nào:"
+- options: 4 phương án nghĩa tiếng Việt BẮT BUỘC CÙNG TỪ LOẠI (1 nghĩa đúng chuẩn xác ngữ cảnh và 3 nghĩa gây nhiễu học thuật cùng từ loại). TUYỆT ĐỐI KHÔNG dùng từ gây nhiễu ngô nghê/trẻ con!
 - correctAnswer: Nghĩa tiếng Việt đúng.
 - type: "meaning_vi"
 `,
     'reverse_en': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Chọn từ tiếng Anh theo định nghĩa & tình huống (Reverse English)"
-- questionText: Định nghĩa hoặc tình huống mô tả chi tiết bằng tiếng Việt (tuyệt đối không ghi từ tiếng Anh vào câu hỏi).
-- promptSubtitle: "Chọn từ vựng tiếng Anh chuẩn xác tương ứng với ngữ cảnh trên:"
-- options: 4 từ vựng tiếng Anh (bắt buộc cùng từ loại).
-- correctAnswer: Từ tiếng Anh chính xác.
+🎯 YÊU CẦU CHẾ ĐỘ: "Ứng dụng từ vựng vào câu thực tế (Contextual Sentence Blank - Reverse English)"
+- questionText: Một câu văn tiếng Anh hoàn chỉnh có chỗ trống "_______" ở vị trí từ mục tiêu (ví dụ: "To prevent delays, our manager decided to _______ several tasks to senior engineers.").
+- promptSubtitle: "[Từ loại] Chọn từ tiếng Anh chính xác nhất để hoàn chỉnh câu (Nghĩa: 'ủy quyền, giao phó'):"
+- options: 4 từ vựng tiếng Anh BẮT BUỘC CÙNG TỪ LOẠI (ví dụ: 4 động từ B2-C1: delegate, mitigate, articulate, prioritize). TUYỆT ĐỐI KHÔNG trộn lẫn từ loại khác nhau!
+- correctAnswer: Từ tiếng Anh chính xác điền vào câu.
 - type: "reverse_en"
 `,
     'listening': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Luyện phản xạ Nghe & Ngữ nghĩa (Listening Reflex)"
-- questionText: Từ vựng mục tiêu cần luyện nghe.
-- promptSubtitle: "Nghe phát âm và chọn nghĩa tiếng Việt chính xác:"
-- options: 4 phương án nghĩa tiếng Việt.
+🎯 YÊU CẦU CHẾ ĐỘ: "Luyện phản xạ Nghe & Ngữ âm (Listening Reflex & Phonology)"
+- questionText: Từ vựng mục tiêu cần luyện nghe kèm phiên âm IPA chuẩn (ví dụ: "meticulous /mɪˈtɪk.jə.ləs/").
+- promptSubtitle: "[Luyện nghe phản xạ] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt chính xác [Từ loại]:"
+- options: 4 phương án nghĩa tiếng Việt BẮT BUỘC CÙNG TỪ LOẠI.
 - correctAnswer: Nghĩa tiếng Việt đúng.
 - type: "listening"
 `,
     'mixed': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Hỗn Hợp Đa Dạng (Mixed Modes)"
+🎯 YÊU CẦU CHẾ ĐỘ: "Hỗn Hợp Đa Dạng Chuẩn Cambridge / IELTS (Mixed Modes)"
 - Hãy đan xen luân phiên các dạng câu hỏi giữa các câu:
-  + Dạng cloze_blank: Câu tiếng Anh có chỗ trống _______, options là 4 từ tiếng Anh cùng từ loại (bắt buộc đa dạng thì: hiện tại đơn -s/-es, quá khứ -ed, V-ing, số nhiều -s/-es; tuyệt đối không tạo câu vô lý với từ).
-  + Dạng meaning_vi: Câu tiếng Anh hoàn chỉnh in đậm **từ vựng**, options là 4 nghĩa tiếng Việt theo ngữ cảnh.
-  + Dạng reverse_en: Định nghĩa tình huống bằng tiếng Việt, options là 4 từ tiếng Anh.
-  + Dạng listening: Luyện nghe phát âm từ vựng, options là 4 nghĩa tiếng Việt.
+  + Dạng cloze_blank: Câu tiếng Anh có chỗ trống _______, options là 4 từ tiếng Anh cùng từ loại (đa dạng thì: hiện tại đơn -s/-es, quá khứ -ed, V-ing, danh từ số nhiều -s/-es; đúng ngữ cảnh ngữ nghĩa tự nhiên).
+  + Dạng meaning_vi: Câu tiếng Anh hoàn chỉnh in đậm **từ vựng**, options là 4 nghĩa tiếng Việt cùng từ loại theo ngữ cảnh.
+  + Dạng reverse_en: Câu tiếng Anh có chỗ trống _______, prompt nêu nghĩa tiếng Việt, options là 4 từ tiếng Anh cùng từ loại.
+  + Dạng listening: Luyện nghe phát âm từ vựng kèm IPA, options là 4 nghĩa tiếng Việt cùng từ loại.
 - Gán trường "type" chính xác ('cloze_blank' | 'meaning_vi' | 'reverse_en' | 'listening') cho từng câu hỏi.
 `
   };

@@ -28,6 +28,130 @@ import {
   Calendar
 } from 'lucide-react';
 
+// Helper to render contextual sentence with bold target words or interactive blanks
+const renderQuestionText = (text) => {
+  if (!text) return '';
+  const str = String(text);
+  if (!str.includes('**') && !str.includes('_______')) {
+    return str;
+  }
+  const parts = [];
+  const regex = /(\*\*[^*]+\*\*|_______)/g;
+  let match;
+  let lastIdx = 0;
+  let keyIdx = 0;
+
+  while ((match = regex.exec(str)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(<span key={`t_${keyIdx++}`}>{str.substring(lastIdx, match.index)}</span>);
+    }
+    const token = match[0];
+    if (token.startsWith('**') && token.endsWith('**')) {
+      const inner = token.slice(2, -2);
+      parts.push(
+        <strong
+          key={`b_${keyIdx++}`}
+          style={{
+            color: 'var(--accent-primary)',
+            textDecoration: 'underline',
+            textUnderlineOffset: '5px',
+            textDecorationColor: 'rgba(99, 102, 241, 0.45)',
+            fontWeight: 800,
+            padding: '0 2px'
+          }}
+        >
+          {inner}
+        </strong>
+      );
+    } else if (token === '_______') {
+      parts.push(
+        <span
+          key={`blank_${keyIdx++}`}
+          style={{
+            display: 'inline-block',
+            borderBottom: '3px solid var(--accent-primary)',
+            minWidth: '85px',
+            color: 'var(--accent-primary)',
+            fontWeight: 800,
+            textAlign: 'center',
+            letterSpacing: '2px',
+            margin: '0 6px',
+            verticalAlign: 'bottom'
+          }}
+        >
+          _____
+        </span>
+      );
+    }
+    lastIdx = regex.lastIndex;
+  }
+  if (lastIdx < str.length) {
+    parts.push(<span key={`end_${keyIdx++}`}>{str.substring(lastIdx)}</span>);
+  }
+  return parts;
+};
+
+// Helper to render structured pedagogical explanation
+const renderExplanationContent = (explanationText) => {
+  if (!explanationText) return null;
+  const blocks = String(explanationText).split(/\n\n+/).filter(Boolean);
+
+  return blocks.map((block, bIdx) => {
+    const trimmed = block.trim();
+    const parts = [];
+    const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+    let match;
+    let lastIdx = 0;
+    let pIdx = 0;
+
+    while ((match = regex.exec(trimmed)) !== null) {
+      if (match.index > lastIdx) {
+        parts.push(<span key={`e_${bIdx}_${pIdx++}`}>{trimmed.substring(lastIdx, match.index)}</span>);
+      }
+      const token = match[0];
+      if (token.startsWith('**') && token.endsWith('**')) {
+        parts.push(
+          <strong key={`eb_${bIdx}_${pIdx++}`} style={{ color: 'var(--text-primary)', fontWeight: 800 }}>
+            {token.slice(2, -2)}
+          </strong>
+        );
+      } else if (token.startsWith('`') && token.endsWith('`')) {
+        parts.push(
+          <code key={`ec_${bIdx}_${pIdx++}`} style={{
+            background: 'var(--bg-tertiary)',
+            color: 'var(--accent-primary)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontSize: '0.84rem',
+            margin: '0 3px',
+            fontWeight: 700
+          }}>
+            {token.slice(1, -1)}
+          </code>
+        );
+      }
+      lastIdx = regex.lastIndex;
+    }
+    if (lastIdx < trimmed.length) {
+      parts.push(<span key={`ee_${bIdx}_${pIdx++}`}>{trimmed.substring(lastIdx)}</span>);
+    }
+
+    return (
+      <div
+        key={`block_${bIdx}`}
+        style={{
+          marginBottom: bIdx < blocks.length - 1 ? '0.55rem' : 0,
+          lineHeight: 1.6,
+          fontSize: '0.88rem',
+          color: 'var(--text-secondary)'
+        }}
+      >
+        {parts}
+      </div>
+    );
+  });
+};
+
 export default function QuizCenter({ onOpenReview }) {
   const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
   const [quizCategory, setQuizCategory] = useState('vocab'); // 'vocab' | 'pattern'
@@ -461,16 +585,15 @@ export default function QuizCenter({ onOpenReview }) {
                       )}
                     </div>
                     {Boolean(item.explanation || item.translation) && (
-                      <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', fontSize: '0.82rem', lineHeight: 1.45, borderLeft: '3px solid var(--accent-primary)' }}>
+                      <div style={{ marginTop: '0.5rem', padding: '0.6rem 0.85rem', background: 'var(--bg-tertiary)', borderRadius: '8px', fontSize: '0.82rem', lineHeight: 1.5, borderLeft: '3px solid var(--accent-primary)' }}>
                         {Boolean(item.explanation) && (
-                          <div style={{ color: 'var(--text-primary)', marginBottom: item.translation ? '0.25rem' : 0 }}>
-                            <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>💡 Giải thích: </span>
-                            {item.explanation}
+                          <div style={{ color: 'var(--text-primary)', marginBottom: item.translation ? '0.35rem' : 0 }}>
+                            {renderExplanationContent(item.explanation)}
                           </div>
                         )}
                         {Boolean(item.translation) && (
-                          <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.78rem' }}>
-                            <span style={{ fontWeight: 600 }}>🌐 Dịch: </span>
+                          <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem', marginTop: '4px' }}>
+                            <span style={{ fontWeight: 700, fontStyle: 'normal' }}>🌐 Dịch ngữ cảnh: </span>
                             "{item.translation}"
                           </div>
                         )}
@@ -565,16 +688,34 @@ export default function QuizCenter({ onOpenReview }) {
           {/* 2. QUESTION PROMPT HERO BOX */}
           <div className="quiz-question-box">
             <div className="prompt-header">
-              <span className="prompt-type-badge">
-                {currentQ.type === 'meaning_vi' && '🎯 Nghĩa Tiếng Việt'}
-                {currentQ.type === 'reverse_en' && '🇬🇧 Tìm Từ Tiếng Anh'}
-                {currentQ.type === 'cloze_blank' && '🧩 Điền Từ Vào Câu'}
-                {currentQ.type === 'listening' && '🎧 Luyện Nghe & Chọn Nghĩa'}
-                {currentQ.type === 'fill_clause' && '⚡ Điền Mẫu Câu / Liên Từ'}
-                {currentQ.type === 'meaning_usage' && '💡 Ứng Dụng Mẫu Câu'}
-                {currentQ.type === 'formula_check' && '📐 Công Thức Ngữ Pháp'}
-                {currentQ.type === 'pattern_context' && '🤖 Cấu Trúc Ngữ Cảnh AI'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <span className="prompt-type-badge">
+                  {currentQ.type === 'meaning_vi' && '🎯 Nghĩa Tiếng Việt'}
+                  {currentQ.type === 'reverse_en' && '🇬🇧 Tìm Từ Tiếng Anh'}
+                  {currentQ.type === 'cloze_blank' && '🧩 Điền Từ Vào Câu'}
+                  {currentQ.type === 'listening' && '🎧 Luyện Nghe & Chọn Nghĩa'}
+                  {currentQ.type === 'fill_clause' && '⚡ Điền Mẫu Câu / Liên Từ'}
+                  {currentQ.type === 'meaning_usage' && '💡 Ứng Dụng Mẫu Câu'}
+                  {currentQ.type === 'formula_check' && '📐 Công Thức Ngữ Pháp'}
+                  {currentQ.type === 'pattern_context' && '🤖 Cấu Trúc Ngữ Cảnh AI'}
+                </span>
+                {currentQ.part_of_speech && (
+                  <span style={{
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    color: 'var(--accent-primary)',
+                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    🏷️ {currentQ.part_of_speech}
+                  </span>
+                )}
+              </div>
               {currentQ.promptSubtitle && (
                 <span className="prompt-subtitle">{currentQ.promptSubtitle}</span>
               )}
@@ -597,7 +738,13 @@ export default function QuizCenter({ onOpenReview }) {
                 </div>
               ) : (
                 <div className="text-prompt-display">
-                  <h2 className="question-text">{currentQ.questionText}</h2>
+                  <h2 className="question-text" style={{
+                    fontSize: (currentQ.questionText || '').length > 45 ? '1.35rem' : '1.85rem',
+                    lineHeight: 1.55,
+                    fontWeight: 700
+                  }}>
+                    {renderQuestionText(currentQ.questionText)}
+                  </h2>
                   {currentQ.formula && (
                     <div className="quiz-formula-tag">
                       {currentQ.formula}
@@ -692,21 +839,28 @@ export default function QuizCenter({ onOpenReview }) {
                 {Boolean(currentQ.explanation || currentQ.translation) && (
                   <div style={{
                     marginTop: '0.85rem',
-                    padding: '0.75rem 1rem',
+                    padding: '0.85rem 1.15rem',
                     background: 'var(--bg-secondary)',
                     borderLeft: '4px solid var(--accent-primary)',
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     textAlign: 'left'
                   }}>
                     {Boolean(currentQ.explanation) && (
-                      <div style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: currentQ.translation ? '0.35rem' : 0 }}>
-                        <span style={{ fontWeight: 800, color: 'var(--accent-primary)' }}>💡 Vì sao đáp án này đúng: </span>
-                        {currentQ.explanation}
+                      <div style={{ color: 'var(--text-primary)', marginBottom: currentQ.translation ? '0.6rem' : 0 }}>
+                        {renderExplanationContent(currentQ.explanation)}
                       </div>
                     )}
                     {Boolean(currentQ.translation) && (
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                        <span style={{ fontWeight: 700 }}>🌐 Ngữ cảnh: </span>
+                      <div style={{
+                        fontSize: '0.84rem',
+                        color: 'var(--text-secondary)',
+                        fontStyle: 'italic',
+                        background: 'rgba(0, 0, 0, 0.03)',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        borderLeft: '2px solid rgba(99, 102, 241, 0.4)'
+                      }}>
+                        <span style={{ fontWeight: 700, fontStyle: 'normal' }}>🌐 Dịch ngữ cảnh: </span>
                         "{currentQ.translation}"
                       </div>
                     )}
