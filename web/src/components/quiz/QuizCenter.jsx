@@ -25,7 +25,8 @@ import {
   Headphones,
   Edit3,
   ArrowRight,
-  Calendar
+  Calendar,
+  GraduationCap
 } from 'lucide-react';
 
 // Helper to render contextual sentence with bold target words or interactive blanks
@@ -166,6 +167,7 @@ export default function QuizCenter({ onOpenReview }) {
   const [selectedTopics, setSelectedTopics] = useState(['All']);
   const [selectedPatternCategory, setSelectedPatternCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedContextLevels, setSelectedContextLevels] = useState(['all']);
   const [questionCount, setQuestionCount] = useState(5);
   const [quizMode, setQuizMode] = useState('mixed');
   const [loading, setLoading] = useState(false);
@@ -291,6 +293,21 @@ export default function QuizCenter({ onOpenReview }) {
     setSelectedTopics(updated);
   };
 
+  const toggleContextLevel = (lvlId) => {
+    if (lvlId === 'all') {
+      setSelectedContextLevels(['all']);
+      return;
+    }
+    let updated = selectedContextLevels.filter(l => l !== 'all');
+    if (updated.includes(lvlId)) {
+      updated = updated.filter(l => l !== lvlId);
+      if (updated.length === 0) updated = ['all'];
+    } else {
+      updated.push(lvlId);
+    }
+    setSelectedContextLevels(updated);
+  };
+
   const toggleDate = (dateStr) => {
     if (dateStr === 'all') {
       setDateScope('all');
@@ -337,6 +354,7 @@ export default function QuizCenter({ onOpenReview }) {
       const queryParams = {
         count: questionCount,
         level: selectedLevel,
+        context_levels: selectedContextLevels,
         mode: quizMode,
         date_scope: dateScope,
         date: targetDate,
@@ -579,7 +597,7 @@ export default function QuizCenter({ onOpenReview }) {
                     {item.isCorrect ? <CheckCircle size={18} color="#10b981" /> : <XCircle size={18} color="#ef4444" />}
                   </div>
                   <div className="item-details">
-                    <div className="item-word">
+                    <div className="item-word" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       <b>{item.word}</b>
                       <button 
                         className="mini-audio-btn" 
@@ -588,6 +606,19 @@ export default function QuizCenter({ onOpenReview }) {
                       >
                         <Volume2 size={14} />
                       </button>
+                      {Boolean(item.context_level) && (
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: 'rgba(14, 165, 233, 0.12)',
+                          color: '#0ea5e9',
+                          border: '1px solid rgba(14, 165, 233, 0.25)'
+                        }}>
+                          🎓 Bối cảnh: {item.context_level}
+                        </span>
+                      )}
                     </div>
                     <div className="item-answers">
                       <span>Bạn chọn: <i className={item.isCorrect ? 'text-green' : 'text-red'}>{item.userAnswer}</i></span>
@@ -724,6 +755,22 @@ export default function QuizCenter({ onOpenReview }) {
                     gap: '4px'
                   }}>
                     🏷️ {currentQ.part_of_speech}
+                  </span>
+                )}
+                {currentQ.context_level && (
+                  <span style={{
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    background: 'rgba(14, 165, 233, 0.15)',
+                    color: '#0ea5e9',
+                    border: '1px solid rgba(14, 165, 233, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    🎓 Bối cảnh: {currentQ.context_level}
                   </span>
                 )}
               </div>
@@ -1500,10 +1547,65 @@ export default function QuizCenter({ onOpenReview }) {
               </details>
             </div>
 
-            {/* Step 4: Question Count & Mode */}
+            {/* Step 4: Context Proficiency Level (Multi-select) */}
+            <div className="setup-section" style={{ marginTop: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GraduationCap size={18} color="var(--accent-primary)" />
+                  <span>4. Trình Độ Bối Cảnh Câu Văn (Context Proficiency Level)</span>
+                  <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>• Có thể chọn nhiều trình độ</small>
+                </h3>
+                <span style={{ fontSize: '0.82rem', color: '#0ea5e9', fontWeight: '700' }}>
+                  {selectedContextLevels.includes('all')
+                    ? '🌟 Mọi trình độ (A1 - C2)'
+                    : `🎯 Đã chọn ${selectedContextLevels.length} trình độ (${selectedContextLevels.map(l => l.toUpperCase().replace('_', '-')).join(', ')})`}
+                </span>
+              </div>
+
+              <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                {[
+                  { id: 'all', label: '🌟 Mọi Trình Độ', desc: 'Linh hoạt mọi bối cảnh từ A1 đến C2' },
+                  { id: 'a1_a2', label: '🌱 A1 - A2 (Cơ Bản)', desc: 'Giao tiếp đời thường, câu ngắn dễ hiểu' },
+                  { id: 'b1', label: '🌿 B1 (Tiền Trung Cấp)', desc: 'Công sở & Giao tiếp thực tế hàng ngày' },
+                  { id: 'b2', label: '🚀 B2 (Trung Cấp Khá)', desc: 'Chuyên nghiệp, phong phú tình huống' },
+                  { id: 'c1', label: '💎 C1 (Cao Cấp)', desc: 'Học thuật IELTS Band 7.0 - 8.0' },
+                  { id: 'c2', label: '👑 C2 (Bản Xứ)', desc: 'Bản xứ / IELTS Band 8.5 - 9.0' }
+                ].map(lvl => {
+                  const isPicked = selectedContextLevels.includes(lvl.id);
+                  return (
+                    <button
+                      key={lvl.id}
+                      type="button"
+                      className={`count-pill-btn ${isPicked ? 'active' : ''}`}
+                      onClick={() => toggleContextLevel(lvl.id)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.65rem 0.85rem',
+                        position: 'relative',
+                        border: isPicked ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                        background: isPicked ? 'rgba(99, 102, 241, 0.12)' : 'var(--bg-card)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <b>{lvl.label}</b>
+                        {isPicked && <span style={{ color: '#10b981', fontWeight: 900 }}>✓</span>}
+                      </div>
+                      <small style={{ display: 'block', marginTop: '2px', opacity: 0.85 }}>{lvl.desc}</small>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>💡</span>
+                <span>Bạn có thể chọn 1 hoặc nhiều trình độ (ví dụ: B1 + B2 để câu hỏi luân phiên theo cả 2 trình độ này).</span>
+              </div>
+            </div>
+
+            {/* Step 5 & 6: Question Count & Mode */}
             <div className="setup-grid-row">
               <div className="setup-section">
-                <h3>4. Số Lượng Câu Hỏi</h3>
+                <h3>5. Số Lượng Câu Hỏi</h3>
                 <div className="count-selector-row">
                   {[5, 10, 15].map(cnt => (
                     <button
@@ -1523,7 +1625,7 @@ export default function QuizCenter({ onOpenReview }) {
               </div>
 
               <div className="setup-section">
-                <h3>5. Chế Độ Câu Hỏi</h3>
+                <h3>6. Chế Độ Câu Hỏi</h3>
                 <div className="mode-selector-row">
                   {[
                     { id: 'mixed', label: 'Hỗn Hợp (Tất cả)', icon: Shuffle },

@@ -202,6 +202,7 @@ export function normalizeAndRandomizeQuestions(parsed, defaultPrefix = 'ai_q') {
       word: q.word || q.targetWord || q.term || 'Vocabulary',
       difficulty: qDifficulty,
       level: q.level || (qDifficulty === 'easy' ? 'B1' : qDifficulty === 'hard' ? 'C1' : 'B2'),
+      context_level: (q.context_level || q.contextLevel || q.level || 'B2').toUpperCase().replace('_', ' - '),
       questionText: q.questionText || q.question || q.prompt || q.text || 'Question text',
       promptSubtitle: q.promptSubtitle || q.subtitle || q.instruction || 'Chọn đáp án chính xác:',
       options: cleanOpts,
@@ -240,7 +241,7 @@ export async function callGemini(prompt, apiKey = null, audioData = null, custom
       temperature: 0.15,
       topK: 16,
       topP: 0.9,
-      maxOutputTokens: 2500,
+      maxOutputTokens: 8192,
       ...(isJson ? { response_mime_type: 'application/json' } : {})
     }
   };
@@ -741,7 +742,7 @@ Trả về JSON với cấu trúc:
 /**
  * 8. AI Smart Contextual Quiz Generator (Biên soạn bài trắc nghiệm ngữ cảnh thực tế theo cấp độ IELTS)
  */
-export async function generateAIQuiz({ topic = 'All', count = 5, words = [], level = 'all', mode = 'mixed', date_scope = 'all', date = null }, apiKey = null) {
+export async function generateAIQuiz({ topic = 'All', count = 5, words = [], level = 'all', context_levels = null, mode = 'mixed', date_scope = 'all', date = null, start_date = null, end_date = null }, apiKey = null) {
   const db = getDb();
   let candidateWords = [];
   let topicDisplay = 'Tất cả (All)';
@@ -752,7 +753,7 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
     allWords = words;
   } else {
     allWords = db.prepare('SELECT id, word, meaning_vi, meaning_en, part_of_speech, examples, level, topic_id, created_at FROM words').all();
-    const dateFiltered = filterItemsByDate(allWords, date_scope, date);
+    const dateFiltered = filterItemsByDate(allWords, date_scope, date, start_date, end_date);
     const resolved = resolveTopics(db, topic);
     if (!resolved.isAll) {
       topicDisplay = resolved.displayNames.join(' + ');
@@ -779,7 +780,6 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
   }
 
   // Filter candidate words by Granular IELTS tier ONLY if explicitly requested (e.g. ielts_4_5)
-  // 'easy', 'medium', 'hard' represent QUESTION SOLVING DIFFICULTY, NOT vocabulary level filter!
   if (level && level.startsWith('ielts_')) {
     const tierMap = {
       'ielts_4_5': ['A1', 'A2', 'B1'],
@@ -825,6 +825,26 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
       }
     }
   }
+
+  // Parse multi-option context proficiency levels
+  let activeContextLevels = [];
+  if (Array.isArray(context_levels) && context_levels.length > 0) {
+    activeContextLevels = context_levels.map(l => String(l).toLowerCase().trim()).filter(l => l && l !== 'all');
+  } else if (typeof context_levels === 'string' && context_levels && context_levels !== 'all') {
+    activeContextLevels = context_levels.split(',').map(l => l.trim().toLowerCase()).filter(Boolean);
+  }
+  if (activeContextLevels.length === 0) {
+    activeContextLevels = ['a1_a2', 'b1', 'b2', 'c1_c2'];
+  }
+
+  const contextLevelDescriptions = activeContextLevels.map(l => {
+    if (l === 'a1_a2' || l === 'a1' || l === 'a2') return 'A1 - A2 (Cơ bản / Đời sống hàng ngày)';
+    if (l === 'b1') return 'B1 (Trung cấp / Công sở & Giao tiếp thực tế)';
+    if (l === 'b2') return 'B2 (Trung cấp khá / Chuyên nghiệp công sở)';
+    if (l === 'c1' || l === 'c1_c2') return 'C1 (Cao cấp / Học thuật IELTS Band 7.0 - 7.5)';
+    if (l === 'c2') return 'C2 (Bản xứ / Chuyên gia IELTS Band 8.5 - 9.0)';
+    return l.toUpperCase();
+  }).join(' + ');
 
   const ieltsRequirementMap = {
     'all': 'Đa dạng linh hoạt từ A2 đến C2',
@@ -915,7 +935,8 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
 
   const prompt = `
 Bạn là chuyên gia khảo thí tiếng Anh (IELTS/ETS). Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm tiếng Anh thông minh cho chủ đề "${topicDisplay}".
-🎯 Cấp độ IELTS mục tiêu: ${ieltsGuideline}
+🎯 Trình độ bối cảnh câu hỏi (Context Proficiency): ${contextLevelDescriptions}
+🎯 Cấp độ giải câu hỏi mục tiêu: ${ieltsGuideline}
 ${currentModeInstruction}
 
 Danh sách mục tiêu từng câu:
@@ -925,6 +946,9 @@ LƯU Ý ĐẶC BIỆT (BẮT BUỘC):
 - TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG NHAU (NO DUPLICATE QUESTIONS):
   + Nếu có từ mục tiêu xuất hiện nhiều hơn 1 lần trong danh sách được giao, TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI GIỐNG NHAU! Mỗi lần từ đó xuất hiện, BẮT BUỘC phải tạo một câu văn ngữ cảnh hoàn toàn mới, một tình huống công sở/đời sống khác biệt, hoặc kiểm tra ở một khía cạnh ngữ pháp khác (ví dụ: một lần hỏi thì hiện tại, một lần hỏi thì quá khứ, một lần hỏi danh động từ/tính từ, hoặc ngữ cảnh giao tiếp khác).
   + Tuyệt đối không tự ý sinh thêm bất kỳ từ vựng mới nào ngoài danh sách từ mục tiêu được giao bên trên!
+- ĐẢM BẢO TÍNH TỰ NHIÊN CỦA COLLOCATION:
+  + Tuyệt đối không gượng ép ghép từ vào câu vô nghĩa (như 'appear mutual strengths'). Động từ nội động từ (appear, sleep) phải dùng cấu trúc tự nhiên (appear to be, appear on screen). Tính từ cảm xúc (grateful) phải dùng với người hoặc cảm giác (feel grateful for).
+  + Câu văn phải phân bổ theo các trình độ bối cảnh đã chọn: ${activeContextLevels.join(', ')}.
 - Mỗi câu hỏi bắt buộc phải có giải thích ngữ pháp/ngữ nghĩa chi tiết và dịch nghĩa tiếng Việt cả câu.
 
 Hãy trả về JSON với cấu trúc:
@@ -932,11 +956,13 @@ Hãy trả về JSON với cấu trúc:
   "topic": "${topicDisplay}",
   "level": "${level}",
   "mode": "${mode}",
+  "context_levels": ${JSON.stringify(activeContextLevels)},
   "questions": [
     {
       "id": "q1",
       "type": "cloze_blank",
       "word": "từ vựng mục tiêu",
+      "context_level": "B1",
       "questionText": "Nội dung câu hỏi theo đúng chế độ",
       "promptSubtitle": "Tiêu đề hướng dẫn",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],

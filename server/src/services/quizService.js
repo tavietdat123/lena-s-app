@@ -780,7 +780,494 @@ export function extractCollocations(targetWord) {
   return list.slice(0, 3);
 }
 
-export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrenceIndex = 0, usedSentences = new Set()) {
+export const TEMPLATE_BANK_BY_LEVEL = {
+  a1_a2: {
+    label: 'A1 - A2',
+    verb: [
+      {
+        full: (w) => `She decided to ${w} early in the morning.`,
+        trans: (m) => `Cô ấy quyết định ${m} vào sáng sớm.`
+      },
+      {
+        full: (w) => `They try to ${w} whenever they have free time.`,
+        trans: (m) => `Họ cố gắng ${m} bất cứ khi nào có thời gian rảnh.`
+      },
+      {
+        full: (w) => `You need to ${w} carefully before making any choice.`,
+        trans: (m) => `Bạn cần ${m} cẩn thận trước khi đưa ra bất kỳ lựa chọn nào.`
+      },
+      {
+        full: (w) => `My friend wants to ${w} with us tomorrow.`,
+        trans: (m) => `Bạn tôi muốn ${m} cùng chúng tôi vào ngày mai.`
+      },
+      {
+        full: (w) => `It is always helpful to ${w} when you start something new.`,
+        trans: (m) => `Luôn luôn hữu ích khi ${m} lúc bạn bắt đầu một điều gì đó mới.`
+      },
+      {
+        full: (w) => `We are happy to ${w} together every weekend.`,
+        trans: (m) => `Chúng tôi rất vui khi được ${m} cùng nhau vào mỗi cuối tuần.`
+      }
+    ],
+    adj: [
+      {
+        full: (w) => `She felt very ${w} after hearing the good news.`,
+        trans: (m) => `Cô ấy cảm thấy rất ${m} sau khi nghe tin tốt lành.`
+      },
+      {
+        full: (w) => `His answer was quite ${w} and easy to understand.`,
+        trans: (m) => `Câu trả lời của anh ấy khá ${m} và dễ hiểu.`
+      },
+      {
+        full: (w) => `They had a truly ${w} experience during the trip.`,
+        trans: (m) => `Họ đã có một trải nghiệm thực sự ${m} trong suốt chuyến đi.`
+      },
+      {
+        full: (w) => `It is important to stay ${w} when talking to others.`,
+        trans: (m) => `Điều quan trọng là phải giữ thái độ ${m} khi nói chuyện với người khác.`
+      },
+      {
+        full: (w) => `Everyone was pleased with the ${w} outcome of the project.`,
+        trans: (m) => `Mọi người đều hài lòng với kết quả ${m} của dự án.`
+      },
+      {
+        full: (w) => `The room was warm and ${w}, making visitors feel at home.`,
+        trans: (m) => `Căn phòng ấm cúng và ${m}, khiến khách cảm thấy như ở nhà.`
+      }
+    ],
+    noun: [
+      {
+        full: (w) => `She shared a wonderful ${w} during our conversation.`,
+        trans: (m) => `Cô ấy đã chia sẻ một ${m} tuyệt vời trong cuộc trò chuyện của chúng tôi.`
+      },
+      {
+        full: (w) => `We are looking forward to the next ${w} this week.`,
+        trans: (m) => `Chúng tôi đang mong chờ ${m} tiếp theo trong tuần này.`
+      },
+      {
+        full: (w) => `He found a helpful ${w} that solved his daily problem.`,
+        trans: (m) => `Anh ấy đã tìm thấy một ${m} hữu ích giúp giải quyết vấn đề hàng ngày.`
+      },
+      {
+        full: (w) => `Having a clear ${w} makes daily tasks much easier.`,
+        trans: (m) => `Có một ${m} rõ ràng giúp các công việc hàng ngày trở nên dễ dàng hơn nhiều.`
+      },
+      {
+        full: (w) => `They celebrated this special ${w} with their close friends.`,
+        trans: (m) => `Họ đã kỷ niệm ${m} đặc biệt này cùng những người bạn thân thiết.`
+      },
+      {
+        full: (w) => `This simple ${w} brought a lot of joy to everyone.`,
+        trans: (m) => `${m} đơn giản này đã mang lại nhiều niềm vui cho mọi người.`
+      }
+    ],
+    adv: [
+      {
+        full: (w) => `She smiled ${w} when she saw her family.`,
+        trans: (m) => `Cô ấy mỉm cười một cách ${m} khi nhìn thấy gia đình mình.`
+      },
+      {
+        full: (w) => `The children played ${w} in the garden all afternoon.`,
+        trans: (m) => `Lũ trẻ chơi đùa một cách ${m} trong vườn suốt buổi chiều.`
+      },
+      {
+        full: (w) => `He explained the story ${w} so that everyone understood.`,
+        trans: (m) => `Anh ấy giải thích câu chuyện một cách ${m} để mọi người đều hiểu.`
+      },
+      {
+        full: (w) => `We walked ${w} along the quiet street near the park.`,
+        trans: (m) => `Chúng tôi đi dạo một cách ${m} dọc theo con phố yên tĩnh gần công viên.`
+      },
+      {
+        full: (w) => `The train arrived ${w} at the station on time.`,
+        trans: (m) => `Chuyến tàu đã đến nhà ga một cách ${m} đúng giờ.`
+      }
+    ],
+    phrase: [
+      {
+        full: (w) => `In daily life, it is always great to ${w} with family.`,
+        trans: (m) => `Trong cuộc sống hàng ngày, thật tuyệt vời khi luôn ${m} cùng gia đình.`
+      },
+      {
+        full: (w) => `My teacher advised us to ${w} whenever we have free time.`,
+        trans: (m) => `Thầy cô khuyên chúng tôi nên ${m} bất cứ khi nào có thời gian rảnh.`
+      },
+      {
+        full: (w) => `When you travel to new places, try to ${w} and relax.`,
+        trans: (m) => `Khi bạn đi du lịch đến những vùng đất mới, hãy cố gắng ${m} và thư giãn.`
+      },
+      {
+        full: (w) => `It is always helpful to ${w} before starting a new journey.`,
+        trans: (m) => `Luôn rất hữu ích khi ${m} trước khi bắt đầu một hành trình mới.`
+      }
+    ]
+  },
+  b1: {
+    label: 'B1',
+    verb: [
+      {
+        full: (w) => `To improve team productivity, we should ${w} on a regular basis.`,
+        trans: (m) => `Để nâng cao năng suất nhóm, chúng ta nên ${m} thường xuyên.`
+      },
+      {
+        full: (w) => `The supervisor advised everyone to ${w} before the upcoming deadline.`,
+        trans: (m) => `Người giám sát khuyên mọi người nên ${m} trước hạn chót sắp tới.`
+      },
+      {
+        full: (w) => `Our team planned to ${w} step by step to avoid unnecessary mistakes.`,
+        trans: (m) => `Đội ngũ của chúng tôi dự định ${m} từng bước để tránh những sai sót không đáng có.`
+      },
+      {
+        full: (w) => `Employees are encouraged to ${w} whenever workplace challenges arise.`,
+        trans: (m) => `Nhân viên được khuyến khích ${m} bất cứ khi nào xuất hiện khó khăn trong công việc.`
+      },
+      {
+        full: (w) => `During the weekly meeting, they agreed to ${w} more effectively.`,
+        trans: (m) => `Trong buổi họp hàng tuần, họ đã đồng ý ${m} hiệu quả hơn.`
+      },
+      {
+        full: (w) => `She took the initiative to ${w} across several project tasks.`,
+        trans: (m) => `Cô ấy đã chủ động ${m} qua nhiều nhiệm vụ của dự án.`
+      }
+    ],
+    adj: [
+      {
+        full: (w) => `The manager appreciated her ${w} feedback during the performance review.`,
+        trans: (m) => `Người quản lý đánh giá cao phản hồi ${m} của cô ấy trong buổi đánh giá hiệu suất.`
+      },
+      {
+        full: (w) => `We noticed a remarkably ${w} improvement in team collaboration this month.`,
+        trans: (m) => `Chúng tôi nhận thấy sự cải thiện rõ rệt mang tính ${m} trong việc hợp tác nhóm tháng này.`
+      },
+      {
+        full: (w) => `Maintaining a ${w} habit helps you stay organized throughout the workday.`,
+        trans: (m) => `Duy trì một thói quen ${m} giúp bạn luôn ngăn nắp trong suốt ngày làm việc.`
+      },
+      {
+        full: (w) => `His presentation was clear and ${w}, which impressed all attendees.`,
+        trans: (m) => `Bài thuyết trình của anh ấy rất rõ ràng và ${m}, gây ấn tượng với mọi người tham dự.`
+      },
+      {
+        full: (w) => `The project required a ${w} solution to meet client expectations on time.`,
+        trans: (m) => `Dự án đòi hỏi một giải pháp ${m} để đáp ứng kỳ vọng của khách hàng đúng hạn.`
+      },
+      {
+        full: (w) => `Working in a ${w} environment boosts overall team motivation and morale.`,
+        trans: (m) => `Làm việc trong một môi trường ${m} thúc đẩy tinh thần và động lực chung của cả nhóm.`
+      }
+    ],
+    noun: [
+      {
+        full: (w) => `Reaching this practical ${w} helped the team gain confidence for future sprints.`,
+        trans: (m) => `Đạt được ${m} thực tế này đã giúp cả nhóm tự tin hơn cho các chặng tiếp theo.`
+      },
+      {
+        full: (w) => `The department discussed an urgent ${w} during the morning standup.`,
+        trans: (m) => `Phòng ban đã thảo luận về một ${m} cấp bách trong buổi họp sáng.`
+      },
+      {
+        full: (w) => `Setting a realistic ${w} prevents unnecessary stress for everyone on the team.`,
+        trans: (m) => `Đặt ra một ${m} thực tế giúp tránh áp lực không cần thiết cho mọi người trong nhóm.`
+      },
+      {
+        full: (w) => `Every member contributed a useful ${w} to the quarterly planning discussion.`,
+        trans: (m) => `Mỗi thành viên đã đóng góp một ${m} hữu ích vào buổi thảo luận kế hoạch quý.`
+      },
+      {
+        full: (w) => `They resolved a difficult ${w} through open and honest communication.`,
+        trans: (m) => `Họ đã giải quyết một ${m} khó khăn nhờ giao tiếp cởi mở và chân thành.`
+      },
+      {
+        full: (w) => `This new ${w} significantly improved our day-to-day work routine.`,
+        trans: (m) => `${m} mới này đã cải thiện đáng kể quy trình công việc hàng ngày của chúng tôi.`
+      }
+    ],
+    adv: [
+      {
+        full: (w) => `She handled customer inquiries ${w} and professionally.`,
+        trans: (m) => `Cô ấy đã xử lý các yêu cầu của khách hàng một cách ${m} và chuyên nghiệp.`
+      },
+      {
+        full: (w) => `The team communicated ${w} to resolve the issue before the release.`,
+        trans: (m) => `Cả nhóm đã trao đổi một cách ${m} để xử lý vấn đề trước khi phát hành.`
+      },
+      {
+        full: (w) => `He prepared the quarterly report ${w} before the executive review.`,
+        trans: (m) => `Anh ấy đã chuẩn bị báo cáo quý một cách ${m} trước buổi họp ban giám đốc.`
+      },
+      {
+        full: (w) => `The system operated ${w} throughout the entire testing phase.`,
+        trans: (m) => `Hệ thống đã vận hành một cách ${m} trong suốt giai đoạn thử nghiệm.`
+      },
+      {
+        full: (w) => `We adapted ${w} to the updated project schedule.`,
+        trans: (m) => `Chúng tôi đã thích nghi một cách ${m} với tiến độ dự án mới được cập nhật.`
+      }
+    ],
+    phrase: [
+      {
+        full: (w) => `In a collaborative office, coworkers often ${w} to stay aligned on goals.`,
+        trans: (m) => `Trong văn phòng hợp tác, đồng nghiệp thường xuyên ${m} để đồng thuận về mục tiêu.`
+      },
+      {
+        full: (w) => `When facing unexpected difficulties, it is important to ${w} calmly.`,
+        trans: (m) => `Khi đối mặt với khó khăn bất ngờ, điều quan trọng là phải ${m} một cách bình tĩnh.`
+      },
+      {
+        full: (w) => `Our team lead suggested that we ${w} before proceeding with deployment.`,
+        trans: (m) => `Trưởng nhóm gợi ý chúng tôi nên ${m} trước khi tiến hành triển khai.`
+      },
+      {
+        full: (w) => `During intensive projects, team members learn how to ${w} effectively.`,
+        trans: (m) => `Trong các dự án bận rộn, các thành viên học cách ${m} một cách hiệu quả.`
+      }
+    ]
+  },
+  b2: {
+    label: 'B2',
+    verb: [
+      {
+        full: (w) => `The specialist was asked to ${w} before the committee as scheduled.`,
+        trans: (m) => `Chuyên gia đã được yêu cầu ${m} trước hội đồng theo đúng lịch trình.`
+      },
+      {
+        full: (w) => `Experienced senior engineers strive to ${w} to maintain high productivity.`,
+        trans: (m) => `Các kỹ sư giàu kinh nghiệm luôn nỗ lực ${m} để duy trì năng suất cao.`
+      },
+      {
+        full: (w) => `In the previous sprint, leadership decided to ${w} and reallocate resources across teams.`,
+        trans: (m) => `Trong đợt làm việc vừa qua, ban lãnh đạo đã quyết định ${m} và phân bổ lại nguồn lực giữa các nhóm.`
+      },
+      {
+        full: (w) => `Cross-functional collaboration encourages every member to ${w} when challenges emerge.`,
+        trans: (m) => `Sự hợp tác liên phòng ban khuyến khích mỗi thành viên ${m} khi xuất hiện thách thức.`
+      },
+      {
+        full: (w) => `The department director requested all leads to ${w} without unnecessary delay.`,
+        trans: (m) => `Giám đốc bộ phận yêu cầu tất cả các trưởng nhóm ${m} mà không trì hoãn vô cớ.`
+      },
+      {
+        full: (w) => `To navigate challenging market conditions, organizations must learn to ${w} resiliently.`,
+        trans: (m) => `Để vượt qua điều kiện thị trường đầy thử thách, các tổ chức phải học cách ${m} một cách kiên cường.`
+      }
+    ],
+    adj: [
+      {
+        full: (w) => `The specialist remained exceptionally ${w} even under demanding circumstances.`,
+        trans: (m) => `Chuyên gia vẫn giữ được trạng thái đặc biệt ${m} ngay cả trong những hoàn cảnh khắt khe.`
+      },
+      {
+        full: (w) => `Throughout the project retrospective, everyone felt genuinely ${w} for the team's support.`,
+        trans: (m) => `Suốt buổi đánh giá dự án, mọi người đều cảm thấy thực sự ${m} trước sự hỗ trợ của cả nhóm.`
+      },
+      {
+        full: (w) => `Feedback from the committee was remarkably ${w}, reflecting the team's diligent efforts.`,
+        trans: (m) => `Phản hồi từ hội đồng hết sức ${m}, phản ánh nỗ lực chăm chỉ của toàn đội ngũ.`
+      },
+      {
+        full: (w) => `The executive director was deeply ${w} upon reviewing the project's milestones.`,
+        trans: (m) => `Giám đốc điều hành vô cùng ${m} khi xem xét các cột mốc đã đạt được của dự án.`
+      },
+      {
+        full: (w) => `To overcome unforeseen bottlenecks, members must stay ${w} and maintain clear focus.`,
+        trans: (m) => `Để vượt qua các điểm nghẽn bất ngờ, các thành viên phải luôn ${m} và giữ vững sự tập trung.`
+      },
+      {
+        full: (w) => `Her contribution to the consultation was recognized as truly ${w} by all stakeholders.`,
+        trans: (m) => `Đóng góp của cô ấy cho buổi tư vấn được tất cả các bên liên quan công nhận là thực sự ${m}.`
+      }
+    ],
+    noun: [
+      {
+        full: (w) => `Achieving this strategic ${w} was a decisive factor in our long-term roadmap.`,
+        trans: (m) => `Đạt được ${m} chiến lược này là yếu tố quyết định trong lộ trình dài hạn của chúng tôi.`
+      },
+      {
+        full: (w) => `The project manager identified an unexpected ${w} during sprint retrospective.`,
+        trans: (m) => `Quản lý dự án đã phát hiện ra một ${m} bất ngờ trong buổi họp đánh giá chặng vừa qua.`
+      },
+      {
+        full: (w) => `Establishing a clear and transparent ${w} ensures consistent alignment across departments.`,
+        trans: (m) => `Việc thiết lập một ${m} rõ ràng và minh bạch đảm bảo sự thống nhất giữa các phòng ban.`
+      },
+      {
+        full: (w) => `Every specialist contributed significantly to the successful execution of this ${w}.`,
+        trans: (m) => `Mỗi chuyên gia đều đóng góp đáng kể vào việc thực hiện thành công ${m} này.`
+      },
+      {
+        full: (w) => `Effective risk management requires addressing any potential ${w} at an early stage.`,
+        trans: (m) => `Quản lý rủi ro hiệu quả đòi hỏi phải giải quyết bất kỳ ${m} tiềm ẩn nào từ giai đoạn sớm.`
+      },
+      {
+        full: (w) => `The executive committee emphasized the vital importance of this ${w} for sustainable growth.`,
+        trans: (m) => `Ủy ban điều hành nhấn mạnh tầm quan trọng thiết yếu của ${m} này đối với sự phát triển bền vững.`
+      }
+    ],
+    adv: [
+      {
+        full: (w) => `She analyzed the complex architecture ${w} before presenting recommendations.`,
+        trans: (m) => `Cô ấy đã phân tích kiến trúc phức tạp một cách ${m} trước khi đưa ra đề xuất.`
+      },
+      {
+        full: (w) => `The engineering division resolved the server incident ${w} and calmly.`,
+        trans: (m) => `Bộ phận kỹ thuật đã xử lý sự cố máy chủ một cách ${m} và điềm tĩnh.`
+      },
+      {
+        full: (w) => `All team members worked ${w} to meet the stringent product quality standards.`,
+        trans: (m) => `Tất cả thành viên trong nhóm đã làm việc một cách ${m} để đáp ứng tiêu chuẩn chất lượng sản phẩm nghiêm ngặt.`
+      },
+      {
+        full: (w) => `He presented the quarterly performance metrics ${w} to the executive stakeholders.`,
+        trans: (m) => `Anh ấy đã trình bày các chỉ số hiệu suất quý một cách ${m} cho các bên liên quan cấp cao.`
+      },
+      {
+        full: (w) => `The cloud infrastructure adapted ${w} even during peak traffic conditions.`,
+        trans: (m) => `Hạ tầng đám mây đã thích ứng một cách ${m} ngay cả trong điều kiện lưu lượng truy cập cao điểm.`
+      }
+    ],
+    phrase: [
+      {
+        full: (w) => `In professional environments, experienced team members always ${w} to ensure collaboration.`,
+        trans: (m) => `Trong môi trường chuyên nghiệp, các thành viên giàu kinh nghiệm luôn ${m} để đảm bảo sự hợp tác.`
+      },
+      {
+        full: (w) => `When handling critical business communications, it is crucial to ${w} proactively.`,
+        trans: (m) => `Khi xử lý các thông tin liên lạc kinh doanh quan trọng, điều cốt yếu là phải ${m} một cách chủ động.`
+      },
+      {
+        full: (w) => `Successful team leads advise their colleagues never to ${w} under pressure.`,
+        trans: (m) => `Các trưởng nhóm thành công khuyên đồng nghiệp của họ không bao giờ ${m} dưới áp lực.`
+      },
+      {
+        full: (w) => `During strategic sprint planning, engineers agreed to ${w} to keep project momentum.`,
+        trans: (m) => `Trong buổi lập kế hoạch chiến lược, các kỹ sư đã đồng ý ${m} để giữ vững đà tiến độ dự án.`
+      }
+    ]
+  },
+  c1_c2: {
+    label: 'C1 - C2',
+    verb: [
+      {
+        full: (w) => `Empirical research demonstrates that visionary leaders consistently seek to ${w} during structural transitions.`,
+        trans: (m) => `Nghiên cứu thực nghiệm chứng minh rằng các nhà lãnh đạo có tầm nhìn luôn nỗ lực ${m} trong các giai đoạn chuyển đổi cấu trúc.`
+      },
+      {
+        full: (w) => `To mitigate macroeconomic volatility, enterprises must strategically prepare to ${w} in turbulent markets.`,
+        trans: (m) => `Để giảm thiểu biến động kinh tế vĩ mô, các doanh nghiệp phải chuẩn bị một cách chiến lược để ${m} trên các thị trường đầy biến động.`
+      },
+      {
+        full: (w) => `Scholars argue that cognitive flexibility enables individuals to seamlessly ${w} across multidisciplinary environments.`,
+        trans: (m) => `Các học giả cho rằng sự linh hoạt nhận thức giúp các cá nhân có thể ${m} một cách liền mạch trong các môi trường đa ngành.`
+      },
+      {
+        full: (w) => `The commission urged institutional stakeholders to decisively ${w} before systemic disparities escalate.`,
+        trans: (m) => `Ủy ban kêu gọi các bên liên quan thể chế phải dứt khoát ${m} trước khi những bất bình đẳng mang tính hệ thống leo thang.`
+      },
+      {
+        full: (w) => `Pioneering researchers strive to ${w} with rigorous empirical discipline.`,
+        trans: (m) => `Các nhà nghiên cứu tiên phong nỗ lực ${m} với kỷ luật thực nghiệm nghiêm ngặt.`
+      },
+      {
+        full: (w) => `Navigating geopolitical complexities necessitates that policymakers strategically ${w} on international platforms.`,
+        trans: (m) => `Việc chèo lái qua các phức tạp địa chính trị đòi hỏi các nhà hoạch định chính sách phải ${m} một cách chiến lược trên các diễn đàn quốc tế.`
+      }
+    ],
+    adj: [
+      {
+        full: (w) => `The committee members remained intensely ${w} throughout the protracted deliberation.`,
+        trans: (m) => `Các thành viên ủy ban vẫn giữ được tinh thần hết sức ${m} trong suốt cuộc thảo luận kéo dài.`
+      },
+      {
+        full: (w) => `Scholarly observers considered the methodology to be exceptionally ${w} and intellectually rigorous.`,
+        trans: (m) => `Các nhà quan sát học thuật đánh giá phương pháp luận là đặc biệt ${m} và chuẩn mực về mặt trí tuệ.`
+      },
+      {
+        full: (w) => `The principal investigator was undeniably ${w} upon the peer review's favorable verdict.`,
+        trans: (m) => `Chủ nhiệm đề tài nghiên cứu không thể phủ nhận cảm xúc ${m} trước phán quyết thuận lợi của hội đồng bình duyệt.`
+      },
+      {
+        full: (w) => `Sustaining academic excellence requires scholars to remain steadfastly ${w} in their inquiry.`,
+        trans: (m) => `Duy trì sự xuất sắc trong học thuật đòi hỏi các học giả phải kiên định giữ vững thái độ ${m} trong công trình nghiên cứu của mình.`
+      },
+      {
+        full: (w) => `The thesis offered an exposition that was profoundly ${w} yet accessible to specialists.`,
+        trans: (m) => `Luận án đã mang đến một sự trình bày sâu sắc mang tính ${m} nhưng vẫn dễ tiếp cận đối với các chuyên gia.`
+      },
+      {
+        full: (w) => `Critics described her intellectual disposition as remarkably ${w} under rigorous scrutiny.`,
+        trans: (m) => `Các nhà phê bình miêu tả phẩm chất trí tuệ của cô ấy là vô cùng ${m} ngay cả khi chịu sự giám sát nghiêm ngặt.`
+      }
+    ],
+    noun: [
+      {
+        full: (w) => `The publication of this landmark treatise marked a transformative ${w} in modern historiography.`,
+        trans: (m) => `Việc xuất bản chuyên luận mang tính bước ngoặt này đánh dấu một ${m} chuyển biến trong ngành sử học hiện đại.`
+      },
+      {
+        full: (w) => `Addressing this pervasive ${w} remains paramount for achieving sustainable and equitable development.`,
+        trans: (m) => `Giải quyết ${m} lan rộng này vẫn là điều tối quan trọng để đạt được sự phát triển bền vững và công bằng.`
+      },
+      {
+        full: (w) => `The symposium catalyzed a paradigm shift, establishing a new conceptual ${w} for cognitive science.`,
+        trans: (m) => `Hội nghị chuyên đề đã thúc đẩy sự chuyển dịch mô hình, thiết lập một ${m} khái niệm mới cho khoa học nhận thức.`
+      },
+      {
+        full: (w) => `Peer reviewers commended the manuscript for elucidating an intriguing ${w} previously overlooked.`,
+        trans: (m) => `Các chuyên gia bình duyệt khen ngợi bản thảo vì đã làm sáng tỏ một ${m} thú vị từng bị bỏ qua.`
+      },
+      {
+        full: (w) => `Scholarly discourse continually grapples with the ethical ${w} arising from technological acceleration.`,
+        trans: (m) => `Diễn ngôn học thuật liên tục vật lộn với ${m} đạo đức phát sinh từ sự tăng tốc công nghệ.`
+      },
+      {
+        full: (w) => `The empirical data provided a compelling ${w} that substantiated the initial hypothesis.`,
+        trans: (m) => `Dữ liệu thực nghiệm đã cung cấp một ${m} thuyết phục củng cố cho giả thuyết ban đầu.`
+      }
+    ],
+    adv: [
+      {
+        full: (w) => `The research committee scrutinized the preliminary findings ${w} prior to publication.`,
+        trans: (m) => `Ủy ban nghiên cứu đã xem xét kỹ lưỡng các phát hiện sơ bộ một cách ${m} trước khi công bố.`
+      },
+      {
+        full: (w) => `The econometric model predicted market fluctuations ${w} with unparalleled accuracy.`,
+        trans: (m) => `Mô hình kinh tế lượng đã dự báo những biến động thị trường một cách ${m} với độ chuẩn xác vô song.`
+      },
+      {
+        full: (w) => `Distinguished scholars articulated their theoretical arguments ${w} during the plenary session.`,
+        trans: (m) => `Các học giả xuất chúng đã diễn đạt lập luận lý thuyết của họ một cách ${m} trong phiên toàn thể.`
+      },
+      {
+        full: (w) => `The administrative framework was restructured ${w} to ensure regulatory compliance.`,
+        trans: (m) => `Khung quản trị đã được tái cấu trúc một cách ${m} nhằm đảm bảo tính tuân thủ quy định.`
+      },
+      {
+        full: (w) => `The empirical evidence corroborated the central thesis ${w} across diverse cohorts.`,
+        trans: (m) => `Bằng chứng thực nghiệm đã chứng minh luận điểm trung tâm một cách ${m} trên các nhóm đối tượng đa dạng.`
+      }
+    ],
+    phrase: [
+      {
+        full: (w) => `Eminent scholars caution against attempting to ${w} without rigorous empirical justification.`,
+        trans: (m) => `Các học giả lỗi lạc cảnh báo không nên cố gắng ${m} mà thiếu đi sự biện minh thực nghiệm nghiêm ngặt.`
+      },
+      {
+        full: (w) => `In high-level diplomatic deliberations, negotiators invariably ${w} to maintain strategic equilibrium.`,
+        trans: (m) => `Trong các cuộc đàm phán ngoại giao cấp cao, các nhà thương thuyết luôn luôn ${m} để duy trì thế cân bằng chiến lược.`
+      },
+      {
+        full: (w) => `Leading intellectuals argue that modern institutions must learn to ${w} in an era of rapid transition.`,
+        trans: (m) => `Các trí thức hàng đầu lập luận rằng các thể chế hiện đại phải học cách ${m} trong thời kỳ chuyển đổi nhanh chóng.`
+      },
+      {
+        full: (w) => `Theoretical consensus dictates that researchers should ${w} when evaluating contested paradigms.`,
+        trans: (m) => `Sự đồng thuận lý thuyết chỉ ra rằng các nhà nghiên cứu nên ${m} khi đánh giá các mô hình còn tranh cãi.`
+      }
+    ]
+  }
+};
+
+export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrenceIndex = 0, usedSentences = new Set(), requestedLevel = 'all') {
   let examples = [];
   try {
     examples = typeof targetWord.examples === 'string' ? JSON.parse(targetWord.examples || '[]') : (targetWord.examples || []);
@@ -839,199 +1326,53 @@ export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrence
     if (!usedSentences.has(candidate.boldedSentence) && !usedSentences.has(candidate.blankSentence)) {
       usedSentences.add(candidate.boldedSentence);
       usedSentences.add(candidate.blankSentence);
-      return candidate;
+      return {
+        ...candidate,
+        contextLevel: (targetWord.level || (requestedLevel && requestedLevel !== 'all' ? requestedLevel.toUpperCase() : 'B2')).replace('_', ' - ')
+      };
     }
   }
 
-  // 2. Rich templates bank (6 diverse Cambridge / IELTS templates per POS)
+  // 2. Rich multi-level templates bank (CEFR A1-A2, B1, B2, C1-C2)
   const meaning = targetWord.meaning_vi || 'từ vựng này';
-  const templateBank = {
-    verb: [
-      {
-        full: `To ensure project success, our team must ${rawWord} key objectives proactively.`,
-        bold: `To ensure project success, our team must **${rawWord}** key objectives proactively.`,
-        blank: `To ensure project success, our team must _______ key objectives proactively.`,
-        trans: `Để đảm bảo thành công cho dự án, đội ngũ của chúng ta phải ${meaning.toLowerCase()} các mục tiêu then chốt một cách chủ động.`
-      },
-      {
-        full: `Experienced senior engineers regularly ${rawWord} complex workflows to maintain high productivity.`,
-        bold: `Experienced senior engineers regularly **${rawWord}** complex workflows to maintain high productivity.`,
-        blank: `Experienced senior engineers regularly _______ complex workflows to maintain high productivity.`,
-        trans: `Các kỹ sư giàu kinh nghiệm thường xuyên ${meaning.toLowerCase()} quy trình làm việc phức tạp để duy trì năng suất cao.`
-      },
-      {
-        full: `In the previous sprint, leadership decided to ${rawWord} strategic resources across teams.`,
-        bold: `In the previous sprint, leadership decided to **${rawWord}** strategic resources across teams.`,
-        blank: `In the previous sprint, leadership decided to _______ strategic resources across teams.`,
-        trans: `Trong đợt làm việc vừa qua, ban lãnh đạo đã quyết định ${meaning.toLowerCase()} các nguồn lực chiến lược giữa các nhóm.`
-      },
-      {
-        full: `Effective cross-functional collaboration helps specialists ${rawWord} mutual strengths.`,
-        bold: `Effective cross-functional collaboration helps specialists **${rawWord}** mutual strengths.`,
-        blank: `Effective cross-functional collaboration helps specialists _______ mutual strengths.`,
-        trans: `Sự hợp tác liên phòng ban hiệu quả giúp các chuyên gia ${meaning.toLowerCase()} thế mạnh của nhau.`
-      },
-      {
-        full: `The department director requested all leads to ${rawWord} emerging bottlenecks immediately.`,
-        bold: `The department director requested all leads to **${rawWord}** emerging bottlenecks immediately.`,
-        blank: `The department director requested all leads to _______ emerging bottlenecks immediately.`,
-        trans: `Giám đốc bộ phận yêu cầu tất cả các trưởng nhóm phải ${meaning.toLowerCase()} những điểm nghẽn mới phát sinh ngay lập tức.`
-      },
-      {
-        full: `To navigate challenging market conditions, organizations must ${rawWord} their core capabilities.`,
-        bold: `To navigate challenging market conditions, organizations must **${rawWord}** their core capabilities.`,
-        blank: `To navigate challenging market conditions, organizations must _______ their core capabilities.`,
-        trans: `Để vượt qua điều kiện thị trường đầy thử thách, các tổ chức phải ${meaning.toLowerCase()} các năng lực cốt lõi của mình.`
-      }
-    ],
-    adj: [
-      {
-        full: `The leadership praised the specialist for maintaining a ${rawWord} attitude under pressure.`,
-        bold: `The leadership praised the specialist for maintaining a **${rawWord}** attitude under pressure.`,
-        blank: `The leadership praised the specialist for maintaining a _______ attitude under pressure.`,
-        trans: `Ban lãnh đạo khen ngợi chuyên gia vì luôn duy trì thái độ ${meaning.toLowerCase()} dưới áp lực.`
-      },
-      {
-        full: `Adopting a remarkably ${rawWord} strategy enabled the organization to deliver deliverables on time.`,
-        bold: `Adopting a remarkably **${rawWord}** strategy enabled the organization to deliver deliverables on time.`,
-        blank: `Adopting a remarkably _______ strategy enabled the organization to deliver deliverables on time.`,
-        trans: `Việc áp dụng chiến lược đặc biệt ${meaning.toLowerCase()} đã giúp tổ chức bàn giao kết quả đúng hạn.`
-      },
-      {
-        full: `The comprehensive audit report highlighted the need for a ${rawWord} approach to operations.`,
-        bold: `The comprehensive audit report highlighted the need for a **${rawWord}** approach to operations.`,
-        blank: `The comprehensive audit report highlighted the need for a _______ approach to operations.`,
-        trans: `Báo cáo kiểm toán toàn diện nhấn mạnh sự cần thiết của một cách tiếp cận ${meaning.toLowerCase()} trong vận hành.`
-      },
-      {
-        full: `Clients particularly appreciate her ${rawWord} perspective during technical consultations.`,
-        bold: `Clients particularly appreciate her **${rawWord}** perspective during technical consultations.`,
-        blank: `Clients particularly appreciate her _______ perspective during technical consultations.`,
-        trans: `Khách hàng đặc biệt đánh giá cao góc nhìn ${meaning.toLowerCase()} của cô ấy trong các buổi tư vấn kỹ thuật.`
-      },
-      {
-        full: `The engineering team achieved outstanding milestones thanks to their ${rawWord} dedication.`,
-        bold: `The engineering team achieved outstanding milestones thanks to their **${rawWord}** dedication.`,
-        blank: `The engineering team achieved outstanding milestones thanks to their _______ dedication.`,
-        trans: `Đội ngũ kỹ thuật đạt được các cột mốc xuất sắc nhờ vào sự cống hiến ${meaning.toLowerCase()} của họ.`
-      },
-      {
-        full: `Overcoming unforeseen bottlenecks demands a truly ${rawWord} mindset from everyone involved.`,
-        bold: `Overcoming unforeseen bottlenecks demands a truly **${rawWord}** mindset from everyone involved.`,
-        blank: `Overcoming unforeseen bottlenecks demands a truly _______ mindset from everyone involved.`,
-        trans: `Việc vượt qua những điểm nghẽn không lường trước đòi hỏi một tư duy thực sự ${meaning.toLowerCase()} từ mọi người.`
-      }
-    ],
-    noun: [
-      {
-        full: `Achieving this strategic ${rawWord} was a decisive factor in our long-term roadmap.`,
-        bold: `Achieving this strategic **${rawWord}** was a decisive factor in our long-term roadmap.`,
-        blank: `Achieving this strategic _______ was a decisive factor in our long-term roadmap.`,
-        trans: `Đạt được ${meaning.toLowerCase()} chiến lược này là yếu tố quyết định trong lộ trình dài hạn của chúng tôi.`
-      },
-      {
-        full: `The project manager identified an unexpected ${rawWord} during sprint retrospective.`,
-        bold: `The project manager identified an unexpected **${rawWord}** during sprint retrospective.`,
-        blank: `The project manager identified an unexpected _______ during sprint retrospective.`,
-        trans: `Quản lý dự án đã phát hiện ra một ${meaning.toLowerCase()} bất ngờ trong buổi họp đánh giá chặng vừa qua.`
-      },
-      {
-        full: `Establishing a clear and transparent ${rawWord} ensures consistent alignment across departments.`,
-        bold: `Establishing a clear and transparent **${rawWord}** ensures consistent alignment across departments.`,
-        blank: `Establishing a clear and transparent _______ ensures consistent alignment across departments.`,
-        trans: `Việc thiết lập một ${meaning.toLowerCase()} rõ ràng và minh bạch đảm bảo sự thống nhất giữa các phòng ban.`
-      },
-      {
-        full: `Every specialist contributed significantly to the successful execution of this ${rawWord}.`,
-        bold: `Every specialist contributed significantly to the successful execution of this **${rawWord}**.`,
-        blank: `Every specialist contributed significantly to the successful execution of this _______.`,
-        trans: `Mỗi chuyên gia đều đóng góp đáng kể vào việc thực hiện thành công ${meaning.toLowerCase()} này.`
-      },
-      {
-        full: `Effective risk management requires addressing any potential ${rawWord} at an early stage.`,
-        bold: `Effective risk management requires addressing any potential **${rawWord}** at an early stage.`,
-        blank: `Effective risk management requires addressing any potential _______ at an early stage.`,
-        trans: `Quản lý rủi ro hiệu quả đòi hỏi phải giải quyết bất kỳ ${meaning.toLowerCase()} tiềm ẩn nào từ giai đoạn sớm.`
-      },
-      {
-        full: `The executive committee emphasized the vital importance of this ${rawWord} for sustainable growth.`,
-        bold: `The executive committee emphasized the vital importance of this **${rawWord}** for sustainable growth.`,
-        blank: `The executive committee emphasized the vital importance of this _______ for sustainable growth.`,
-        trans: `Ủy ban điều hành nhấn mạnh tầm quan trọng thiết yếu của ${meaning.toLowerCase()} này đối với sự phát triển bền vững.`
-      }
-    ],
-    adv: [
-      {
-        full: `She analyzed the complex architecture ${rawWord} before presenting recommendations.`,
-        bold: `She analyzed the complex architecture **${rawWord}** before presenting recommendations.`,
-        blank: `She analyzed the complex architecture _______ before presenting recommendations.`,
-        trans: `Cô ấy đã phân tích kiến trúc phức tạp ${meaning.toLowerCase()} trước khi đưa ra đề xuất.`
-      },
-      {
-        full: `The engineering division resolved the server incident ${rawWord} and calmly.`,
-        bold: `The engineering division resolved the server incident **${rawWord}** and calmly.`,
-        blank: `The engineering division resolved the server incident _______ and calmly.`,
-        trans: `Bộ phận kỹ thuật đã xử lý sự cố máy chủ ${meaning.toLowerCase()} và điềm tĩnh.`
-      },
-      {
-        full: `All team members worked ${rawWord} to meet the stringent product quality standards.`,
-        bold: `All team members worked **${rawWord}** to meet the stringent product quality standards.`,
-        blank: `All team members worked _______ to meet the stringent product quality standards.`,
-        trans: `Tất cả thành viên trong nhóm đã làm việc ${meaning.toLowerCase()} để đáp ứng tiêu chuẩn chất lượng sản phẩm nghiêm ngặt.`
-      },
-      {
-        full: `He presented the quarterly performance metrics ${rawWord} to the executive stakeholders.`,
-        bold: `He presented the quarterly performance metrics **${rawWord}** to the executive stakeholders.`,
-        blank: `He presented the quarterly performance metrics _______ to the executive stakeholders.`,
-        trans: `Anh ấy đã trình bày các chỉ số hiệu suất quý ${meaning.toLowerCase()} cho các bên liên quan cấp cao.`
-      },
-      {
-        full: `The cloud infrastructure adapted ${rawWord} even during peak traffic conditions.`,
-        bold: `The cloud infrastructure adapted **${rawWord}** even during peak traffic conditions.`,
-        blank: `The cloud infrastructure adapted _______ even during peak traffic conditions.`,
-        trans: `Hạ tầng đám mây đã thích ứng ${meaning.toLowerCase()} ngay cả trong điều kiện lưu lượng truy cập cao điểm.`
-      }
-    ],
-    phrase: [
-      {
-        full: `In professional environments, experienced team members always ${rawWord} to ensure collaboration.`,
-        bold: `In professional environments, experienced team members always **${rawWord}** to ensure collaboration.`,
-        blank: `In professional environments, experienced team members always _______ to ensure collaboration.`,
-        trans: `Trong môi trường chuyên nghiệp, các thành viên giàu kinh nghiệm luôn ${meaning.toLowerCase()} để đảm bảo sự hợp tác.`
-      },
-      {
-        full: `When handling critical business communications, it is crucial to ${rawWord} proactively.`,
-        bold: `When handling critical business communications, it is crucial to **${rawWord}** proactively.`,
-        blank: `When handling critical business communications, it is crucial to _______ proactively.`,
-        trans: `Khi xử lý các thông tin liên lạc kinh doanh quan trọng, điều cốt yếu là phải ${meaning.toLowerCase()} một cách chủ động.`
-      },
-      {
-        full: `Successful team leads advise their colleagues never to ${rawWord} under pressure.`,
-        bold: `Successful team leads advise their colleagues never to **${rawWord}** under pressure.`,
-        blank: `Successful team leads advise their colleagues never to _______ under pressure.`,
-        trans: `Các trưởng nhóm thành công khuyên đồng nghiệp của họ không bao giờ ${meaning.toLowerCase()} dưới áp lực.`
-      },
-      {
-        full: `During strategic sprint planning, engineers agreed to ${rawWord} to keep project momentum.`,
-        bold: `During strategic sprint planning, engineers agreed to **${rawWord}** to keep project momentum.`,
-        blank: `During strategic sprint planning, engineers agreed to _______ to keep project momentum.`,
-        trans: `Trong buổi lập kế hoạch chiến lược, các kỹ sư đã đồng ý ${meaning.toLowerCase()} để giữ vững đà tiến độ dự án.`
-      }
-    ]
-  };
 
-  const templates = templateBank[pos] || templateBank.noun;
+  let levelKey = 'b2';
+  const normReq = String(requestedLevel || 'all').toLowerCase().trim();
+  if (normReq === 'a1_a2' || normReq === 'a1' || normReq === 'a2') {
+    levelKey = 'a1_a2';
+  } else if (normReq === 'b1') {
+    levelKey = 'b1';
+  } else if (normReq === 'b2') {
+    levelKey = 'b2';
+  } else if (normReq === 'c1' || normReq === 'c2' || normReq === 'c1_c2') {
+    levelKey = 'c1_c2';
+  } else {
+    // 'all' -> cycle across all 4 tiers based on occurrenceIndex
+    const tiers = ['a1_a2', 'b1', 'b2', 'c1_c2'];
+    levelKey = tiers[occurrenceIndex % tiers.length];
+  }
+
+  const levelBank = TEMPLATE_BANK_BY_LEVEL[levelKey] || TEMPLATE_BANK_BY_LEVEL.b2;
+  const templates = levelBank[pos] || levelBank.noun;
+
   for (let k = 0; k < templates.length; k++) {
     const candidateTpl = templates[(occurrenceIndex + k) % templates.length];
-    if (!usedSentences.has(candidateTpl.bold) && !usedSentences.has(candidateTpl.blank)) {
-      usedSentences.add(candidateTpl.bold);
-      usedSentences.add(candidateTpl.blank);
+    const fullText = candidateTpl.full(rawWord);
+    const regex = new RegExp(`\\b${escapeRegExp(rawWord)}\\b`, 'i');
+    const boldText = regex.test(fullText) ? fullText.replace(regex, `**${rawWord}**`) : `**${rawWord}** - ${fullText}`;
+    const blankText = regex.test(fullText) ? fullText.replace(regex, '_______') : `_______ - ${fullText}`;
+    const transText = candidateTpl.trans(meaning.toLowerCase());
+
+    if (!usedSentences.has(boldText) && !usedSentences.has(blankText)) {
+      usedSentences.add(boldText);
+      usedSentences.add(blankText);
       return {
-        fullSentence: candidateTpl.full,
-        boldedSentence: candidateTpl.bold,
-        blankSentence: candidateTpl.blank,
+        fullSentence: fullText,
+        boldedSentence: boldText,
+        blankSentence: blankText,
         matchedForm: rawWord,
-        sentenceTranslation: candidateTpl.trans
+        sentenceTranslation: transText,
+        contextLevel: levelBank.label
       };
     }
   }
@@ -1039,16 +1380,21 @@ export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrence
   // Fallback if all standard templates used: generate distinct round variant
   const baseTpl = templates[occurrenceIndex % templates.length];
   const roundNum = Math.floor(occurrenceIndex / templates.length) + 1;
-  const uniqueBold = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.bold}` : baseTpl.bold;
-  const uniqueBlank = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.blank}` : baseTpl.blank;
+  const baseFull = baseTpl.full(rawWord);
+  const regex = new RegExp(`\\b${escapeRegExp(rawWord)}\\b`, 'i');
+  const baseBold = regex.test(baseFull) ? baseFull.replace(regex, `**${rawWord}**`) : `**${rawWord}** - ${baseFull}`;
+  const baseBlank = regex.test(baseFull) ? baseFull.replace(regex, '_______') : `_______ - ${baseFull}`;
+  const uniqueBold = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseBold}` : baseBold;
+  const uniqueBlank = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseBlank}` : baseBlank;
   usedSentences.add(uniqueBold);
   usedSentences.add(uniqueBlank);
   return {
-    fullSentence: roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.full}` : baseTpl.full,
+    fullSentence: roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseFull}` : baseFull,
     boldedSentence: uniqueBold,
     blankSentence: uniqueBlank,
     matchedForm: rawWord,
-    sentenceTranslation: baseTpl.trans
+    sentenceTranslation: baseTpl.trans(meaning.toLowerCase()),
+    contextLevel: levelBank.label
   };
 }
 
@@ -1284,7 +1630,7 @@ export const quizService = {
   },
 
   // 2. Generate a Quiz based on Topics, Date Scope, Count and IELTS Level
-  generateQuiz: ({ topic = 'All', count = 5, mode = 'mixed', level = 'all', date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id' }) => {
+  generateQuiz: ({ topic = 'All', count = 5, mode = 'mixed', level = 'all', context_levels = null, date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id' }) => {
     const db = getDb();
     let words = db.prepare(`
       SELECT * FROM words 
@@ -1362,6 +1708,17 @@ export const quizService = {
     }
 
     const questionDifficulty = ['easy', 'medium', 'hard'].includes(level) ? level : 'all';
+
+    // Parse multi-option context proficiency levels
+    let activeContextLevels = [];
+    if (Array.isArray(context_levels) && context_levels.length > 0) {
+      activeContextLevels = context_levels.map(l => String(l).toLowerCase().trim()).filter(l => l && l !== 'all');
+    } else if (typeof context_levels === 'string' && context_levels && context_levels !== 'all') {
+      activeContextLevels = context_levels.split(',').map(l => l.trim().toLowerCase()).filter(Boolean);
+    }
+    if (activeContextLevels.length === 0) {
+      activeContextLevels = ['a1_a2', 'b1', 'b2', 'c1_c2'];
+    }
 
     // 3. Quy tắc chọn từ mục tiêu (TUYỆT ĐỐI KHÔNG TỰ SINH TỪ NGOÀI KHO TỪ/BỘ LỌC):
     // - Lọc bỏ từ trùng lặp trong candidateWords theo từ chuẩn hóa
@@ -1458,7 +1815,8 @@ export const quizService = {
 
       const pos = getWordPos(targetWord);
       const posLabel = POS_LABELS[pos] || 'Từ vựng';
-      const context = getAuthenticContextSentence(targetWord, pos, occurrenceIndex, usedSentences);
+      const qTargetLevel = activeContextLevels[(index + occurrenceIndex) % activeContextLevels.length];
+      const context = getAuthenticContextSentence(targetWord, pos, occurrenceIndex, usedSentences, qTargetLevel);
 
       if (qType === 'meaning_vi') {
         // === 1. ĐỌC HIỂU NGỮ CẢNH & PHÂN BIỆT SẮC THÁI NGHĨA ===
@@ -1628,6 +1986,7 @@ export const quizService = {
         phonetic: targetWord.phonetic,
         difficulty: qDifficulty,
         level: targetWord.level || (qDifficulty === 'easy' ? 'A2' : qDifficulty === 'hard' ? 'C1' : 'B2'),
+        context_level: context.contextLevel || (qTargetLevel ? qTargetLevel.toUpperCase().replace('_', ' - ') : 'B1'),
         meaning_vi: validTargetMeaning,
         meaning_en: targetWord.meaning_en,
         part_of_speech: targetWord.part_of_speech || posLabel,
@@ -1648,6 +2007,7 @@ export const quizService = {
       topic: topicDisplay,
       mode,
       level,
+      context_levels: activeContextLevels,
       totalQuestions: questions.length,
       questions
     };
@@ -1687,6 +2047,7 @@ export const quizService = {
         userAnswer: item.userAnswer,
         correctAnswer: item.correctAnswer,
         isCorrect,
+        context_level: item.context_level || item.contextLevel || null,
         explanation: item.explanation,
         translation: item.translation
       });
