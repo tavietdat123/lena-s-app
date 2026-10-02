@@ -141,18 +141,14 @@ export function normalizeAndRandomizeQuestions(parsed, defaultPrefix = 'ai_q') {
 
   if (!list || list.length === 0) return [];
 
-  // Deduplicate items from AI response (guarantee no duplicate questions or target words)
-  const seenWords = new Set();
+  // Deduplicate items from AI response (guarantee no duplicate question texts)
   const seenTexts = new Set();
   const uniqueList = [];
 
   for (const q of list) {
     if (!q || typeof q !== 'object') continue;
-    const w = String(q.word || q.targetWord || q.term || '').trim().toLowerCase();
     const t = String(q.questionText || '').trim().toLowerCase();
-    if (w && seenWords.has(w)) continue;
     if (t && seenTexts.has(t)) continue;
-    if (w) seenWords.add(w);
     if (t) seenTexts.add(t);
     uniqueList.push(q);
   }
@@ -818,23 +814,16 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
   if (shuffled.length >= targetCount) {
     selected = shuffled.slice(0, targetCount);
   } else {
+    // Round 1: Tất cả các từ ứng viên trong phạm vi xuất hiện ít nhất 1 lần
     selected = [...shuffled];
-    const seenSelected = new Set(selected.map(w => (w.word || '').trim().toLowerCase()));
-    const otherWords = (allWords || []).filter(w => {
-      const norm = (w.word || '').trim().toLowerCase();
-      return norm && !seenSelected.has(norm);
-    });
-    const uniqueOther = [];
-    for (const w of otherWords) {
-      const norm = (w.word || '').trim().toLowerCase();
-      if (norm && !seenSelected.has(norm)) {
-        seenSelected.add(norm);
-        uniqueOther.push(w);
+    // Round 2+: Tiếp tục random xoay vòng từ uniqueCandidates cho đến khi đủ targetCount, TUYỆT ĐỐI không lấy từ bên ngoài
+    while (selected.length < targetCount && uniqueCandidates.length > 0) {
+      const nextRound = [...uniqueCandidates].sort(() => 0.5 - Math.random());
+      for (const w of nextRound) {
+        if (selected.length >= targetCount) break;
+        selected.push(w);
       }
     }
-    uniqueOther.sort(() => 0.5 - Math.random());
-    const needed = targetCount - selected.length;
-    selected.push(...uniqueOther.slice(0, needed));
   }
 
   const ieltsRequirementMap = {
@@ -933,7 +922,9 @@ Danh sách mục tiêu từng câu:
 ${wordsInput}
 
 LƯU Ý ĐẶC BIỆT (BẮT BUỘC):
-- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG LẶP: Mỗi câu hỏi bắt buộc phải kiểm tra một từ vựng riêng biệt, ngữ cảnh tình huống riêng biệt và các phương án riêng biệt. Tuyệt đối không lặp lại câu hỏi hoặc tình huống đã có.
+- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG NHAU (NO DUPLICATE QUESTIONS):
+  + Nếu có từ mục tiêu xuất hiện nhiều hơn 1 lần trong danh sách được giao, TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI GIỐNG NHAU! Mỗi lần từ đó xuất hiện, BẮT BUỘC phải tạo một câu văn ngữ cảnh hoàn toàn mới, một tình huống công sở/đời sống khác biệt, hoặc kiểm tra ở một khía cạnh ngữ pháp khác (ví dụ: một lần hỏi thì hiện tại, một lần hỏi thì quá khứ, một lần hỏi danh động từ/tính từ, hoặc ngữ cảnh giao tiếp khác).
+  + Tuyệt đối không tự ý sinh thêm bất kỳ từ vựng mới nào ngoài danh sách từ mục tiêu được giao bên trên!
 - Mỗi câu hỏi bắt buộc phải có giải thích ngữ pháp/ngữ nghĩa chi tiết và dịch nghĩa tiếng Việt cả câu.
 
 Hãy trả về JSON với cấu trúc:

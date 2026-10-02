@@ -780,7 +780,7 @@ export function extractCollocations(targetWord) {
   return list.slice(0, 3);
 }
 
-export function getAuthenticContextSentence(targetWord, pos = 'noun') {
+export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrenceIndex = 0, usedSentences = new Set()) {
   let examples = [];
   try {
     examples = typeof targetWord.examples === 'string' ? JSON.parse(targetWord.examples || '[]') : (targetWord.examples || []);
@@ -799,6 +799,8 @@ export function getAuthenticContextSentence(targetWord, pos = 'noun') {
     forms.advForm
   ].filter(Boolean);
 
+  // 1. Gather all authentic example matches from DB
+  const matchedFromExamples = [];
   if (Array.isArray(examples) && examples.length > 0) {
     for (const ex of examples) {
       const rawText = typeof ex === 'string' ? ex : (ex?.en || ex?.sentence || '');
@@ -817,65 +819,251 @@ export function getAuthenticContextSentence(targetWord, pos = 'noun') {
         if (regex.test(englishText)) {
           const boldedSentence = englishText.replace(regex, `**${form}**`);
           const blankSentence = englishText.replace(regex, '_______');
-          return {
+          matchedFromExamples.push({
             fullSentence: englishText,
             boldedSentence,
             blankSentence,
             matchedForm: form,
             sentenceTranslation: sentenceTranslation || (targetWord.meaning_vi ? `Dịch câu: ${targetWord.meaning_vi}` : '')
-          };
+          });
+          break;
         }
       }
     }
   }
 
-  // Fallback high-quality Cambridge / IELTS contextual sentences
-  const meaning = targetWord.meaning_vi || 'từ vựng này';
-  let defaultFull = '';
-  let defaultBold = '';
-  let defaultBlank = '';
-  let defaultTranslation = '';
-
-  if (pos === 'verb') {
-    defaultFull = `To ensure project success, our team must ${rawWord} key objectives proactively.`;
-    defaultBold = `To ensure project success, our team must **${rawWord}** key objectives proactively.`;
-    defaultBlank = `To ensure project success, our team must _______ key objectives proactively.`;
-    defaultTranslation = `Để đảm bảo thành công cho dự án, đội ngũ của chúng ta phải ${meaning.toLowerCase()} các mục tiêu then chốt một cách chủ động.`;
-  } else if (pos === 'adj') {
-    defaultFull = `The leadership praised the specialist for maintaining a ${rawWord} attitude under pressure.`;
-    defaultBold = `The leadership praised the specialist for maintaining a **${rawWord}** attitude under pressure.`;
-    defaultBlank = `The leadership praised the specialist for maintaining a _______ attitude under pressure.`;
-    defaultTranslation = `Ban lãnh đạo khen ngợi chuyên gia vì luôn duy trì thái độ ${meaning.toLowerCase()} dưới áp lực.`;
-  } else if (pos === 'noun') {
-    defaultFull = `Achieving this strategic ${rawWord} was a decisive factor in our long-term roadmap.`;
-    defaultBold = `Achieving this strategic **${rawWord}** was a decisive factor in our long-term roadmap.`;
-    defaultBlank = `Achieving this strategic _______ was a decisive factor in our long-term roadmap.`;
-    defaultTranslation = `Đạt được ${meaning.toLowerCase()} chiến lược này là yếu tố quyết định trong lộ trình dài hạn của chúng tôi.`;
-  } else if (pos === 'adv') {
-    defaultFull = `She analyzed the complex architecture ${rawWord} before presenting recommendations.`;
-    defaultBold = `She analyzed the complex architecture **${rawWord}** before presenting recommendations.`;
-    defaultBlank = `She analyzed the complex architecture _______ before presenting recommendations.`;
-    defaultTranslation = `Cô ấy đã phân tích kiến trúc phức tạp ${meaning.toLowerCase()} trước khi đưa ra đề xuất.`;
-  } else {
-    defaultFull = `In professional environments, experienced team members always ${rawWord} to ensure collaboration.`;
-    defaultBold = `In professional environments, experienced team members always **${rawWord}** to ensure collaboration.`;
-    defaultBlank = `In professional environments, experienced team members always _______ to ensure collaboration.`;
-    defaultTranslation = `Trong môi trường chuyên nghiệp, các thành viên giàu kinh nghiệm luôn ${meaning.toLowerCase()} để đảm bảo sự hợp tác.`;
+  // Check if any matched example is not yet used
+  for (let i = 0; i < matchedFromExamples.length; i++) {
+    const candidateIdx = (occurrenceIndex + i) % matchedFromExamples.length;
+    const candidate = matchedFromExamples[candidateIdx];
+    if (!usedSentences.has(candidate.boldedSentence) && !usedSentences.has(candidate.blankSentence)) {
+      usedSentences.add(candidate.boldedSentence);
+      usedSentences.add(candidate.blankSentence);
+      return candidate;
+    }
   }
 
+  // 2. Rich templates bank (6 diverse Cambridge / IELTS templates per POS)
+  const meaning = targetWord.meaning_vi || 'từ vựng này';
+  const templateBank = {
+    verb: [
+      {
+        full: `To ensure project success, our team must ${rawWord} key objectives proactively.`,
+        bold: `To ensure project success, our team must **${rawWord}** key objectives proactively.`,
+        blank: `To ensure project success, our team must _______ key objectives proactively.`,
+        trans: `Để đảm bảo thành công cho dự án, đội ngũ của chúng ta phải ${meaning.toLowerCase()} các mục tiêu then chốt một cách chủ động.`
+      },
+      {
+        full: `Experienced senior engineers regularly ${rawWord} complex workflows to maintain high productivity.`,
+        bold: `Experienced senior engineers regularly **${rawWord}** complex workflows to maintain high productivity.`,
+        blank: `Experienced senior engineers regularly _______ complex workflows to maintain high productivity.`,
+        trans: `Các kỹ sư giàu kinh nghiệm thường xuyên ${meaning.toLowerCase()} quy trình làm việc phức tạp để duy trì năng suất cao.`
+      },
+      {
+        full: `In the previous sprint, leadership decided to ${rawWord} strategic resources across teams.`,
+        bold: `In the previous sprint, leadership decided to **${rawWord}** strategic resources across teams.`,
+        blank: `In the previous sprint, leadership decided to _______ strategic resources across teams.`,
+        trans: `Trong đợt làm việc vừa qua, ban lãnh đạo đã quyết định ${meaning.toLowerCase()} các nguồn lực chiến lược giữa các nhóm.`
+      },
+      {
+        full: `Effective cross-functional collaboration helps specialists ${rawWord} mutual strengths.`,
+        bold: `Effective cross-functional collaboration helps specialists **${rawWord}** mutual strengths.`,
+        blank: `Effective cross-functional collaboration helps specialists _______ mutual strengths.`,
+        trans: `Sự hợp tác liên phòng ban hiệu quả giúp các chuyên gia ${meaning.toLowerCase()} thế mạnh của nhau.`
+      },
+      {
+        full: `The department director requested all leads to ${rawWord} emerging bottlenecks immediately.`,
+        bold: `The department director requested all leads to **${rawWord}** emerging bottlenecks immediately.`,
+        blank: `The department director requested all leads to _______ emerging bottlenecks immediately.`,
+        trans: `Giám đốc bộ phận yêu cầu tất cả các trưởng nhóm phải ${meaning.toLowerCase()} những điểm nghẽn mới phát sinh ngay lập tức.`
+      },
+      {
+        full: `To navigate challenging market conditions, organizations must ${rawWord} their core capabilities.`,
+        bold: `To navigate challenging market conditions, organizations must **${rawWord}** their core capabilities.`,
+        blank: `To navigate challenging market conditions, organizations must _______ their core capabilities.`,
+        trans: `Để vượt qua điều kiện thị trường đầy thử thách, các tổ chức phải ${meaning.toLowerCase()} các năng lực cốt lõi của mình.`
+      }
+    ],
+    adj: [
+      {
+        full: `The leadership praised the specialist for maintaining a ${rawWord} attitude under pressure.`,
+        bold: `The leadership praised the specialist for maintaining a **${rawWord}** attitude under pressure.`,
+        blank: `The leadership praised the specialist for maintaining a _______ attitude under pressure.`,
+        trans: `Ban lãnh đạo khen ngợi chuyên gia vì luôn duy trì thái độ ${meaning.toLowerCase()} dưới áp lực.`
+      },
+      {
+        full: `Adopting a remarkably ${rawWord} strategy enabled the organization to deliver deliverables on time.`,
+        bold: `Adopting a remarkably **${rawWord}** strategy enabled the organization to deliver deliverables on time.`,
+        blank: `Adopting a remarkably _______ strategy enabled the organization to deliver deliverables on time.`,
+        trans: `Việc áp dụng chiến lược đặc biệt ${meaning.toLowerCase()} đã giúp tổ chức bàn giao kết quả đúng hạn.`
+      },
+      {
+        full: `The comprehensive audit report highlighted the need for a ${rawWord} approach to operations.`,
+        bold: `The comprehensive audit report highlighted the need for a **${rawWord}** approach to operations.`,
+        blank: `The comprehensive audit report highlighted the need for a _______ approach to operations.`,
+        trans: `Báo cáo kiểm toán toàn diện nhấn mạnh sự cần thiết của một cách tiếp cận ${meaning.toLowerCase()} trong vận hành.`
+      },
+      {
+        full: `Clients particularly appreciate her ${rawWord} perspective during technical consultations.`,
+        bold: `Clients particularly appreciate her **${rawWord}** perspective during technical consultations.`,
+        blank: `Clients particularly appreciate her _______ perspective during technical consultations.`,
+        trans: `Khách hàng đặc biệt đánh giá cao góc nhìn ${meaning.toLowerCase()} của cô ấy trong các buổi tư vấn kỹ thuật.`
+      },
+      {
+        full: `The engineering team achieved outstanding milestones thanks to their ${rawWord} dedication.`,
+        bold: `The engineering team achieved outstanding milestones thanks to their **${rawWord}** dedication.`,
+        blank: `The engineering team achieved outstanding milestones thanks to their _______ dedication.`,
+        trans: `Đội ngũ kỹ thuật đạt được các cột mốc xuất sắc nhờ vào sự cống hiến ${meaning.toLowerCase()} của họ.`
+      },
+      {
+        full: `Overcoming unforeseen bottlenecks demands a truly ${rawWord} mindset from everyone involved.`,
+        bold: `Overcoming unforeseen bottlenecks demands a truly **${rawWord}** mindset from everyone involved.`,
+        blank: `Overcoming unforeseen bottlenecks demands a truly _______ mindset from everyone involved.`,
+        trans: `Việc vượt qua những điểm nghẽn không lường trước đòi hỏi một tư duy thực sự ${meaning.toLowerCase()} từ mọi người.`
+      }
+    ],
+    noun: [
+      {
+        full: `Achieving this strategic ${rawWord} was a decisive factor in our long-term roadmap.`,
+        bold: `Achieving this strategic **${rawWord}** was a decisive factor in our long-term roadmap.`,
+        blank: `Achieving this strategic _______ was a decisive factor in our long-term roadmap.`,
+        trans: `Đạt được ${meaning.toLowerCase()} chiến lược này là yếu tố quyết định trong lộ trình dài hạn của chúng tôi.`
+      },
+      {
+        full: `The project manager identified an unexpected ${rawWord} during sprint retrospective.`,
+        bold: `The project manager identified an unexpected **${rawWord}** during sprint retrospective.`,
+        blank: `The project manager identified an unexpected _______ during sprint retrospective.`,
+        trans: `Quản lý dự án đã phát hiện ra một ${meaning.toLowerCase()} bất ngờ trong buổi họp đánh giá chặng vừa qua.`
+      },
+      {
+        full: `Establishing a clear and transparent ${rawWord} ensures consistent alignment across departments.`,
+        bold: `Establishing a clear and transparent **${rawWord}** ensures consistent alignment across departments.`,
+        blank: `Establishing a clear and transparent _______ ensures consistent alignment across departments.`,
+        trans: `Việc thiết lập một ${meaning.toLowerCase()} rõ ràng và minh bạch đảm bảo sự thống nhất giữa các phòng ban.`
+      },
+      {
+        full: `Every specialist contributed significantly to the successful execution of this ${rawWord}.`,
+        bold: `Every specialist contributed significantly to the successful execution of this **${rawWord}**.`,
+        blank: `Every specialist contributed significantly to the successful execution of this _______.`,
+        trans: `Mỗi chuyên gia đều đóng góp đáng kể vào việc thực hiện thành công ${meaning.toLowerCase()} này.`
+      },
+      {
+        full: `Effective risk management requires addressing any potential ${rawWord} at an early stage.`,
+        bold: `Effective risk management requires addressing any potential **${rawWord}** at an early stage.`,
+        blank: `Effective risk management requires addressing any potential _______ at an early stage.`,
+        trans: `Quản lý rủi ro hiệu quả đòi hỏi phải giải quyết bất kỳ ${meaning.toLowerCase()} tiềm ẩn nào từ giai đoạn sớm.`
+      },
+      {
+        full: `The executive committee emphasized the vital importance of this ${rawWord} for sustainable growth.`,
+        bold: `The executive committee emphasized the vital importance of this **${rawWord}** for sustainable growth.`,
+        blank: `The executive committee emphasized the vital importance of this _______ for sustainable growth.`,
+        trans: `Ủy ban điều hành nhấn mạnh tầm quan trọng thiết yếu của ${meaning.toLowerCase()} này đối với sự phát triển bền vững.`
+      }
+    ],
+    adv: [
+      {
+        full: `She analyzed the complex architecture ${rawWord} before presenting recommendations.`,
+        bold: `She analyzed the complex architecture **${rawWord}** before presenting recommendations.`,
+        blank: `She analyzed the complex architecture _______ before presenting recommendations.`,
+        trans: `Cô ấy đã phân tích kiến trúc phức tạp ${meaning.toLowerCase()} trước khi đưa ra đề xuất.`
+      },
+      {
+        full: `The engineering division resolved the server incident ${rawWord} and calmly.`,
+        bold: `The engineering division resolved the server incident **${rawWord}** and calmly.`,
+        blank: `The engineering division resolved the server incident _______ and calmly.`,
+        trans: `Bộ phận kỹ thuật đã xử lý sự cố máy chủ ${meaning.toLowerCase()} và điềm tĩnh.`
+      },
+      {
+        full: `All team members worked ${rawWord} to meet the stringent product quality standards.`,
+        bold: `All team members worked **${rawWord}** to meet the stringent product quality standards.`,
+        blank: `All team members worked _______ to meet the stringent product quality standards.`,
+        trans: `Tất cả thành viên trong nhóm đã làm việc ${meaning.toLowerCase()} để đáp ứng tiêu chuẩn chất lượng sản phẩm nghiêm ngặt.`
+      },
+      {
+        full: `He presented the quarterly performance metrics ${rawWord} to the executive stakeholders.`,
+        bold: `He presented the quarterly performance metrics **${rawWord}** to the executive stakeholders.`,
+        blank: `He presented the quarterly performance metrics _______ to the executive stakeholders.`,
+        trans: `Anh ấy đã trình bày các chỉ số hiệu suất quý ${meaning.toLowerCase()} cho các bên liên quan cấp cao.`
+      },
+      {
+        full: `The cloud infrastructure adapted ${rawWord} even during peak traffic conditions.`,
+        bold: `The cloud infrastructure adapted **${rawWord}** even during peak traffic conditions.`,
+        blank: `The cloud infrastructure adapted _______ even during peak traffic conditions.`,
+        trans: `Hạ tầng đám mây đã thích ứng ${meaning.toLowerCase()} ngay cả trong điều kiện lưu lượng truy cập cao điểm.`
+      }
+    ],
+    phrase: [
+      {
+        full: `In professional environments, experienced team members always ${rawWord} to ensure collaboration.`,
+        bold: `In professional environments, experienced team members always **${rawWord}** to ensure collaboration.`,
+        blank: `In professional environments, experienced team members always _______ to ensure collaboration.`,
+        trans: `Trong môi trường chuyên nghiệp, các thành viên giàu kinh nghiệm luôn ${meaning.toLowerCase()} để đảm bảo sự hợp tác.`
+      },
+      {
+        full: `When handling critical business communications, it is crucial to ${rawWord} proactively.`,
+        bold: `When handling critical business communications, it is crucial to **${rawWord}** proactively.`,
+        blank: `When handling critical business communications, it is crucial to _______ proactively.`,
+        trans: `Khi xử lý các thông tin liên lạc kinh doanh quan trọng, điều cốt yếu là phải ${meaning.toLowerCase()} một cách chủ động.`
+      },
+      {
+        full: `Successful team leads advise their colleagues never to ${rawWord} under pressure.`,
+        bold: `Successful team leads advise their colleagues never to **${rawWord}** under pressure.`,
+        blank: `Successful team leads advise their colleagues never to _______ under pressure.`,
+        trans: `Các trưởng nhóm thành công khuyên đồng nghiệp của họ không bao giờ ${meaning.toLowerCase()} dưới áp lực.`
+      },
+      {
+        full: `During strategic sprint planning, engineers agreed to ${rawWord} to keep project momentum.`,
+        bold: `During strategic sprint planning, engineers agreed to **${rawWord}** to keep project momentum.`,
+        blank: `During strategic sprint planning, engineers agreed to _______ to keep project momentum.`,
+        trans: `Trong buổi lập kế hoạch chiến lược, các kỹ sư đã đồng ý ${meaning.toLowerCase()} để giữ vững đà tiến độ dự án.`
+      }
+    ]
+  };
+
+  const templates = templateBank[pos] || templateBank.noun;
+  for (let k = 0; k < templates.length; k++) {
+    const candidateTpl = templates[(occurrenceIndex + k) % templates.length];
+    if (!usedSentences.has(candidateTpl.bold) && !usedSentences.has(candidateTpl.blank)) {
+      usedSentences.add(candidateTpl.bold);
+      usedSentences.add(candidateTpl.blank);
+      return {
+        fullSentence: candidateTpl.full,
+        boldedSentence: candidateTpl.bold,
+        blankSentence: candidateTpl.blank,
+        matchedForm: rawWord,
+        sentenceTranslation: candidateTpl.trans
+      };
+    }
+  }
+
+  // Fallback if all standard templates used: generate distinct round variant
+  const baseTpl = templates[occurrenceIndex % templates.length];
+  const roundNum = Math.floor(occurrenceIndex / templates.length) + 1;
+  const uniqueBold = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.bold}` : baseTpl.bold;
+  const uniqueBlank = roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.blank}` : baseTpl.blank;
+  usedSentences.add(uniqueBold);
+  usedSentences.add(uniqueBlank);
   return {
-    fullSentence: defaultFull,
-    boldedSentence: defaultBold,
-    blankSentence: defaultBlank,
+    fullSentence: roundNum > 1 ? `[Ngữ cảnh #${roundNum}] ${baseTpl.full}` : baseTpl.full,
+    boldedSentence: uniqueBold,
+    blankSentence: uniqueBlank,
     matchedForm: rawWord,
-    sentenceTranslation: defaultTranslation
+    sentenceTranslation: baseTpl.trans
   };
 }
 
-export function getSamePosDistractors({ targetWord, pos, allWords = [], count = 3, difficulty = 'medium' }) {
+export function getSamePosDistractors({ targetWord, pos, candidateWords = [], allWords = [], count = 3, difficulty = 'medium' }) {
   const targetNorm = (targetWord.word || '').trim().toLowerCase();
 
-  // 1. Gather other words with exact same POS from user library
+  // 1. Prioritize other words with exact same POS from filtered candidate words first
+  const samePosCandidateWords = (candidateWords || []).filter(w => {
+    const wNorm = (w.word || '').trim().toLowerCase();
+    if (wNorm === targetNorm) return false;
+    if (!w.meaning_vi || w.meaning_vi.includes('Tra cứu thêm')) return false;
+    return getWordPos(w) === pos;
+  });
+
+  // 2. Gather other words with exact same POS from all user library words
   const samePosUserWords = (allWords || []).filter(w => {
     const wNorm = (w.word || '').trim().toLowerCase();
     if (wNorm === targetNorm) return false;
@@ -883,14 +1071,27 @@ export function getSamePosDistractors({ targetWord, pos, allWords = [], count = 
     return getWordPos(w) === pos;
   });
 
-  // 2. Gather curated items for this POS
+  // 3. Gather curated items for this POS
   const curatedItems = (CURATED_POS_DISTRACTORS[pos] || []).filter(d => d.word.toLowerCase() !== targetNorm);
 
   const combined = [];
   const seen = new Set();
   seen.add(targetNorm);
 
-  // Shuffle user words first
+  // Shuffle candidate words first
+  const shuffledCandidate = [...samePosCandidateWords].sort(() => 0.5 - Math.random());
+  for (const item of shuffledCandidate) {
+    const key = item.word.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      combined.push({
+        word: item.word,
+        meaning_vi: cleanMeaningText(item.meaning_vi, item.meaning_en, item.word)
+      });
+    }
+  }
+
+  // Shuffle user words next
   const shuffledUser = [...samePosUserWords].sort(() => 0.5 - Math.random());
   for (const item of shuffledUser) {
     const key = item.word.toLowerCase();
@@ -1162,7 +1363,7 @@ export const quizService = {
 
     const questionDifficulty = ['easy', 'medium', 'hard'].includes(level) ? level : 'all';
 
-    // 3. Quy tắc chọn từ mục tiêu (TUYỆT ĐỐI KHÔNG TRÙNG LẶP):
+    // 3. Quy tắc chọn từ mục tiêu (TUYỆT ĐỐI KHÔNG TỰ SINH TỪ NGOÀI KHO TỪ/BỘ LỌC):
     // - Lọc bỏ từ trùng lặp trong candidateWords theo từ chuẩn hóa
     const seenCandidateWords = new Set();
     const uniqueCandidates = [];
@@ -1174,44 +1375,62 @@ export const quizService = {
       }
     }
 
-    const shuffledCandidates = [...uniqueCandidates].sort(() => 0.5 - Math.random());
-    let selectedWords = [];
+    if (uniqueCandidates.length === 0) {
+      throw new Error('Không có từ vựng hợp lệ nào trong bộ lọc đã chọn!');
+    }
 
-    if (shuffledCandidates.length >= targetCount) {
-      selectedWords = shuffledCandidates.slice(0, targetCount);
-    } else {
-      // Ưu tiên toàn bộ các từ ứng viên thuộc phạm vi bộ lọc đã chọn
-      selectedWords = [...shuffledCandidates];
+    // Xây dựng hàng đợi câu hỏi mục tiêu (selectedQueue):
+    // Quy tắc:
+    // 1. Tuyệt đối không tự sinh từ vựng mới hoặc lấy từ ngoài bộ lọc/kho từ đã chọn.
+    // 2. Lượt 1: Tạo đủ tất cả các từ trong bộ lọc, mỗi từ ít nhất 1 lần (Round 1).
+    // 3. Lượt 2+: Nếu targetCount > uniqueCandidates.length, tiếp tục random xoay vòng từ candidateWords cho đủ số câu.
+    // 4. Các câu hỏi cho cùng một từ TUYỆT ĐỐI KHÔNG ĐƯỢC GIỐNG NHAU (khác type, khác mẫu câu, khác ngữ pháp).
+    const selectedQueue = [];
+    const round1 = [...uniqueCandidates].sort(() => 0.5 - Math.random());
+    const wordOccurrenceCounter = new Map();
 
-      // Bổ sung các từ vựng khác từ kho từ vựng của người dùng để đủ targetCount mà TUYỆT ĐỐI KHÔNG TRÙNG
-      const seenSelected = new Set(selectedWords.map(w => (w.word || '').trim().toLowerCase()));
-      const otherWords = words.filter(w => {
-        const norm = (w.word || '').trim().toLowerCase();
-        return norm && !seenSelected.has(norm);
+    for (let i = 0; i < round1.length; i++) {
+      if (selectedQueue.length >= targetCount) break;
+      const w = round1[i];
+      const norm = (w.word || '').trim().toLowerCase();
+      wordOccurrenceCounter.set(norm, 0);
+      selectedQueue.push({
+        wordObj: w,
+        occurrenceIndex: 0,
+        wordIdx: i
       });
+    }
 
-      const uniqueOtherWords = [];
-      for (const w of otherWords) {
+    while (selectedQueue.length < targetCount && uniqueCandidates.length > 0) {
+      const nextRound = [...uniqueCandidates].sort(() => 0.5 - Math.random());
+      for (const w of nextRound) {
+        if (selectedQueue.length >= targetCount) break;
         const norm = (w.word || '').trim().toLowerCase();
-        if (norm && !seenSelected.has(norm)) {
-          seenSelected.add(norm);
-          uniqueOtherWords.push(w);
-        }
+        const countOcc = (wordOccurrenceCounter.get(norm) || 0) + 1;
+        wordOccurrenceCounter.set(norm, countOcc);
+        const originalIdx = round1.findIndex(r => (r.word || '').trim().toLowerCase() === norm);
+        selectedQueue.push({
+          wordObj: w,
+          occurrenceIndex: countOcc,
+          wordIdx: originalIdx >= 0 ? originalIdx : selectedQueue.length
+        });
       }
-
-      uniqueOtherWords.sort(() => 0.5 - Math.random());
-      const needed = targetCount - selectedWords.length;
-      const supplement = uniqueOtherWords.slice(0, needed);
-      selectedWords.push(...supplement);
     }
 
     // Question types: 'meaning_vi', 'reverse_en', 'cloze_blank', 'listening'
     const questionTypes = ['meaning_vi', 'reverse_en', 'cloze_blank', 'listening'];
     const usedQuestionTexts = new Set();
+    const usedSentences = new Set();
 
-    const questions = selectedWords.map((targetWord, index) => {
+    const questions = selectedQueue.map((item, index) => {
+      const targetWord = item.wordObj;
+      const occurrenceIndex = item.occurrenceIndex;
+      const wordIdx = item.wordIdx;
+
+      // Trong mixed mode: Xoay tua dạng câu hỏi theo (wordIdx + occurrenceIndex)
+      // Đảm bảo cùng 1 từ khi lặp lại sẽ đổi dạng câu hỏi khác nhau liên tục!
       const qType = mode === 'mixed' 
-        ? questionTypes[index % questionTypes.length]
+        ? questionTypes[(wordIdx + occurrenceIndex) % questionTypes.length]
         : mode;
 
       let examples = [];
@@ -1227,7 +1446,7 @@ export const quizService = {
       let qDifficulty = questionDifficulty;
       if (qDifficulty === 'all') {
         const diffCycle = ['easy', 'medium', 'hard'];
-        qDifficulty = diffCycle[index % diffCycle.length];
+        qDifficulty = diffCycle[(index + occurrenceIndex) % diffCycle.length];
       }
 
       let questionText = '';
@@ -1239,7 +1458,7 @@ export const quizService = {
 
       const pos = getWordPos(targetWord);
       const posLabel = POS_LABELS[pos] || 'Từ vựng';
-      const context = getAuthenticContextSentence(targetWord, pos);
+      const context = getAuthenticContextSentence(targetWord, pos, occurrenceIndex, usedSentences);
 
       if (qType === 'meaning_vi') {
         // === 1. ĐỌC HIỂU NGỮ CẢNH & PHÂN BIỆT SẮC THÁI NGHĨA ===
@@ -1255,6 +1474,7 @@ export const quizService = {
         const distractors = getSamePosDistractors({
           targetWord,
           pos,
+          candidateWords,
           allWords: words,
           count: 3,
           difficulty: qDifficulty
@@ -1288,10 +1508,10 @@ export const quizService = {
         let distractors = [];
         if (qDifficulty === 'hard') {
           const wordFamily = generateTrickyWordFamily(targetWord.word);
-          const samePos = getSamePosDistractors({ targetWord, pos, allWords: words, count: 3, difficulty: qDifficulty });
+          const samePos = getSamePosDistractors({ targetWord, pos, candidateWords, allWords: words, count: 3, difficulty: qDifficulty });
           distractors = [...wordFamily.slice(0, 1), ...samePos.map(d => d.word)];
         } else {
-          const samePos = getSamePosDistractors({ targetWord, pos, allWords: words, count: 3, difficulty: qDifficulty });
+          const samePos = getSamePosDistractors({ targetWord, pos, candidateWords, allWords: words, count: 3, difficulty: qDifficulty });
           distractors = samePos.map(d => d.word);
         }
 
@@ -1316,7 +1536,7 @@ export const quizService = {
           validTargetMeaning,
           examples,
           qDifficulty,
-          questionIndex: index,
+          questionIndex: index + occurrenceIndex,
           otherWords: words,
           usedQuestionTexts
         });
@@ -1341,19 +1561,25 @@ export const quizService = {
         translation = context.sentenceTranslation || `Câu hoàn chỉnh: "${completedSent}"`;
       } else if (qType === 'listening') {
         // === 4. PHẢN XẠ NGHE & ÂM VỊ HỌC (LISTENING & PHONOLOGY) ===
-        questionText = targetWord.word;
         const phoneticStr = targetWord.phonetic ? ` /${targetWord.phonetic.replace(/\//g, '')}/` : '';
-        promptSubtitle = qDifficulty === 'easy'
-          ? `[Luyện nghe phản xạ] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt [${posLabel}]${phoneticStr}:`
-          : qDifficulty === 'hard'
-          ? `[Nghe & Phân biệt sắc thái] Nghe phát âm và chọn nghĩa tiếng Việt chuẩn xác nhất [${posLabel}]${phoneticStr}:`
-          : `[Luyện nghe] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt tương ứng [${posLabel}]${phoneticStr}:`;
+        if (occurrenceIndex === 0) {
+          questionText = targetWord.word;
+          promptSubtitle = qDifficulty === 'easy'
+            ? `[Luyện nghe phản xạ] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt [${posLabel}]${phoneticStr}:`
+            : qDifficulty === 'hard'
+            ? `[Nghe & Phân biệt sắc thái] Nghe phát âm và chọn nghĩa tiếng Việt chuẩn xác nhất [${posLabel}]${phoneticStr}:`
+            : `[Luyện nghe] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt tương ứng [${posLabel}]${phoneticStr}:`;
+        } else {
+          questionText = `${targetWord.word} [Luyện nghe #${occurrenceIndex + 1}]`;
+          promptSubtitle = `[Luyện nghe nâng cao #${occurrenceIndex + 1}] Nghe phát âm và nhận diện nghĩa chính xác của từ [${posLabel}]${phoneticStr}:`;
+        }
 
         correctAnswer = validTargetMeaning;
 
         const distractors = getSamePosDistractors({
           targetWord,
           pos,
+          candidateWords,
           allWords: words,
           count: 3,
           difficulty: qDifficulty
@@ -1387,8 +1613,16 @@ export const quizService = {
       }
       options = options.slice(0, 4);
 
+      // Safeguard: Tuyệt đối không trùng lặp questionText
+      let finalQuestionText = questionText;
+      const lowerText = finalQuestionText.trim().toLowerCase();
+      if (usedQuestionTexts.has(lowerText)) {
+        finalQuestionText = `${finalQuestionText} [Lượt ${occurrenceIndex + 1}]`;
+      }
+      usedQuestionTexts.add(finalQuestionText.trim().toLowerCase());
+
       return {
-        id: `${targetWord.id}_q${index + 1}`,
+        id: `${targetWord.id}_q${index + 1}_occ${occurrenceIndex}`,
         type: qType,
         word: targetWord.word,
         phonetic: targetWord.phonetic,
@@ -1398,7 +1632,7 @@ export const quizService = {
         meaning_en: targetWord.meaning_en,
         part_of_speech: targetWord.part_of_speech || posLabel,
         pos_code: pos,
-        questionText,
+        questionText: finalQuestionText,
         promptSubtitle,
         correctAnswer,
         options,

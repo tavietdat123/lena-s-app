@@ -356,15 +356,11 @@ export default function QuizCenter({ onOpenReview }) {
       }
 
       if (res.success && res.data.questions?.length > 0) {
-        // Guarantee no duplicates on client side as an extra safeguard
-        const seenWords = new Set();
+        // Guarantee no duplicate questions on client side as an extra safeguard (strictly by questionText)
         const seenTexts = new Set();
         const filteredQuestions = res.data.questions.filter((q) => {
-          const w = String(q.word || '').trim().toLowerCase();
           const t = String(q.questionText || '').trim().toLowerCase();
-          if (w && seenWords.has(w)) return false;
           if (t && seenTexts.has(t)) return false;
-          if (w) seenWords.add(w);
           if (t) seenTexts.add(t);
           return true;
         });
