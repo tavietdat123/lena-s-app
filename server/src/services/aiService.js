@@ -1,5 +1,5 @@
 import { getDb } from '../db/database.js';
-import { resolveTopics, filterItemsByDate } from './quizService.js';
+import { resolveTopics, filterItemsByDate, quizService } from './quizService.js';
 
 export function getEffectiveApiKey(apiKey = null) {
   if (apiKey && typeof apiKey === 'string' && apiKey.trim()) return apiKey.trim();
@@ -139,17 +139,25 @@ export function normalizeAndRandomizeQuestions(parsed, defaultPrefix = 'ai_q') {
     }
   }
 
-  if (!list || list.length === 0) return [];
-
-  // Deduplicate items from AI response (guarantee no duplicate question texts)
-  const seenTexts = new Set();
+  // Deduplicate items from AI response (guarantee unique question texts without dropping questions)
+  const seenTexts = new Map();
   const uniqueList = [];
 
   for (const q of list) {
     if (!q || typeof q !== 'object') continue;
-    const t = String(q.questionText || '').trim().toLowerCase();
-    if (t && seenTexts.has(t)) continue;
-    if (t) seenTexts.add(t);
+    let t = String(q.questionText || '').trim();
+    if (!t) {
+      t = `Câu hỏi ôn tập: ${q.word || 'Vocabulary'}`;
+    }
+    const lowerKey = t.toLowerCase();
+    const count = (seenTexts.get(lowerKey) || 0) + 1;
+    seenTexts.set(lowerKey, count);
+
+    if (count > 1) {
+      q.questionText = `${t} [Lượt ${count}]`;
+    } else {
+      q.questionText = t;
+    }
     uniqueList.push(q);
   }
 
@@ -943,8 +951,10 @@ Danh sách mục tiêu từng câu:
 ${wordsInput}
 
 LƯU Ý ĐẶC BIỆT (BẮT BUỘC):
+- SỐ LƯỢNG BẮT BUỘC: Bạn PHẢI trả về ĐỦ CHÍNH XÁC đúng ${targetCount} câu hỏi trong mảng "questions" (tương ứng đúng ${targetCount} mục tiêu ở trên). Tuyệt đối không được trả về thiếu bất kỳ câu nào (questions.length === ${targetCount})!
 - TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG NHAU (NO DUPLICATE QUESTIONS):
   + Nếu có từ mục tiêu xuất hiện nhiều hơn 1 lần trong danh sách được giao, TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI GIỐNG NHAU! Mỗi lần từ đó xuất hiện, BẮT BUỘC phải tạo một câu văn ngữ cảnh hoàn toàn mới, một tình huống công sở/đời sống khác biệt, hoặc kiểm tra ở một khía cạnh ngữ pháp khác (ví dụ: một lần hỏi thì hiện tại, một lần hỏi thì quá khứ, một lần hỏi danh động từ/tính từ, hoặc ngữ cảnh giao tiếp khác).
+  + Với dạng listening / reverse_en khi từ lặp lại, ghi rõ lượt vào prompt/tiêu đề (ví dụ: 'Nghe phát âm từ: [từ vựng] [Luyện nghe #2]') để text câu hỏi không bị trùng lặp!
   + Tuyệt đối không tự ý sinh thêm bất kỳ từ vựng mới nào ngoài danh sách từ mục tiêu được giao bên trên!
 - ĐẢM BẢO TÍNH TỰ NHIÊN CỦA COLLOCATION:
   + Tuyệt đối không gượng ép ghép từ vào câu vô nghĩa (như 'appear mutual strengths'). Động từ nội động từ (appear, sleep) phải dùng cấu trúc tự nhiên (appear to be, appear on screen). Tính từ cảm xúc (grateful) phải dùng với người hoặc cảm giác (feel grateful for).
@@ -978,8 +988,44 @@ Hãy trả về JSON với cấu trúc:
   try {
     const rawResponse = await callGemini(prompt, apiKey, null, null, true);
     const parsed = safeParseJson(rawResponse);
-    const randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_vocab');
+    let randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_vocab');
     const generationTimeMs = Date.now() - startTime;
+
+    // Strict contract: Guarantee exactly targetCount questions are returned
+    if (randomizedQuestions.length < targetCount) {
+      const needed = targetCount - randomizedQuestions.length;
+      console.warn(`[AI Quiz Guard] AI returned ${randomizedQuestions.length}/${targetCount} questions. Backfilling ${needed} questions from pedagogical generator.`);
+      try {
+        const backfill = quizService.generateQuiz({
+          topic,
+          count: needed,
+          mode,
+          level,
+          context_levels,
+          date_scope,
+          date,
+          start_date,
+          end_date
+        });
+        if (backfill && Array.isArray(backfill.questions)) {
+          const existingIds = new Set(randomizedQuestions.map(q => q.id));
+          for (const bq of backfill.questions) {
+            if (randomizedQuestions.length >= targetCount) break;
+            const newId = existingIds.has(bq.id) ? `ai_backfill_${randomizedQuestions.length + 1}` : bq.id;
+            randomizedQuestions.push({
+              ...bq,
+              id: newId
+            });
+          }
+        }
+      } catch (backfillErr) {
+        console.warn('[AI Quiz Backfill Warning]:', backfillErr.message);
+      }
+    }
+
+    if (randomizedQuestions.length > targetCount) {
+      randomizedQuestions = randomizedQuestions.slice(0, targetCount);
+    }
 
     if (randomizedQuestions && randomizedQuestions.length > 0) {
       return {
@@ -1104,8 +1150,41 @@ Hãy trả về JSON với cấu trúc:
   try {
     const rawResponse = await callGemini(prompt, apiKey, null, null, true);
     const parsed = safeParseJson(rawResponse);
-    const randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_pattern');
+    let randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_pattern');
     const generationTimeMs = Date.now() - startTime;
+
+    // Strict contract: Guarantee exactly targetCount questions are returned
+    if (randomizedQuestions.length < targetCount) {
+      const needed = targetCount - randomizedQuestions.length;
+      try {
+        const backfill = quizService.generatePatternQuiz({
+          category,
+          tone,
+          count: needed,
+          level,
+          mode,
+          date_scope,
+          date
+        });
+        if (backfill && Array.isArray(backfill.questions)) {
+          const existingIds = new Set(randomizedQuestions.map(q => q.id));
+          for (const bq of backfill.questions) {
+            if (randomizedQuestions.length >= targetCount) break;
+            const newId = existingIds.has(bq.id) ? `ai_pattern_backfill_${randomizedQuestions.length + 1}` : bq.id;
+            randomizedQuestions.push({
+              ...bq,
+              id: newId
+            });
+          }
+        }
+      } catch (backfillErr) {
+        console.warn('[AI Pattern Quiz Backfill Warning]:', backfillErr.message);
+      }
+    }
+
+    if (randomizedQuestions.length > targetCount) {
+      randomizedQuestions = randomizedQuestions.slice(0, targetCount);
+    }
 
     if (randomizedQuestions && randomizedQuestions.length > 0) {
       return {
