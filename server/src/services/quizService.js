@@ -2196,7 +2196,21 @@ export const quizService = {
       uniqueOtherPatterns.sort(() => 0.5 - Math.random());
       const needed = targetCount - selectedPatterns.length;
       selectedPatterns.push(...uniqueOtherPatterns.slice(0, needed));
+
+      // 2. Nếu vẫn chưa đủ targetCount (số câu > số mẫu câu), xoay vòng theo lượt để đảm bảo đủ số câu
+      const recyclePool = uniqueCandidatePatterns.length > 0 ? uniqueCandidatePatterns : patterns;
+      let roundCounter = 1;
+      while (selectedPatterns.length < targetCount && recyclePool.length > 0) {
+        const nextRound = [...recyclePool].sort(() => 0.5 - Math.random());
+        for (const p of nextRound) {
+          if (selectedPatterns.length >= targetCount) break;
+          selectedPatterns.push({ ...p, __round: roundCounter });
+        }
+        roundCounter++;
+      }
     }
+
+    const usedPatternQuestionTexts = new Set();
 
     const questions = selectedPatterns.map((pat, idx) => {
       let examples = [];
@@ -2204,11 +2218,15 @@ export const quizService = {
         examples = JSON.parse(pat.examples || '[]');
       } catch (e) { examples = []; }
 
-      let cleanEx = examples[0] || `It is essential to understand how to apply ${pat.name} in writing.`;
+      // Sử dụng ví dụ tương ứng theo vòng nếu có nhiều ví dụ
+      const exampleIdx = (pat.__round || 0) % (examples.length || 1);
+      let cleanEx = examples[exampleIdx] || examples[0] || `It is essential to understand how to apply ${pat.name} in writing.`;
       const keyPhrase = pat.name.split('(')[0].split('+')[0].trim();
 
       const pTypes = ['fill_clause', 'meaning_usage', 'formula_check'];
-      const qType = pTypes[idx % pTypes.length];
+      const qType = (mode && mode !== 'mixed' && pTypes.includes(mode))
+        ? mode
+        : pTypes[idx % pTypes.length];
 
       const otherPatterns = patterns.filter(p => p.id !== pat.id);
       const shuffledOthers = [...otherPatterns].sort(() => 0.5 - Math.random());
@@ -2256,6 +2274,15 @@ export const quizService = {
         ];
         options = [...new Set(rawOptions)].sort(() => 0.5 - Math.random());
       }
+
+      // Tránh trùng lặp câu hỏi khi mẫu câu được xoay vòng nhiều lượt
+      let finalQuestionText = questionText;
+      const lowerQText = finalQuestionText.trim().toLowerCase();
+      if (usedPatternQuestionTexts.has(lowerQText)) {
+        finalQuestionText = `${finalQuestionText} [Lượt ${pat.__round ? pat.__round + 1 : idx + 1}]`;
+      }
+      usedPatternQuestionTexts.add(finalQuestionText.trim().toLowerCase());
+      questionText = finalQuestionText;
 
       while (options.length < 4) {
         const fallbacks = [
