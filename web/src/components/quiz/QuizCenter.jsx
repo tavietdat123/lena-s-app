@@ -228,7 +228,22 @@ export default function QuizCenter({ onOpenReview }) {
     try {
       const res = await api.getQuizHistoryById(historyItem.id);
       if (res.success && res.data && res.data.questions?.length > 0) {
-        setQuizData(res.data);
+        // Guarantee no duplicates when retaking historical quiz (strictly by questionText)
+        const seenTexts = new Set();
+        const filteredQuestions = res.data.questions.filter((q) => {
+          const t = String(q.questionText || '').trim().toLowerCase();
+          if (t && seenTexts.has(t)) return false;
+          if (t) seenTexts.add(t);
+          return true;
+        });
+
+        const finalQuizData = {
+          ...res.data,
+          totalQuestions: filteredQuestions.length,
+          questions: filteredQuestions
+        };
+
+        setQuizData(finalQuizData);
         setCurrentIndex(0);
         setUserAnswers([]);
         setSelectedOption(null);
