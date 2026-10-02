@@ -1319,17 +1319,32 @@ export function getAuthenticContextSentence(targetWord, pos = 'noun', occurrence
     }
   }
 
-  // Check if any matched example is not yet used
-  for (let i = 0; i < matchedFromExamples.length; i++) {
-    const candidateIdx = (occurrenceIndex + i) % matchedFromExamples.length;
-    const candidate = matchedFromExamples[candidateIdx];
-    if (!usedSentences.has(candidate.boldedSentence) && !usedSentences.has(candidate.blankSentence)) {
-      usedSentences.add(candidate.boldedSentence);
-      usedSentences.add(candidate.blankSentence);
-      return {
-        ...candidate,
-        contextLevel: (targetWord.level || (requestedLevel && requestedLevel !== 'all' ? requestedLevel.toUpperCase() : 'B2')).replace('_', ' - ')
-      };
+  // Helper to check if DB example level matches requested level
+  const isLevelMatch = (wordLevel, reqLevel) => {
+    if (!reqLevel || reqLevel === 'all') return true;
+    if (!wordLevel) return false;
+    const wl = String(wordLevel).toLowerCase().trim();
+    const rl = String(reqLevel).toLowerCase().trim();
+    if (rl === 'a1_a2' || rl === 'a1' || rl === 'a2') return wl === 'a1' || wl === 'a2';
+    if (rl === 'b1') return wl === 'b1';
+    if (rl === 'b2') return wl === 'b2';
+    if (rl === 'c1_c2' || rl === 'c1' || rl === 'c2') return wl === 'c1' || wl === 'c2';
+    return wl === rl;
+  };
+
+  // Check if any matched example is not yet used AND matches the requested level
+  if (isLevelMatch(targetWord.level, requestedLevel)) {
+    for (let i = 0; i < matchedFromExamples.length; i++) {
+      const candidateIdx = (occurrenceIndex + i) % matchedFromExamples.length;
+      const candidate = matchedFromExamples[candidateIdx];
+      if (!usedSentences.has(candidate.boldedSentence) && !usedSentences.has(candidate.blankSentence)) {
+        usedSentences.add(candidate.boldedSentence);
+        usedSentences.add(candidate.blankSentence);
+        return {
+          ...candidate,
+          contextLevel: (targetWord.level ? targetWord.level.toUpperCase() : (requestedLevel && requestedLevel !== 'all' ? requestedLevel.toUpperCase() : 'B2')).replace('_', ' - ')
+        };
+      }
     }
   }
 
