@@ -328,7 +328,8 @@ function buildProtectedRouter() {
   api.get('/vocab/:id', vocabController.getWordById);
   api.post('/vocab', validateBody({
     word: { type: 'string', required: true, max: 120, label: 'Từ vựng' },
-    meaning_vi: { type: 'string', required: true, max: 2000, label: 'Nghĩa tiếng Việt' }
+    meaning_vi: { type: 'string', required: false, max: 2000, label: 'Nghĩa tiếng Việt' },
+    meaning_en: { type: 'string', required: false, max: 2000, label: 'Nghĩa tiếng Anh' }
   }), vocabController.createWord);
   api.put('/vocab/:id', vocabController.updateWord);
   api.delete('/vocab/:id', vocabController.deleteWord);
