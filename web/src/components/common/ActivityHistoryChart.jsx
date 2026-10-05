@@ -12,14 +12,16 @@ import {
   Zap,
   Info
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function ActivityHistoryChart({ 
   periodsData, 
   defaultPeriod = 'week', 
-  title = 'Biểu Đồ Hoạt Động & Thời Gian Học',
+  title = null,
   showMetricsToggle = true,
   onFetchPeriod = null
 }) {
+  const { t, uiLang } = useLanguage();
   const [localPeriodsData, setLocalPeriodsData] = useState(periodsData || {});
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
   const [loadingPeriod, setLoadingPeriod] = useState(false);
@@ -114,10 +116,10 @@ export default function ActivityHistoryChart({
   };
 
   const periodOptions = [
-    { key: 'week', label: 'Tuần Này', badge: '7 ngày', icon: CalendarDays },
-    { key: 'month', label: 'Tháng Này', badge: 'Tháng hiện tại', icon: Calendar },
-    { key: 'last30', label: '30 Ngày Qua', badge: '30 ngày', icon: TrendingUp },
-    { key: 'all', label: 'Tổng Thời Gian', badge: 'Từ trước đến giờ', icon: Flame }
+    { key: 'week', label: t.activityChart?.thisWeek || 'Tuần Này', badge: t.activityChart?.thisWeekBadge || '7 ngày', icon: CalendarDays },
+    { key: 'month', label: t.activityChart?.thisMonth || 'Tháng Này', badge: t.activityChart?.thisMonthBadge || 'Tháng hiện tại', icon: Calendar },
+    { key: 'last30', label: t.activityChart?.last30Days || '30 Ngày Qua', badge: t.activityChart?.last30Badge || '30 ngày', icon: TrendingUp },
+    { key: 'all', label: t.activityChart?.allTime || 'Tổng Thời Gian', badge: t.activityChart?.allTimeBadge || 'Từ trước đến giờ', icon: Flame }
   ];
 
   return (
@@ -155,7 +157,7 @@ export default function ActivityHistoryChart({
               <BarChart3 size={20} />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-              {title}
+              {title || t.activityChart?.title || 'Biểu Đồ Hoạt Động & Thời Gian Học'}
             </h3>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem', margin: 0 }}>
@@ -437,7 +439,7 @@ export default function ActivityHistoryChart({
                 transition: 'all 0.2s ease'
               }}
             >
-              ⏱️ Thời Lượng Học (Phút)
+              {t.activityChart?.durationMetric ? `⏱️ ${t.activityChart.durationMetric}` : '⏱️ Thời Lượng Học (Phút)'}
             </button>
 
             <button
@@ -455,7 +457,7 @@ export default function ActivityHistoryChart({
                 transition: 'all 0.2s ease'
               }}
             >
-              🎴 Lượt Ôn Flashcards
+              {t.activityChart?.reviewsMetric ? `🎴 ${t.activityChart.reviewsMetric}` : '🎴 Lượt Ôn Flashcards'}
             </button>
           </div>
         </div>

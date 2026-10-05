@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { Trophy, Sparkles, Award, Star, ArrowRight } from 'lucide-react';
 import { alarmAudio } from '../../services/alarmAudio.js';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function LevelUpModal({ isOpen, onClose, levelData }) {
+  const { t } = useLanguage();
   useEffect(() => {
     if (isOpen) {
       // Play celebratory chime
@@ -89,10 +91,10 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
             letterSpacing: '1px',
             textTransform: 'uppercase'
           }}>
-            🎉 CHÚC MỪNG BẠN ĐÃ THĂNG CẤP!
+            {t.levelUp?.congrats || '🎉 CHÚC MỪNG BẠN ĐÃ THĂNG CẤP!'}
           </span>
           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.4rem 0 0.2rem 0', color: 'var(--text-primary)' }}>
-            LEVEL {newLevel}
+            {t.levelUp?.levelLabel || 'LEVEL'} {newLevel}
           </h2>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-primary)', margin: 0 }}>
             {title}
@@ -111,7 +113,7 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
           gap: '0.4rem'
         }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            QUYỀN LỢI & DANH HIỆU MỚI
+            {t.levelUp?.perkUnlocked || 'QUYỀN LỢI & DANH HIỆU MỚI'}
           </span>
           <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             ✨ {perk}
@@ -138,7 +140,7 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
             gap: '0.5rem'
           }}
         >
-          <span>Tiếp Tục Chinh Phục Kho Từ</span>
+          <span>{t.levelUp?.continueBtn || 'Tiếp Tục Rèn Luyện 🚀'}</span>
           <ArrowRight size={18} />
         </button>
       </div>

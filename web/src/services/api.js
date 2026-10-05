@@ -1,7 +1,9 @@
 const API_BASE = typeof window !== 'undefined' 
-  ? (window.location.port === '3000' || window.location.port === '5173'
-      ? `http://${window.location.hostname}:5001/api` 
-      : '/api')
+  ? (window.location.port === '3001'
+      ? `http://${window.location.hostname}:5002/api`
+      : (window.location.port === '3000' || window.location.port === '5173'
+          ? `http://${window.location.hostname}:5001/api` 
+          : '/api'))
   : '/api';
 
 const TOKEN_KEY = 'linguavault_auth_token';

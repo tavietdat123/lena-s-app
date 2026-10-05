@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playAudio, audioService } from '../../services/audioService';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Escape regex special characters safely
 function escapeRegExp(string) {
@@ -25,17 +26,23 @@ function escapeRegExp(string) {
 }
 
 // Format dynamic interval label (SM-2+ multi-milestone)
-function getPreviewLabel(item, grade) {
+function getPreviewLabel(item, grade, lang = 'vi') {
   if (item?.previewIntervals?.[grade]?.text) {
     return item.previewIntervals[grade].text;
   }
   const isIntra = item?.isIntraDay || item?.repetition === 0 || item?.interval === 0;
   const rep = isIntra ? 0 : (item?.repetition || 0);
-  if (grade === 'again') return '< 10 phút';
-  if (grade === 'hard') return rep === 0 ? '1 ngày' : rep === 1 ? '2 ngày' : rep === 2 ? '4 ngày' : '8 ngày';
-  if (grade === 'good') return rep === 0 ? '3 ngày' : rep === 1 ? '7 ngày' : rep === 2 ? '14 ngày' : '30 ngày';
-  if (grade === 'easy') return rep === 0 ? '7 ngày' : rep === 1 ? '14 ngày' : rep === 2 ? '30 ngày' : '60 ngày';
-  return '3 ngày';
+  const units = {
+    vi: { min: '< 10 phút', d: 'ngày' },
+    en: { min: '< 10 min', d: 'days' },
+    ru: { min: '< 10 мин', d: 'дн.' }
+  }[lang] || { min: '< 10 phút', d: 'ngày' };
+
+  if (grade === 'again') return units.min;
+  if (grade === 'hard') return `${rep === 0 ? 1 : rep === 1 ? 2 : rep === 2 ? 4 : 8} ${units.d}`;
+  if (grade === 'good') return `${rep === 0 ? 3 : rep === 1 ? 7 : rep === 2 ? 14 : 30} ${units.d}`;
+  if (grade === 'easy') return `${rep === 0 ? 7 : rep === 1 ? 14 : rep === 2 ? 30 : 60} ${units.d}`;
+  return `3 ${units.d}`;
 }
 
 export default function SRSReviewCenter({ 
@@ -46,6 +53,7 @@ export default function SRSReviewCenter({
   onReviewSubmit, 
   onFinishSession 
 }) {
+  const { t, currentLang } = useLanguage();
   // 1. Cramming Mode: review all cards even when 0 due
   const [isCramming, setIsCramming] = useState(false);
 
@@ -283,28 +291,30 @@ export default function SRSReviewCenter({
           <Trophy size={42} />
         </div>
         <h3 style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-          Hoàn Thành Phiên Ôn Tập Xuất Sắc!
+          {t.review?.completeTitle || 'Hoàn Thành Phiên Ôn Tập Xuất Sắc!'}
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem', maxWidth: '480px', margin: '0 auto 1.5rem auto' }}>
-          Bạn đã rèn giũa <b>{sessionStats.reviewed} lượt ôn tập</b> với thuật toán SuperMemo SM-2+. Toàn bộ chu kỳ vàng của trí nhớ đã được dời lịch tự động!
+          {typeof t.review?.reviewedSummary === 'function' 
+            ? t.review.reviewedSummary(sessionStats.reviewed)
+            : `Bạn đã rèn giũa ${sessionStats.reviewed} lượt ôn tập với thuật toán SuperMemo SM-2+. Toàn bộ chu kỳ vàng của trí nhớ đã được dời lịch tự động!`}
         </p>
 
         {/* Breakdown Stats Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', maxWidth: '480px', margin: '0 auto 1.75rem auto' }}>
           <div style={{ background: 'var(--bg-tertiary)', padding: '0.85rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>ĐÃ NHỚ</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.review?.statRemembered || 'ĐÃ NHỚ'}</span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', marginTop: '0.2rem' }}>
               {sessionStats.goodCount + sessionStats.easyCount + sessionStats.hardCount}
             </div>
           </div>
           <div style={{ background: 'var(--bg-tertiary)', padding: '0.85rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>CẦN ÔN LẠI</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.review?.statAgain || 'CẦN ÔN LẠI'}</span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ef4444', marginTop: '0.2rem' }}>
               {sessionStats.againCount}
             </div>
           </div>
           <div style={{ background: 'var(--bg-tertiary)', padding: '0.85rem', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>KINH NGHIỆM</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.review?.statXp || 'KINH NGHIỆM'}</span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '0.2rem' }}>
               +{sessionStats.earnedXp} XP
             </div>
@@ -313,12 +323,12 @@ export default function SRSReviewCenter({
 
         {sessionStats.againCount > 0 && (
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.75rem', background: 'rgba(239, 68, 68, 0.08)', padding: '0.65rem 1rem', borderRadius: '12px', display: 'inline-block' }}>
-            ℹ️ {sessionStats.againCount} thẻ chọn "Quên" đã được lưu mốc &lt; 10 phút và sẽ xuất hiện ở phiên ôn tiếp theo.
+            ℹ️ {sessionStats.againCount} {t.review?.again || 'Quên'}
           </p>
         )}
 
         <button onClick={onFinishSession} className="btn-primary" style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem', margin: '0 auto', borderRadius: '14px' }}>
-          <span>Trở Về Dashboard</span>
+          <span>{t.review?.backDashboardBtn || 'Trở Về Dashboard'}</span>
           <ArrowRight size={18} />
         </button>
       </div>
@@ -336,10 +346,10 @@ export default function SRSReviewCenter({
             <CheckCircle2 size={38} />
           </div>
           <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-            Đã Hoàn Thành Thẻ Đến Hạn Hôm Nay!
+            {t.review?.allDueFinished || 'Đã Hoàn Thành Thẻ Đến Hạn Hôm Nay!'}
           </h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.6, maxWidth: '480px', margin: '0 auto 2rem auto' }}>
-            Tất cả các thẻ đang trong chu kỳ nhớ an toàn của thuật toán SM-2+. Bạn có thể quay lại vào ngày mai hoặc kích hoạt <b>Chế độ Ôn Luyện Tự Do</b> để củng cố toàn bộ kho từ bất kỳ lúc nào.
+            {t.review?.allDueFinishedDesc || 'Tất cả các thẻ đang trong chu kỳ nhớ an toàn của thuật toán SM-2+.'}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button 
@@ -348,14 +358,14 @@ export default function SRSReviewCenter({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.85rem 1.8rem', borderRadius: '14px', fontSize: '0.95rem', fontWeight: 800 }}
             >
               <Sparkles size={16} />
-              <span>Ôn Luyện Tự Do ({totalVaultItems} Thẻ)</span>
+              <span>{t.review?.freeReview || 'Ôn Luyện Tự Do'} ({totalVaultItems} {t.review?.card || 'Thẻ'})</span>
             </button>
             <button 
               onClick={onFinishSession} 
               className="btn-secondary" 
               style={{ padding: '0.85rem 1.5rem', borderRadius: '14px', fontSize: '0.95rem' }}
             >
-              Về Dashboard
+              {t.review?.backDashboardBtn || 'Về Dashboard'}
             </button>
           </div>
         </div>
@@ -368,19 +378,19 @@ export default function SRSReviewCenter({
           <BookOpen size={36} />
         </div>
         <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-          Kho Thẻ Ôn Tập Đang Trống
+          {t.review?.emptyDeckTitle || 'Kho Thẻ Ôn Tập Đang Trống'}
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.75rem', lineHeight: 1.6 }}>
-          Bạn chưa có từ vựng hay mẫu câu nào trong tài khoản. Hãy thêm các từ vựng mới để kích hoạt chu kỳ ghi nhớ ngắt quãng!
+          {t.review?.emptyDeckDesc || 'Bạn chưa có từ vựng hay mẫu câu nào trong tài khoản. Hãy thêm các từ vựng mới để kích hoạt chu kỳ ghi nhớ ngắt quãng!'}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
           {onAddWord && (
             <button onClick={onAddWord} className="btn-primary" style={{ padding: '0.8rem 1.8rem', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span>➕ Thêm Từ Vựng Đầu Tiên</span>
+              <span>➕ {t.review?.addFirstWord || 'Thêm Từ Vựng Đầu Tiên'}</span>
             </button>
           )}
           <button onClick={onFinishSession} className="btn-secondary" style={{ padding: '0.8rem 1.5rem', borderRadius: '12px' }}>
-            Về Trang Tổng Quan
+            {t.review?.backDashboardBtn || 'Về Trang Tổng Quan'}
           </button>
         </div>
       </div>
@@ -394,30 +404,30 @@ export default function SRSReviewCenter({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-secondary)', padding: '0.85rem 1.25rem', borderRadius: '18px', border: '1px solid var(--border-color)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <button onClick={() => handleFilterChange('all')} style={{ padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: filterScope === 'all' ? 'var(--accent-primary)' : 'var(--bg-tertiary)', color: filterScope === 'all' ? '#ffffff' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>
-            Tất cả ({dueItems.length})
+            {t.review?.allFilter || 'Tất cả'} ({dueItems.length})
           </button>
           <button onClick={() => handleFilterChange('words')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: filterScope === 'words' ? 'var(--accent-primary)' : 'var(--bg-tertiary)', color: filterScope === 'words' ? '#ffffff' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>
             <BookOpen size={13} />
-            <span>Từ vựng ({wordsCount})</span>
+            <span>{t.review?.wordsFilter || 'Từ vựng'} ({wordsCount})</span>
           </button>
           <button onClick={() => handleFilterChange('patterns')} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.35rem 0.85rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: filterScope === 'patterns' ? 'var(--accent-primary)' : 'var(--bg-tertiary)', color: filterScope === 'patterns' ? '#ffffff' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>
             <Puzzle size={13} />
-            <span>Mẫu câu ({patternsCount})</span>
+            <span>{t.review?.patternsFilter || 'Mẫu câu'} ({patternsCount})</span>
           </button>
         </div>
 
         <div style={{ display: 'flex', background: 'var(--bg-tertiary)', padding: '0.25rem', borderRadius: '12px', gap: '2px' }}>
           <button onClick={() => { setReviewMode('flashcard'); setIsFlipped(false); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.4rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: reviewMode === 'flashcard' ? 'var(--bg-card)' : 'transparent', color: reviewMode === 'flashcard' ? 'var(--accent-primary)' : 'var(--text-muted)', boxShadow: reviewMode === 'flashcard' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.15s ease' }}>
             <BookOpen size={14} />
-            <span>Flashcard</span>
+            <span>{t.review?.flashcardMode || 'Flashcard'}</span>
           </button>
           <button onClick={() => { setReviewMode('cloze'); setIsFlipped(false); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.4rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: reviewMode === 'cloze' ? 'var(--bg-card)' : 'transparent', color: reviewMode === 'cloze' ? 'var(--accent-primary)' : 'var(--text-muted)', boxShadow: reviewMode === 'cloze' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.15s ease' }}>
             <FileText size={14} />
-            <span>Điền từ</span>
+            <span>{t.review?.clozeMode || 'Điền từ'}</span>
           </button>
           <button onClick={() => { setReviewMode('audio'); setIsFlipped(false); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '0.4rem 0.85rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 700, border: 'none', cursor: 'pointer', background: reviewMode === 'audio' ? 'var(--bg-card)' : 'transparent', color: reviewMode === 'audio' ? 'var(--accent-primary)' : 'var(--text-muted)', boxShadow: reviewMode === 'audio' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.15s ease' }}>
             <Headphones size={14} />
-            <span>Nghe ẩn</span>
+            <span>{t.review?.audioMode || 'Nghe ẩn'}</span>
           </button>
         </div>
       </div>
@@ -455,7 +465,7 @@ export default function SRSReviewCenter({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                Thẻ {currentIndex + 1} / {sessionDeck.length}
+                {t.review?.card || 'Thẻ'} {currentIndex + 1} / {sessionDeck.length}
               </span>
               <div style={{ width: '140px', height: '6px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
                 <div style={{ width: `${Math.min(100, ((currentIndex + 1) / sessionDeck.length) * 100)}%`, height: '100%', background: 'linear-gradient(90deg, #38bdf8, #818cf8)', borderRadius: 'var(--radius-full)', transition: 'width 0.4s ease' }} />
@@ -485,7 +495,7 @@ export default function SRSReviewCenter({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span className={`badge ${isWord ? 'badge-blue' : 'badge-purple'}`} style={{ fontWeight: 800, padding: '0.25rem 0.65rem' }}>
-                      {isWord ? (currentItem?.level || 'B2') : 'MẪU CÂU'}
+                      {isWord ? (currentItem?.level || 'B2') : (t.review?.patternTag || 'MẪU CÂU')}
                     </span>
                     {isWord && currentItem?.part_of_speech && (
                       <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
@@ -494,7 +504,7 @@ export default function SRSReviewCenter({
                     )}
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    ⏱ Lặp lại: {currentItem?.repetition || 0} lần
+                    ⏱ {t.review?.repetition || 'Lặp lại'}: {currentItem?.repetition || 0} {t.review?.times || 'lần'}
                   </span>
                 </div>
 
@@ -523,7 +533,7 @@ export default function SRSReviewCenter({
                         "{getClozeSentence(primaryExample || currentItem?.word || currentItem?.name, isWord ? currentItem?.word : currentItem?.name)}"
                       </p>
                       <span style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: 700 }}>
-                        Nghĩa: {currentItem?.meaning_vi || currentItem?.meaning}
+                        {t.review?.meaningLabel || 'Nghĩa:'} {currentItem?.meaning_vi || currentItem?.meaning}
                       </span>
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                         <input
@@ -538,13 +548,13 @@ export default function SRSReviewCenter({
                             }
                           }}
                           onClick={(e) => e.stopPropagation() }
-                          placeholder="Gõ từ vựng còn thiếu..."
+                          placeholder={t.review?.clozePlaceholder || "Gõ từ vựng còn thiếu..."}
                           className="input-control"
                           style={{ textAlign: 'center', fontSize: '1rem', fontWeight: 700 }}
                           autoFocus
                         />
                         <button onClick={(e) => { e.stopPropagation(); setIsAnswerChecked(true); setIsFlipped(true); }} className="btn-primary" style={{ padding: '0 1.25rem', borderRadius: '12px', flexShrink: 0 }}>
-                          Kiểm Tra
+                          {t.review?.checkBtn || 'Kiểm Tra'}
                         </button>
                       </div>
                     </div>
@@ -556,7 +566,7 @@ export default function SRSReviewCenter({
                         <Volume2 size={36} />
                       </button>
                       <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        Nghe phát âm chuẩn Studio và nhớ lại nghĩa trước khi lật thẻ
+                        {t.review?.audioHint || 'Nghe phát âm chuẩn Studio và nhớ lại nghĩa trước khi lật thẻ'}
                       </span>
                     </div>
                   )}
@@ -564,7 +574,7 @@ export default function SRSReviewCenter({
 
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                   <RotateCw size={14} />
-                  <span>Chạm hoặc bấm [Phím Cách] để lật mặt sau</span>
+                  <span>{t.review?.flipPrompt || 'Chạm hoặc bấm [Phím Cách] để lật mặt sau'}</span>
                 </div>
               </div>
 
@@ -589,7 +599,7 @@ export default function SRSReviewCenter({
                 <div style={{ margin: 'auto 0', display: 'flex', flexDirection: 'column', gap: '0.9rem', textAlign: 'left' }}>
                   <div>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Nghĩa Tiếng Việt:
+                      {t.review?.meaningLabel || 'Nghĩa dịch:'}
                     </span>
                     <p style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '0.15rem' }}>
                       {currentItem?.meaning_vi || currentItem?.meaning || currentItem?.description}
@@ -617,7 +627,7 @@ export default function SRSReviewCenter({
                 </div>
 
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  Chọn mức độ ghi nhớ để SM-2+ tự động tính mốc nhắc lại tiếp theo:
+                  {t.review?.selectMemoryLevel || 'Chọn mức độ ghi nhớ để SM-2+ tự động tính mốc nhắc lại tiếp theo:'}
                 </div>
               </div>
             </div>
@@ -625,39 +635,39 @@ export default function SRSReviewCenter({
 
           {/* 4. SUPERMEMO SM-2+ MULTI-MILESTONE RATING BUTTONS */}
           {isFlipped ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginTop: '1.25rem', position: 'relative', zIndex: 10 }}>
+            <div className="srs-rating-buttons" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginTop: '1.25rem', position: 'relative', zIndex: 10 }}>
               <button onClick={(e) => { e.stopPropagation(); handleGrade('again'); }} style={{ background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1.5px solid #ef4444', padding: '1rem 0.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', fontWeight: 800, cursor: 'pointer', transition: 'transform 0.15s ease', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)' }}>
-                <span style={{ fontSize: '0.98rem' }}>🔴 Quên</span>
-                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>Mốc: &lt; 10 phút</span>
+                <span style={{ fontSize: '0.98rem' }}>🔴 {t.review?.again || 'Quên'}</span>
+                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>{t.review?.milestone || 'Mốc:'} {currentLang === 'en' ? '< 10 min' : currentLang === 'ru' ? '< 10 мин' : '< 10 phút'}</span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>[Phím 1]</span>
               </button>
               <button onClick={(e) => { e.stopPropagation(); handleGrade('hard'); }} style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1.5px solid #f59e0b', padding: '1rem 0.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', fontWeight: 800, cursor: 'pointer', transition: 'transform 0.15s ease', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)' }}>
-                <span style={{ fontSize: '0.98rem' }}>🟡 Khó</span>
-                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>Mốc: {getPreviewLabel(currentItem, 'hard')}</span>
+                <span style={{ fontSize: '0.98rem' }}>🟡 {t.review?.hard || 'Khó'}</span>
+                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>{t.review?.milestone || 'Mốc:'} {getPreviewLabel(currentItem, 'hard', currentLang)}</span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>[Phím 2]</span>
               </button>
               <button onClick={(e) => { e.stopPropagation(); handleGrade('good'); }} style={{ background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', border: '1.5px solid #0284c7', padding: '1rem 0.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', fontWeight: 800, cursor: 'pointer', transition: 'transform 0.15s ease', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.15)' }}>
-                <span style={{ fontSize: '0.98rem' }}>🟢 Nhớ tốt</span>
-                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>Mốc: {getPreviewLabel(currentItem, 'good')}</span>
+                <span style={{ fontSize: '0.98rem' }}>🟢 {t.review?.good || 'Nhớ tốt'}</span>
+                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>{t.review?.milestone || 'Mốc:'} {getPreviewLabel(currentItem, 'good', currentLang)}</span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>[Phím 3]</span>
               </button>
               <button onClick={(e) => { e.stopPropagation(); handleGrade('easy'); }} style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1.5px solid #10b981', padding: '1rem 0.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', fontWeight: 800, cursor: 'pointer', transition: 'transform 0.15s ease', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)' }}>
-                <span style={{ fontSize: '0.98rem' }}>💎 Dễ</span>
-                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>Mốc: {getPreviewLabel(currentItem, 'easy')}</span>
+                <span style={{ fontSize: '0.98rem' }}>💎 {t.review?.easy || 'Dễ'}</span>
+                <span style={{ fontSize: '0.78rem', opacity: 0.9, fontWeight: 700 }}>{t.review?.milestone || 'Mốc:'} {getPreviewLabel(currentItem, 'easy', currentLang)}</span>
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>[Phím 4]</span>
               </button>
             </div>
           ) : (
             <button onClick={() => setIsFlipped(true)} className="btn-primary" style={{ width: '100%', padding: '1.1rem', fontSize: '1.05rem', fontWeight: 800, borderRadius: '16px', marginTop: '1.25rem' }}>
               <RotateCw size={18} />
-              <span>Lật Thẻ Xem Đáp Án (Phím Space)</span>
+              <span>{t.review?.showAnswerBtn || 'Lật Thẻ Xem Đáp Án (Phím Space)'}</span>
             </button>
           )}
 
           {/* Bottom Hint */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
             <Keyboard size={13} />
-            <span>Phím tắt: [Space] Lật thẻ • [1] Quên • [2] Khó • [3] Nhớ tốt • [4] Dễ</span>
+            <span>{t.review?.keyHint || 'Phím tắt: [Space] Lật thẻ • [1] Quên • [2] Khó • [3] Nhớ tốt • [4] Dễ'}</span>
           </div>
         </>
       )}

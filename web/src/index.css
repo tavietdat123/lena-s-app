@@ -162,20 +162,40 @@ button {
 /* App Layout Pro Max */
 .app-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .app-sidebar {
-  width: 270px;
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
-  padding: 1.5rem 1.15rem;
+  padding: 1.15rem 0.95rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.65rem;
   flex-shrink: 0;
   backdrop-filter: blur(16px);
   z-index: 20;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.app-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+.app-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .app-main {
@@ -497,23 +517,399 @@ button {
 }
 
 /* Responsive */
+/* ==========================================================================
+   MOBILE & RESPONSIVE DESIGN SYSTEM (PRO MAX)
+   ========================================================================== */
+
+/* Mobile Bottom Navigation Bar (Hidden on desktop) */
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* Header Mobile Menu Toggle (Hidden on desktop) */
+/* App Header Base Styles */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.header-desktop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem clamp(1rem, 1.8vw, 2rem);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.header-title-container {
+  flex: 1 1 auto;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.header-title-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.header-desc-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0;
+}
+
+.header-actions-desktop {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.header-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border-color);
+  margin: 0 0.1rem;
+}
+
+.header-mobile-toggle {
+  display: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.45rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Header Wrapper (Hidden on desktop) */
+.header-mobile-wrapper {
+  display: none;
+}
+
+/* Sidebar Mobile Overlay & Close Button */
+.sidebar-overlay {
+  display: none;
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+}
+
+/* Mobile-only Brand in Auth */
+.auth-mobile-brand {
+  display: none;
+}
+
+/* Ensure sidebar gamification widget is always visible across all desktop screens */
+.sidebar-gamification-widget {
+  display: flex !important;
+}
+
+/* On compact desktop screens <= 980px: collapse search button text, keep search icon & ⌘K */
+@media (max-width: 980px) {
+  .header-search-text {
+    display: none !important;
+  }
+}
+
+/* Responsive Breakpoints for Tablet & Mobile (<= 868px) */
 @media (max-width: 868px) {
   .app-container {
     flex-direction: column;
+    min-height: 100vh;
+    height: auto;
+    overflow: visible;
+    position: relative;
   }
 
+  /* Desktop sidebar is hidden on mobile by default */
   .app-sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-    padding: 0.85rem 1.25rem;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(300px, 85vw);
+    height: 100vh;
+    z-index: 1000;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    overflow-y: auto;
+    padding: 1.25rem 1rem;
+    animation: slideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  .app-sidebar.mobile-open {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .sidebar-mobile-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-mobile-toggle {
+    display: flex;
+  }
+
+  /* Switch from Desktop Single-Row to Mobile Clean 1-Row Layout */
+  .header-desktop-row {
+    display: none !important;
+  }
+
+  .header-mobile-wrapper {
+    display: flex !important;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 1rem;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  /* Content area on mobile: leaves room for bottom navigation bar */
   .app-content {
-    padding: 1.25rem 1rem;
+    padding: 1rem 0.85rem 5.5rem 0.85rem !important;
+  }
+
+  /* Mobile Bottom Navigation Bar (Visible only on mobile) */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62px;
+    z-index: 900;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-color);
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 0.5rem;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .mobile-bottom-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-md);
+    transition: all 0.15s ease;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    min-width: 54px;
+  }
+
+  .mobile-bottom-item.active {
+    color: var(--accent-primary);
+  }
+
+  .mobile-bottom-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    background: #e11d48;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 10px;
+    line-height: 1.2;
+    box-shadow: 0 2px 6px rgba(225, 29, 72, 0.4);
+  }
+
+  .mobile-bottom-add-btn {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+    cursor: pointer;
+    transform: translateY(-8px);
+    transition: transform 0.15s ease;
+  }
+
+  .mobile-bottom-add-btn:active {
+    transform: translateY(-6px) scale(0.95);
+  }
+
+  /* Toasts on mobile */
+  .toast-container {
+    bottom: 74px !important;
+    right: 12px !important;
+    left: 12px !important;
+  }
+
+  .toast {
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Auth Page Mobile Optimizations (<= 899px) */
+@media (max-width: 899px) {
+  .auth-root {
+    flex-direction: column !important;
+    min-height: 100vh;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+  }
+
+  .auth-hero-banner {
+    display: none !important;
+  }
+
+  .auth-form-container {
+    padding: 4.5rem 1rem 2.5rem 1rem !important;
+    align-items: flex-start !important;
+    min-height: 100vh;
+  }
+
+  .auth-card {
+    padding: 1.5rem 1.15rem !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-lg) !important;
+    max-width: 100% !important;
+  }
+
+  .auth-top-controls {
+    top: 0.75rem !important;
+    right: 0.75rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .auth-mobile-brand {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .auth-mobile-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-mobile-title {
+    font-size: 1.45rem;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #0284c7, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .auth-mobile-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    margin-top: 0.15rem;
+  }
+
+  .auth-mobile-tagline {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 0.4rem;
+    max-width: 280px;
+    line-height: 1.4;
+  }
+
+  /* Target Language Grid collapses to 1 column on mobile screens */
+  .target-lang-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Mobile inputs iOS zoom prevention & touch targets */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  .quick-add-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .srs-rating-buttons {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .flashcard-inner, .flashcard-face {
+    min-height: 320px !important;
+    padding: 1.25rem 1rem !important;
+  }
+
+  .dashboard-hero-card {
+    padding: 1.5rem 1.15rem !important;
+    gap: 1.25rem !important;
   }
 }
 

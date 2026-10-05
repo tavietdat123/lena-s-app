@@ -16,8 +16,10 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function SettingsModal({ onClose, onDataRestored }) {
+  const { t } = useLanguage();
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('gemini-2.0-flash');
   const [isSavingKey, setIsSavingKey] = useState(false);
@@ -329,7 +331,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Settings size={20} style={{ color: 'var(--accent-primary)' }} />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Cài Đặt & Thông Báo Học Tập</h3>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
+              {t.settings?.title || 'Cài Đặt & Thông Báo Học Tập'}
+            </h3>
           </div>
           <button onClick={onClose} className="btn-icon">
             <X size={20} />
@@ -342,7 +346,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Bell size={18} style={{ color: 'var(--accent-primary)' }} />
-                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Mục Tiêu Mỗi Ngày & Bot Telegram Cảnh Báo</h4>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
+                  {t.settings?.telegramSectionTitle || 'Mục Tiêu Mỗi Ngày & Bot Telegram Cảnh Báo'}
+                </h4>
               </div>
               <button 
                 type="button"
@@ -350,12 +356,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
               >
                 <HelpCircle size={14} />
-                <span>Cách tạo Bot Telegram</span>
+                <span>{t.common?.options || 'Cách tạo Bot Telegram'}</span>
               </button>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Cài đặt số lượng từ tối thiểu phải học mỗi ngày. Nếu đến giờ hẹn chưa đạt chỉ tiêu, Bot Telegram sẽ tự động gửi tin nhắn nhắc nhở bảo vệ chuỗi Streak!
+              {t.settings?.subtitle || 'Cài đặt số lượng từ tối thiểu phải học mỗi ngày. Bot Telegram sẽ tự động gửi tin nhắn nhắc nhở bảo vệ chuỗi Streak!'}
             </p>
 
             {/* Step-by-step Guide Accordion */}
@@ -368,11 +374,11 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 lineHeight: 1.6,
                 border: '1px solid var(--border-color)'
               }}>
-                <b>📌 Cách lấy Token & Chat ID trong 1 phút:</b>
+                <b>{t.settings?.tokenChatIdHelp || '📌 Cách lấy Token & Chat ID:'}</b>
                 <ol style={{ paddingLeft: '1.2rem', margin: '0.5rem 0' }}>
-                  <li>Mở Telegram, tìm <b>@BotFather</b> ➔ Nhắn <code>/newbot</code> và làm theo hướng dẫn để nhận <b>Bot Token</b>.</li>
-                  <li>Tìm <b>@userinfobot</b> ➔ Bấm <b>Start</b> để lấy số <b>Id (Chat ID)</b> của bạn.</li>
-                  <li>Nhắn cho con Bot bạn vừa tạo 1 tin nhắn bất kỳ (ví dụ: <i>"Hello"</i>) để kích hoạt cuộc trò chuyện!</li>
+                  <li>{t.settings?.botStep1 || 'Mở Telegram, tìm @BotFather ➔ Nhắn /newbot và làm theo hướng dẫn để nhận Bot Token.'}</li>
+                  <li>{t.settings?.botStep2 || 'Tìm @userinfobot ➔ Bấm Start để lấy số Id (Chat ID) của bạn.'}</li>
+                  <li>{t.settings?.botStep3 || 'Nhắn cho con Bot bạn vừa tạo 1 tin nhắn bất kỳ (ví dụ: "Hello") để kích hoạt cuộc trò chuyện!'}</li>
                 </ol>
               </div>
             )}
@@ -383,7 +389,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '0.35rem' }}>
                     <Target size={14} color="var(--accent-primary)" />
-                    <span>Mục tiêu từ/ngày:</span>
+                    <span>{t.settings?.dailyGoalLabel || 'Mục tiêu từ/ngày:'}</span>
                   </label>
                   <div style={{ display: 'flex', gap: '0.3rem' }}>
                     {[5, 10, 15, 20].map(cnt => (
@@ -411,7 +417,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                    🧠 Nhắc từ cũ (Sáng):
+                    {t.settings?.morningVocabReminder || '🧠 Nhắc từ cũ (Sáng):'}
                   </label>
                   <input
                     type="time"
@@ -424,7 +430,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                    ⏰ Cảnh báo tối (Tối):
+                    {t.settings?.eveningAlarmTime || '⏰ Cảnh báo tối (Tối):'}
                   </label>
                   <input
                     type="time"
@@ -448,7 +454,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {disciplineMode === 'hardcore' ? '🚨 Chế Độ Kỷ Luật Thép (Hardcore Alarm)' : '🛡️ Chế Độ Nhắc Nhở Tiêu Chuẩn'}
+                    {disciplineMode === 'hardcore' ? (t.settings?.disciplineModeHardcore || '🚨 Chế Độ Kỷ Luật Thép') : (t.settings?.disciplineModeTitle || '🛡️ Chế Độ Nhắc Nhở Tiêu Chuẩn')}
                   </span>
                   <div style={{ display: 'flex', gap: '0.4rem' }}>
                     <button
@@ -465,7 +471,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                         cursor: 'pointer'
                       }}
                     >
-                      Tiêu Chuẩn
+                      {t.settings?.disciplineModeStandard || 'Tiêu Chuẩn'}
                     </button>
                     <button
                       type="button"
@@ -481,21 +487,21 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                         cursor: 'pointer'
                       }}
                     >
-                      🚨 Kỷ Luật Thép
+                      {t.settings?.disciplineModeHardcore || '🚨 Kỷ Luật Thép'}
                     </button>
                   </div>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                   {disciplineMode === 'hardcore'
-                    ? '⚡ Khi kích hoạt: Sau giờ hẹn nếu chưa học đủ chỉ tiêu, Bot sẽ nhắc nhở dồn dập mỗi 10 phút. Bắt buộc phải giải mã đúng số câu Quiz để tắt chuông!'
-                    : 'Nhẹ nhàng gửi 1 tin nhắn cảnh báo tiến độ và danh sách từ cũ lúc 20:00.'}
+                    ? (t.settings?.disciplineHardcoreDesc || '⚡ Khi kích hoạt: Sau giờ hẹn nếu chưa học đủ chỉ tiêu, Bot sẽ nhắc nhở dồn dập mỗi 10 phút. Bắt buộc phải giải mã đúng số câu Quiz để tắt chuông!')
+                    : (t.settings?.disciplineStandardDesc || 'Nhẹ nhàng gửi 1 tin nhắn cảnh báo tiến độ và danh sách từ cũ lúc 20:00.')}
                 </p>
 
                 {disciplineMode === 'hardcore' && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.6rem', borderTop: '1px dashed rgba(239, 68, 68, 0.3)' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                       <Target size={13} color="#ef4444" />
-                      <span>Số câu Quiz bắt buộc giải đúng:</span>
+                      <span>{t.settings?.requiredQuizCountLabel || 'Số câu Quiz bắt buộc giải đúng:'}</span>
                     </span>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
                       {[3, 5, 10].map(num => (
@@ -514,7 +520,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                             cursor: 'pointer'
                           }}
                         >
-                          {num} câu
+                          {num} {t.common?.quiz || 'câu'}
                         </button>
                       ))}
                     </div>
@@ -562,7 +568,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onChange={(e) => setTelegramEnabled(e.target.checked)}
                     style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
                   />
-                  <span>Bật thông báo tự động qua Telegram</span>
+                  <span>{t.settings?.enableTelegramNotifs || 'Bật thông báo tự động qua Telegram'}</span>
                 </label>
 
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
@@ -574,7 +580,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
                   >
                     {isTestingTelegram ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                    <span>Test Kết Nối</span>
+                    <span>{t.settings?.testConnectionBtn || 'Test Kết Nối'}</span>
                   </button>
 
                   <button
@@ -584,7 +590,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
                   >
                     {isSavingTelegram ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                    <span>Lưu Cài Đặt</span>
+                    <span>{t.settings?.saveSettingsBtn || 'Lưu Cài Đặt'}</span>
                   </button>
                 </div>
               </div>
@@ -599,7 +605,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 gap: '0.5rem'
               }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  ⚡ Gửi Thử Các Loại Thông Báo Thông Minh Đến Telegram:
+                  {t.settings?.smartTelegramNotifsTitle || '⚡ Gửi Thử Các Loại Thông Báo Thông Minh Đến Telegram:'}
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   <button
@@ -607,9 +613,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestStreakSaver}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
-                    title="Gửi cảnh báo cứu Streak khẩn cấp lúc 22:30"
+                    title={t.settings?.rescueStreakBtn || "Gửi cảnh báo cứu Streak khẩn cấp lúc 22:30"}
                   >
-                    🔥 Cứu Streak (22:30)
+                    {t.settings?.rescueStreakBtn || '🔥 Cứu Streak (22:30)'}
                   </button>
 
                   <button
@@ -617,9 +623,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestWordOfDay}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: 'var(--accent-primary)', borderColor: 'rgba(2, 132, 199, 0.4)' }}
-                    title="Gửi từ vựng giờ nghỉ trưa lúc 12:00"
+                    title={t.settings?.lunchVocabBtn || "Gửi từ vựng giờ nghỉ trưa lúc 12:00"}
                   >
-                    ☕ Từ Giờ Trưa (12:00)
+                    {t.settings?.lunchVocabBtn || '☕ Từ Giờ Trưa (12:00)'}
                   </button>
 
                   <button
@@ -627,9 +633,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestWeeklyDigest}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }}
-                    title="Gửi báo cáo tổng kết tuần sáng Chủ Nhật"
+                    title={t.settings?.weeklyReportBtn || "Gửi báo cáo tổng kết tuần sáng Chủ Nhật"}
                   >
-                    📈 Tổng Kết Tuần (CN)
+                    {t.settings?.weeklyReportBtn || '📈 Tổng Kết Tuần (CN)'}
                   </button>
 
                   <button
@@ -637,9 +643,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestLeechAlert}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.4)' }}
-                    title="Gửi báo động từ cứng đầu hay quên kèm mẹo nhớ AI"
+                    title={t.settings?.stubbornVocabBtn || "Gửi báo động từ cứng đầu hay quên kèm mẹo nhớ AI"}
                   >
-                    💡 Từ Hay Quên (AI)
+                    {t.settings?.stubbornVocabBtn || '💡 Từ Hay Quên (AI)'}
                   </button>
 
                   <button
@@ -648,9 +654,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringDue}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: 'var(--accent-primary)' }}
-                    title="Gửi tóm tắt từ cũ đến hạn chu kỳ vàng lúc 08:30"
+                    title={t.settings?.dueVocabBtn || "Gửi tóm tắt từ cũ đến hạn chu kỳ vàng lúc 08:30"}
                   >
-                    {isTriggeringDue ? <Loader2 size={12} className="animate-spin" /> : '🧠 Từ Cũ (08:30)'}
+                    {isTriggeringDue ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.dueVocabBtn || '🧠 Từ Cũ (08:30)')}
                   </button>
 
                   <button
@@ -659,9 +665,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringAlarm}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-                    title="Gửi báo động Kỷ Luật Thép lúc 20:00"
+                    title={t.settings?.alarmBtn || "Gửi báo động Kỷ Luật Thép lúc 20:00"}
                   >
-                    {isTriggeringAlarm ? <Loader2 size={12} className="animate-spin" /> : '🚨 Báo Động (20:00)'}
+                    {isTriggeringAlarm ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.alarmBtn || '🚨 Báo Động (20:00)')}
                   </button>
 
                   <button
@@ -670,9 +676,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringBackup}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#06b6d4', borderColor: 'rgba(6, 182, 212, 0.4)' }}
-                    title="Đóng gói và gửi ngay file sao lưu .json về Telegram"
+                    title={t.settings?.backupBtn || "Đóng gói và gửi ngay file sao lưu .json về Telegram"}
                   >
-                    {isTriggeringBackup ? <Loader2 size={12} className="animate-spin" /> : '📦 Sao Lưu (.json)'}
+                    {isTriggeringBackup ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.backupBtn || '📦 Sao Lưu (.json)')}
                   </button>
                 </div>
               </div>
@@ -703,7 +709,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Key size={18} style={{ color: 'var(--accent-primary)' }} />
-                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Google Gemini API Key (Miễn phí 0đ)</h4>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{t.settings?.geminiKeyLabel || 'Google Gemini API Key'}</h4>
               </div>
               <a
                 href="https://aistudio.google.com/app/apikey"
@@ -711,13 +717,13 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 rel="noreferrer"
                 style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem', textDecoration: 'none' }}
               >
-                <span>Lấy key miễn phí</span>
+                <span>AI Studio</span>
                 <ExternalLink size={13} />
               </a>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Mở khóa toàn bộ tính năng AI nâng cao (Bóc tách ngữ pháp, Sửa bài viết, Viết truyện). Key được lưu an toàn 100% trên máy của bạn.
+              {t.settings?.geminiKeyPlaceholder || 'Mở khóa toàn bộ tính năng AI nâng cao. Key được lưu an toàn trên máy của bạn.'}
             </p>
 
             <form onSubmit={handleSaveApiKey} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -725,28 +731,28 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 <input
                   type="password"
                   className="input-control"
-                  placeholder="Dán AI Studio Key (AIzaSy...)"
+                  placeholder="AI Studio Key (AIzaSy...)"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   style={{ fontSize: '0.9rem' }}
                 />
                 <button type="submit" disabled={isSavingKey} className="btn-primary" style={{ flexShrink: 0 }}>
                   {isSavingKey ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  <span>Lưu Cấu Hình</span>
+                  <span>{t.settings?.saveBtn || 'Lưu Cấu Hình'}</span>
                 </button>
               </div>
 
               {/* Model Choice Chips */}
               <div>
                 <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
-                  🤖 Chọn Mô Hình AI (Google Model):
+                  🤖 {t.settings?.geminiModelLabel || 'Chọn Mô Hình AI (Google Model):'}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {[
-                    { id: 'gemini-3.5-flash', name: '🚀 Gemini 3.5 Flash', desc: 'Tối ưu phản hồi & Ổn định cao (Khuyên dùng)' },
-                    { id: 'gemini-flash-latest', name: '✨ Gemini Flash Latest', desc: 'Tự động luân chuyển bản mới nhất' },
-                    { id: 'gemini-3.7-flash', name: '🧠 Gemini 3.7 Flash', desc: 'Suy luận sâu & phân tích ngữ cảnh' },
-                    { id: 'gemini-3.6-flash', name: '⚡ Gemini 3.6 Flash', desc: 'Mới nhất, độ chi tiết cao' }
+                    { id: 'gemini-3.5-flash', name: '🚀 Gemini 3.5 Flash', desc: 'Recommended' },
+                    { id: 'gemini-flash-latest', name: '✨ Gemini Flash Latest', desc: 'Auto-rotating' },
+                    { id: 'gemini-3.7-flash', name: '🧠 Gemini 3.7 Flash', desc: 'Deep reasoning' },
+                    { id: 'gemini-3.6-flash', name: '⚡ Gemini 3.6 Flash', desc: 'High detail' }
                   ].map(m => (
                     <button
                       key={m.id}
@@ -776,7 +782,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
             {saveSuccess && (
               <span style={{ fontSize: '0.85rem', color: 'var(--accent-success)', fontWeight: 600 }}>
-                ✓ Đã lưu API Key và Mô hình AI thành công!
+                ✓ {t.settings?.successMsg || 'Đã lưu API Key và Mô hình AI thành công!'}
               </span>
             )}
           </div>
@@ -787,11 +793,13 @@ export default function SettingsModal({ onClose, onDataRestored }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldCheck size={18} style={{ color: 'var(--accent-success)' }} />
-              <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Sao Lưu & Khôi Phục Dữ Liệu Cá Nhân</h4>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
+                {t.settings?.backupSectionTitle || 'Sao Lưu & Khôi Phục Dữ Liệu Cá Nhân'}
+              </h4>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Toàn bộ từ vựng, mẫu câu, ghi chú và lịch sử chu kỳ ôn tập SRS của bạn có thể được xuất ra file JSON để lưu trên Google Drive hoặc chuyển sang máy khác.
+              Toàn bộ từ vựng, mẫu câu, ghi chú và lịch sử chu kỳ ôn tập SRS của bạn có thể được xuất ra file JSON.
             </p>
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -804,19 +812,19 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 style={{ padding: '0.75rem 1.25rem', background: '#0284c7', borderColor: '#0284c7' }}
               >
                 {isTriggeringBackup ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                <span>Gửi Bản Sao Lưu Về Telegram</span>
+                <span>Telegram Backup</span>
               </button>
 
               {/* Export Button */}
               <button type="button" onClick={handleExportBackup} className="btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
                 <Download size={18} style={{ color: 'var(--accent-primary)' }} />
-                <span>Tải File .JSON Về Máy</span>
+                <span>{t.settings?.exportBtn || 'Tải File .JSON Về Máy'}</span>
               </button>
 
               {/* Import Button */}
               <label className="btn-secondary" style={{ padding: '0.75rem 1.25rem', cursor: 'pointer' }}>
                 <Upload size={18} style={{ color: 'var(--accent-success)' }} />
-                <span>{isImporting ? 'Đang nhập...' : 'Khôi Phục Dữ Liệu (.JSON)'}</span>
+                <span>{isImporting ? (t.common?.loading || 'Đang nhập...') : (t.settings?.importBtn || 'Khôi Phục Dữ Liệu (.JSON)')}</span>
                 <input
                   type="file"
                   accept=".json"
@@ -844,11 +852,11 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onChange={(e) => setTelegramAutoBackup(e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
                   />
-                  <span>🤖 Tự động sao lưu và gửi file về Telegram mỗi ngày</span>
+                  <span>{t.settings?.autoBackupDaily || '🤖 Tự động sao lưu và gửi file về Telegram mỗi ngày'}</span>
                 </label>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Giờ chạy:</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.settings?.runTimeLabel || 'Giờ chạy:'}</span>
                   <input
                     type="time"
                     className="input-control"
@@ -859,7 +867,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 </div>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                🛡️ Bot sẽ tự động đóng gói toàn bộ từ vựng & SRS gửi vào chat Telegram của bạn. Nếu Render server restart hoặc deploy phiên bản mới, dữ liệu của bạn vẫn an toàn tuyệt đối 100%!
+                {t.settings?.backupSecurityTip || '🛡️ Bot sẽ tự động đóng gói toàn bộ từ vựng & SRS gửi vào chat Telegram của bạn. Nếu Render server restart hoặc deploy phiên bản mới, dữ liệu của bạn vẫn an toàn tuyệt đối 100%!'}
               </p>
             </div>
 

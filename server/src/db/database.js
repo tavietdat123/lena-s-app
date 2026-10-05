@@ -215,6 +215,9 @@ export function initializeDatabase() {
       full_name TEXT NOT NULL,
       avatar_url TEXT DEFAULT '🧑‍🎓',
       role TEXT DEFAULT 'user',
+      native_language TEXT DEFAULT 'en',
+      target_language TEXT DEFAULT 'en',
+      target_language_locked INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -340,6 +343,21 @@ export function initializeDatabase() {
     db.exec(`ALTER TABLE user_profile ADD COLUMN user_id TEXT;`);
   } catch (e) {}
 
+  // Migration: Ensure users table has native_language and target_language columns
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN native_language TEXT DEFAULT 'vi';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN target_language TEXT DEFAULT 'en';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN target_language_locked INTEGER DEFAULT 0;`);
+  } catch (e) {}
+  try {
+    db.exec(`UPDATE users SET native_language = 'vi' WHERE native_language IS NULL;`);
+    db.exec(`UPDATE users SET target_language = 'en' WHERE target_language IS NULL;`);
+  } catch (e) {}
+
   migrateStudyLogsUniqueness();
 
   // Performance Indexes for Multi-Tenant Querying
@@ -433,8 +451,8 @@ export function initializeDatabase() {
     const { hash, salt } = hashPassword(config.adminDefaultPassword);
     const adminId = ADMIN_USER_ID;
     db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, salt, full_name, avatar_url, role, created_at, updated_at)
-      VALUES (?, 'admin', 'admin@linguavault.local', ?, ?, 'Lingua Master', '👑', 'admin', ?, ?)
+      INSERT INTO users (id, username, email, password_hash, salt, full_name, avatar_url, role, native_language, target_language, created_at, updated_at)
+      VALUES (?, 'admin', 'admin@linguavault.local', ?, ?, 'Lingua Master', '👑', 'admin', 'en', 'en', ?, ?)
     `).run(adminId, hash, salt, now, now);
   }
 

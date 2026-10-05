@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, NavLink } from 'react-router-dom';
+import { LayoutDashboard, BookOpen, Plus, Sparkles, Menu } from 'lucide-react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import CommandPalette from './components/layout/CommandPalette';
@@ -27,6 +28,81 @@ import ProfileEditModal from './components/auth/ProfileEditModal';
 import PublicStatsPage from './components/public/PublicStatsPage';
 import { api } from './services/api';
 import { audioService } from './services/audioService';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
+
+function MobileBottomNav({ isMobileMenuOpen, setIsMobileMenuOpen, handleAddWord, stats }) {
+  const { t } = useLanguage();
+  return (
+    <nav className="mobile-bottom-nav">
+      <NavLink
+        to="/dashboard"
+        className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        <LayoutDashboard size={20} />
+        <span>{t.mobileNav.dashboard}</span>
+      </NavLink>
+
+      <NavLink
+        to="/vocab"
+        className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        <BookOpen size={20} />
+        <span>{t.mobileNav.vocab}</span>
+      </NavLink>
+
+      <button
+        type="button"
+        className="mobile-bottom-add-btn"
+        onClick={handleAddWord}
+        title={t.quickAdd.titleNew}
+      >
+        <Plus size={22} color="#ffffff" />
+      </button>
+
+      <NavLink
+        to="/review"
+        className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        <div style={{ position: 'relative' }}>
+          <Sparkles size={20} />
+          {(stats?.total_due_today || 0) > 0 && (
+            <span className="mobile-bottom-badge">
+              {stats.total_due_today}
+            </span>
+          )}
+        </div>
+        <span>{t.mobileNav.review}</span>
+      </NavLink>
+
+      <button
+        type="button"
+        className={`mobile-bottom-item ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setIsMobileMenuOpen(prev => !prev)}
+        title={t.mobileNav.more}
+      >
+        <Menu size={20} />
+        <span>{t.mobileNav.more}</span>
+      </button>
+    </nav>
+  );
+}
+
+function ErrorFallback({ error, onReset }) {
+  const { t } = useLanguage();
+  return (
+    <div style={{ maxWidth: '580px', margin: '3rem auto', padding: '2.5rem', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+      <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto', fontSize: '1.8rem' }}>⚠️</div>
+      <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{t.toasts?.errorBoundaryTitle || 'Đã xảy ra sự cố hiển thị'}</h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error?.message || 'Vui lòng bấm tải lại.'}</p>
+      <button onClick={onReset} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}>
+        {t.toasts?.retryBtn || '🔄 Thử Lại'}
+      </button>
+    </div>
+  );
+}
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -41,22 +117,14 @@ class ErrorBoundary extends React.Component {
   }
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ maxWidth: '580px', margin: '3rem auto', padding: '2.5rem', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto', fontSize: '1.8rem' }}>⚠️</div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Đã xảy ra sự cố hiển thị</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{this.state.error?.message || 'Vui lòng bấm tải lại.'}</p>
-          <button onClick={() => this.setState({ hasError: false, error: null })} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}>
-            🔄 Thử Lại
-          </button>
-        </div>
-      );
+      return <ErrorFallback error={this.state.error} onReset={() => this.setState({ hasError: false, error: null })} />;
     }
     return this.props.children;
   }
 }
 
-export default function App() {
+function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking, loadCurrentUser }) {
+  const { t, uiLang } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,10 +134,13 @@ export default function App() {
 
   const [isDark, setIsDark] = useState(false);
   const [audioSpeed, setAudioSpeed] = useState(audioService.getSpeed());
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // User Auth State
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authChecking, setAuthChecking] = useState(true);
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   // Data States
@@ -137,7 +208,7 @@ export default function App() {
     setIsDark(nextDark);
     document.body.className = nextDark ? 'theme-dark' : 'theme-light';
     localStorage.setItem('linguavault_theme', nextDark ? 'dark' : 'light');
-    addToast(nextDark ? 'Đã chuyển sang Giao diện Tối' : 'Đã chuyển sang Giao diện Sáng', 'info');
+    addToast(nextDark ? (t.toasts?.darkTheme || 'Đã chuyển sang Giao diện Tối') : (t.toasts?.lightTheme || 'Đã chuyển sang Giao diện Sáng'), 'info');
   };
 
   // Load All App Data
@@ -182,48 +253,30 @@ export default function App() {
     }
   };
 
-  // Load Current Authenticated User on Mount
-  const loadCurrentUser = async () => {
-    setAuthChecking(true);
-    try {
-      const res = await api.auth.getMe();
-      if (res.success && res.data && res.data.role !== 'guest') {
-        setCurrentUser(res.data);
-      } else {
-        setCurrentUser(null);
-      }
-    } catch (e) {
-      setCurrentUser(null);
-    } finally {
-      setAuthChecking(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCurrentUser();
-  }, []);
-
   useEffect(() => {
     if (currentUser) {
+      if (currentUser.target_language) {
+        audioService.setTargetLanguage(currentUser.target_language);
+      }
       refreshAllData();
     }
   }, [currentUser]);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
-    addToast(`Chào mừng trở lại, ${user.full_name || user.username}! 👋`, 'success');
+    addToast(t.toasts?.welcomeBack ? t.toasts.welcomeBack(user.full_name || user.username) : `Chào mừng trở lại, ${user.full_name || user.username}! 👋`, 'success');
   };
 
   const handleLogout = async () => {
     await api.auth.logout();
     setCurrentUser(null);
     navigate('/login', { replace: true });
-    addToast('Đã đăng xuất tài khoản', 'info');
+    addToast(t.toasts?.loggedOut || 'Đã đăng xuất tài khoản', 'info');
   };
 
   const handleProfileUpdated = (updatedUser) => {
     setCurrentUser(prev => ({ ...prev, ...updatedUser }));
-    addToast('Đã cập nhật hồ sơ cá nhân thành công!', 'success');
+    addToast(t.toasts?.profileUpdated || 'Đã cập nhật hồ sơ cá nhân thành công!', 'success');
   };
 
   const getSupervisorUrl = () => {
@@ -242,7 +295,7 @@ export default function App() {
   const handleSharePublicStats = () => {
     const url = getSupervisorUrl();
     navigator.clipboard.writeText(url).then(() => {
-      addToast('Đã sao chép link Cổng Giám Sát Học Tập! 🛡️ Bạn có thể gửi cho người khác để họ giám sát bạn.', 'success');
+      addToast(t.toasts?.supervisorCopied || 'Đã sao chép link Cổng Giám Sát Học Tập! 🛡️ Bạn có thể gửi cho người khác để họ giám sát bạn.', 'success');
     }).catch(() => {
       window.open(url, '_blank');
     });
@@ -305,13 +358,13 @@ export default function App() {
   };
 
   const handleDeleteWord = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa từ vựng này không?')) return;
+    if (!window.confirm(t.toasts?.deleteWordConfirm || 'Bạn có chắc chắn muốn xóa từ vựng này không?')) return;
     try {
       await api.deleteWord(id);
-      addToast('Đã xóa từ vựng khỏi kho lưu trữ', 'info');
+      addToast(t.toasts?.wordDeleted || 'Đã xóa từ vựng khỏi kho lưu trữ', 'info');
       refreshAllData();
     } catch (err) {
-      addToast('Lỗi xóa từ: ' + err.message, 'error');
+      addToast((t.toasts?.deleteWordError || 'Lỗi xóa từ: ') + err.message, 'error');
     }
   };
 
@@ -327,13 +380,13 @@ export default function App() {
   };
 
   const handleDeletePattern = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa mẫu câu này không?')) return;
+    if (!window.confirm(t.toasts?.deletePatternConfirm || 'Bạn có chắc chắn muốn xóa mẫu câu này không?')) return;
     try {
       await api.deletePattern(id);
-      addToast('Đã xóa mẫu câu', 'info');
+      addToast(t.toasts?.patternDeleted || 'Đã xóa mẫu câu', 'info');
       refreshAllData();
     } catch (err) {
-      addToast('Lỗi xóa mẫu câu: ' + err.message, 'error');
+      addToast((t.toasts?.deletePatternError || 'Lỗi xóa mẫu câu: ') + err.message, 'error');
     }
   };
 
@@ -342,22 +395,22 @@ export default function App() {
     try {
       if (noteData.id) {
         await api.updateNote(noteData.id, noteData);
-        addToast('Đã cập nhật bài viết thành công');
+        addToast(t.toasts?.noteUpdated || 'Đã cập nhật bài viết thành công');
       } else {
         await api.createNote(noteData);
-        addToast('Đã tạo bài viết mới thành công');
+        addToast(t.toasts?.noteCreated || 'Đã tạo bài viết mới thành công');
       }
       refreshAllData();
     } catch (err) {
-      addToast('Lỗi lưu bài viết: ' + err.message, 'error');
+      addToast((t.toasts?.noteSaveError || 'Lỗi lưu bài viết: ') + err.message, 'error');
     }
   };
 
   const handleDeleteNote = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bài đọc/ghi chú này không?')) return;
+    if (!window.confirm(t.toasts?.deleteNoteConfirm || 'Bạn có chắc chắn muốn xóa bài đọc/ghi chú này không?')) return;
     try {
       await api.deleteNote(id);
-      addToast('Đã xóa bài viết', 'info');
+      addToast(t.toasts?.noteDeleted || 'Đã xóa bài viết', 'info');
       refreshAllData();
     } catch (err) {
       addToast('Lỗi: ' + err.message, 'error');
@@ -413,9 +466,9 @@ export default function App() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      addToast('Đã xuất file sao lưu JSON thành công!');
+      addToast(t.toasts?.backupExported || 'Đã xuất file sao lưu JSON thành công!');
     } catch (err) {
-      addToast('Lỗi xuất dữ liệu: ' + err.message, 'error');
+      addToast((t.toasts?.backupExportError || 'Lỗi xuất dữ liệu: ') + err.message, 'error');
     }
   };
 
@@ -425,7 +478,7 @@ export default function App() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="spinner" style={{ width: '42px', height: '42px', margin: '0 auto 1.25rem', border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', fontWeight: 700 }}>Đang khởi tạo LinguaVault...</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', fontWeight: 700 }}>{t.toasts?.loadingApp || 'Đang khởi tạo LinguaVault...'}</p>
         </div>
       </div>
     );
@@ -498,6 +551,13 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onSharePublicStats={handleSharePublicStats}
         onOpenSupervisorPortal={handleOpenSupervisorPortal}
+        isOpenMobile={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        gamificationProfile={gamificationProfile}
+        onOpenAIMasteryReport={() => setIsAIMasteryReportOpen(true)}
+        audioSpeed={audioSpeed}
+        onAudioSpeedChange={handleAudioSpeedChange}
+        currentUser={currentUser}
       />
 
       {/* 2. Main Content Area */}
@@ -516,6 +576,7 @@ export default function App() {
           onOpenProfileEdit={() => setIsProfileEditOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onLogout={handleLogout}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
         />
 
         <div className="app-content">
@@ -619,7 +680,7 @@ export default function App() {
                     onFinishSession={() => {
                       refreshAllData();
                       handleNavigate('dashboard');
-                      addToast('Chúc mừng bạn đã hoàn thành phiên ôn tập hôm nay!');
+                      addToast(t.toasts?.sessionCompleted || 'Chúc mừng bạn đã hoàn thành phiên ôn tập hôm nay!');
                     }}
                   />
                 } 
@@ -651,6 +712,14 @@ export default function App() {
             </Routes>
           </ErrorBoundary>
         </div>
+
+        {/* Mobile Bottom Navigation Bar (Visible only on mobile <= 868px) */}
+        <MobileBottomNav
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          handleAddWord={handleAddWord}
+          stats={stats}
+        />
       </main>
 
       {/* Persistent Floating Active Study Timer Bar */}
@@ -675,10 +744,11 @@ export default function App() {
         <QuickAddModal
           initialData={editingWord}
           topics={topics}
+          currentUser={currentUser}
           onClose={() => setIsQuickAddOpen(false)}
           onSaved={() => {
             refreshAllData();
-            addToast(editingWord?.id ? 'Đã cập nhật từ vựng' : 'Đã thêm từ vựng mới vào kho');
+            addToast(editingWord?.id ? (t.toasts?.wordUpdated || 'Đã cập nhật từ vựng') : (t.toasts?.wordAdded || 'Đã thêm từ vựng mới vào kho'));
           }}
         />
       )}
@@ -690,7 +760,7 @@ export default function App() {
         onClose={() => setIsTopicManagerOpen(false)}
         onTopicChange={() => {
           refreshAllData();
-          addToast('Đã cập nhật danh sách chủ đề');
+          addToast(t.toasts?.topicsUpdated || 'Đã cập nhật danh sách chủ đề');
         }}
       />
 
@@ -700,7 +770,7 @@ export default function App() {
           onClose={() => setIsPatternModalOpen(false)}
           onSaved={() => {
             refreshAllData();
-            addToast(editingPattern?.id ? 'Đã cập nhật mẫu câu' : 'Đã thêm mẫu câu mới vào kho');
+            addToast(editingPattern?.id ? (t.toasts?.patternUpdated || 'Đã cập nhật mẫu câu') : (t.toasts?.patternAdded || 'Đã thêm mẫu câu mới vào kho'));
           }}
         />
       )}
@@ -710,7 +780,7 @@ export default function App() {
           onClose={() => setIsSettingsOpen(false)}
           onDataRestored={() => {
             refreshAllData();
-            addToast('Đã khôi phục dữ liệu từ bản sao lưu!');
+            addToast(t.toasts?.backupRestored || 'Đã khôi phục dữ liệu từ bản sao lưu!');
           }}
         />
       )}
@@ -736,7 +806,7 @@ export default function App() {
             await api.addXp(30, 'Giải mã Báo Thức Kỷ Luật Thép');
           } catch (e) {}
           refreshAllData();
-          addToast('🎉 Xuất sắc! Bạn đã giải mã thành công & tắt chuông báo thức! (+30 XP)', 'success');
+          addToast(t.toasts?.alarmDeactivated || '🎉 Xuất sắc! Bạn đã giải mã thành công & tắt chuông báo thức! (+30 XP)', 'success');
         }}
       />
 
@@ -765,5 +835,45 @@ export default function App() {
       <Toast toasts={toasts} onDismiss={removeToast} />
     </div>
   </StudyTimerProvider>
+  );
+}
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  // Load Current Authenticated User on Mount
+  const loadCurrentUser = async () => {
+    setAuthChecking(true);
+    try {
+      const res = await api.auth.getMe();
+      if (res.success && res.data && res.data.role !== 'guest') {
+        setCurrentUser(res.data);
+      } else {
+        setCurrentUser(null);
+      }
+    } catch (e) {
+      setCurrentUser(null);
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  return (
+    <LanguageProvider currentUser={currentUser}>
+      <ErrorBoundary>
+        <AppContent
+          currentUser={currentUser}
+          setCurrentUser={setCurrentUser}
+          authChecking={authChecking}
+          setAuthChecking={setAuthChecking}
+          loadCurrentUser={loadCurrentUser}
+        />
+      </ErrorBoundary>
+    </LanguageProvider>
   );
 }

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { playAudio } from '../../services/audioService';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Helper: Remove Vietnamese Tones for Accent-Insensitive Smart Search
 const removeVietnameseTones = (str) => {
@@ -50,6 +51,7 @@ export default function SmartReader({
   onSaveWordFromSelection, 
   onSendToAiLab 
 }) {
+  const { t } = useLanguage();
   const [selectedNoteId, setSelectedNoteId] = useState(notes[0]?.id || null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -247,11 +249,13 @@ export default function SmartReader({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <BookOpen size={18} style={{ color: 'var(--accent-primary)' }} />
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Tài Liệu & Bài Đọc</h4>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                {t.reader?.articlesList || 'Tài Liệu & Bài Đọc'}
+              </h4>
             </div>
             <button onClick={handleStartNewNote} className="btn-primary" style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}>
               <Plus size={16} />
-              <span>Bài mới</span>
+              <span>{t.reader?.newNoteBtn || 'Bài mới'}</span>
             </button>
           </div>
 
@@ -260,7 +264,7 @@ export default function SmartReader({
             <input
               type="text"
               className="input-control"
-              placeholder="Tìm tài liệu..."
+              placeholder={t.reader?.searchPlaceholder || 'Tìm tài liệu...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.55rem 0.85rem 0.55rem 2.5rem' }}
@@ -329,16 +333,16 @@ export default function SmartReader({
           <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                {selectedNoteId ? 'Chỉnh Sửa Bài Viết' : 'Tạo Bài Đọc / Tài Liệu Mới'}
+                {selectedNoteId ? (t.common?.edit || 'Chỉnh Sửa Bài Viết') : (t.reader?.newNoteBtn || 'Tạo Bài Đọc / Tài Liệu Mới')}
               </h3>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary">
                   <X size={16} />
-                  <span>Hủy</span>
+                  <span>{t.common?.cancel || 'Hủy'}</span>
                 </button>
                 <button type="submit" className="btn-primary">
                   <Check size={16} />
-                  <span>Lưu bài viết</span>
+                  <span>{t.reader?.saveNoteBtn || 'Lưu bài viết'}</span>
                 </button>
               </div>
             </div>
@@ -347,7 +351,7 @@ export default function SmartReader({
               <input
                 type="text"
                 className="input-control"
-                placeholder="Tiêu đề bài viết / tài liệu..."
+                placeholder={t.reader?.titlePlaceholder || 'Tiêu đề bài viết / tài liệu...'}
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 style={{ fontSize: '1.15rem', fontWeight: 700 }}
@@ -356,7 +360,7 @@ export default function SmartReader({
               <input
                 type="text"
                 className="input-control"
-                placeholder="Chủ đề (ví dụ: Tech, IELTS, Podcast...)"
+                placeholder="Topic (Tech, IELTS, Podcast...)"
                 value={editTopic}
                 onChange={(e) => setEditTopic(e.target.value)}
               />
@@ -364,7 +368,7 @@ export default function SmartReader({
 
             <textarea
               className="input-control"
-              placeholder="Dán hoặc viết nội dung bài báo, tài liệu học tiếng Anh tại đây..."
+              placeholder={t.reader?.contentPlaceholder || 'Dán hoặc viết nội dung bài báo, tài liệu học tiếng Anh tại đây...'}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               style={{ flex: 1, minHeight: '450px', resize: 'vertical', lineHeight: 1.8, fontSize: '1.05rem' }}
@@ -387,7 +391,7 @@ export default function SmartReader({
                   <span className="badge badge-blue">{selectedNote.topic || 'General'}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     <Clock size={14} />
-                    <span>~{readingTime} phút đọc ({wordCount} từ)</span>
+                    <span>~{readingTime} min ({wordCount} words)</span>
                   </div>
                 </div>
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
@@ -402,13 +406,13 @@ export default function SmartReader({
                   style={{ padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
                 >
                   <Edit3 size={15} />
-                  <span>Sửa bài</span>
+                  <span>{t.common?.edit || 'Sửa bài'}</span>
                 </button>
                 <button
                   onClick={() => onDeleteNote(selectedNote.id)}
                   className="btn-icon"
                   style={{ color: 'var(--accent-danger)' }}
-                  title="Xóa tài liệu"
+                  title={t.common?.delete || 'Xóa tài liệu'}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -429,7 +433,7 @@ export default function SmartReader({
             }}>
               <Sparkles size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
               <span>
-                <b>Smart Highlighter Pro</b>: Bôi đen bất kỳ từ hoặc câu nào trong văn bản dưới đây để phát âm, lưu nhanh vào kho từ hoặc gửi AI phân tích!
+                {t.reader?.tipHighlight || '💡 Mẹo: Bôi đen bất kỳ từ hoặc câu nào trong bài đọc để tra cứu và lưu nhanh vào Kho Từ Vựng!'}
               </span>
             </div>
 
@@ -452,13 +456,15 @@ export default function SmartReader({
         ) : (
           <div style={{ textAlign: 'center', margin: 'auto', padding: '3rem' }}>
             <FileText size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem auto' }} />
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Chưa chọn tài liệu nào</h4>
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+              {t.reader?.noArticleSelectedTitle || 'Chưa chọn tài liệu nào'}
+            </h4>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
-              Hãy chọn một bài đọc từ danh sách bên trái hoặc tạo bài viết mới.
+              {t.reader?.noArticleSelectedDesc || 'Hãy chọn một bài đọc từ danh sách bên trái hoặc tạo bài viết mới.'}
             </p>
             <button onClick={handleStartNewNote} className="btn-primary">
               <Plus size={16} />
-              <span>Tạo Bài Đầu Tiên</span>
+              <span>{t.reader?.createFirstArticleBtn || 'Tạo Bài Đầu Tiên'}</span>
             </button>
           </div>
         )}
@@ -501,7 +507,7 @@ export default function SmartReader({
                 onClick={() => playAudio(selectionPopup.text)}
                 className="btn-icon"
                 style={{ padding: '0.2rem', color: 'var(--accent-primary)' }}
-                title="Phát âm từ"
+                title={t.reader?.pronounceWordTitle || "Phát âm từ"}
               >
                 <Volume2 size={15} />
               </button>
@@ -523,7 +529,7 @@ export default function SmartReader({
                 }}
               >
                 <Sparkles size={14} />
-                <span>Bấm để dịch theo ngữ cảnh</span>
+                <span>{t.reader?.clickToTranslateContext || 'Bấm để dịch theo ngữ cảnh'}</span>
               </button>
             )}
 
@@ -537,7 +543,7 @@ export default function SmartReader({
             {isTranslating ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--accent-primary)', padding: '0.2rem 0.4rem' }}>
                 <Loader2 size={14} className="animate-spin" />
-                <span>AI đang dịch nghĩa theo ngữ cảnh bài đọc...</span>
+                <span>{t.reader?.aiTranslatingContext || 'AI đang dịch nghĩa theo ngữ cảnh bài đọc...'}</span>
               </div>
             ) : contextTranslation ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
@@ -566,10 +572,10 @@ export default function SmartReader({
                 onClick={() => playAudio(selectionPopup.text)}
                 className="btn-secondary"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                title="Phát âm từ được chọn"
+                title="Pronounce"
               >
                 <Volume2 size={15} style={{ color: 'var(--accent-primary)' }} />
-                <span>Đọc</span>
+                <span>{t.common?.listen || 'Nghe'}</span>
               </button>
 
               {/* Save to Vocab Vault */}
@@ -582,7 +588,7 @@ export default function SmartReader({
                 style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }}
               >
                 <BookPlus size={15} />
-                <span>Lưu vào Kho Từ</span>
+                <span>{t.reader?.saveToVault || 'Lưu vào Kho Từ'}</span>
               </button>
 
               {/* Send to AI Lab */}
@@ -593,10 +599,10 @@ export default function SmartReader({
                 }}
                 className="btn-secondary"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                title="Bóc tách phân tích câu bằng AI"
+                title="AI Analysis"
               >
                 <BrainCircuit size={15} style={{ color: '#a855f7' }} />
-                <span>AI Bóc Tách</span>
+                <span>{t.reader?.sendToAiLab || 'Phân Tích AI'}</span>
               </button>
             </div>
           </div>

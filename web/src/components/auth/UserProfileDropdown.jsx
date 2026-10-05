@@ -11,6 +11,7 @@ import {
   Crown,
   Edit3
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function UserProfileDropdown({ 
   user, 
@@ -19,6 +20,7 @@ export default function UserProfileDropdown({
   onOpenSettings,
   onLogout 
 }) {
+  const { uiLang, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -38,6 +40,18 @@ export default function UserProfileDropdown({
   const currentLevel = gamificationProfile?.level ?? user?.profile?.current_level ?? 1;
   const currentXp = gamificationProfile?.totalXp ?? user?.profile?.total_xp ?? 0;
   const currentTitle = gamificationProfile?.title ?? user?.profile?.title ?? 'Novice Scholar 🌱';
+
+  const nativeLabel = user.native_language === 'ru' 
+    ? (uiLang === 'ru' ? '🇷🇺 Россия' : uiLang === 'en' ? '🇷🇺 Russian' : '🇷🇺 Nga')
+    : user.native_language === 'en' 
+      ? '🇬🇧 English' 
+      : '🇻🇳 Việt';
+
+  const targetLabel = user.target_language === 'vi'
+    ? (uiLang === 'ru' ? '🇻🇳 Вьетнам' : uiLang === 'en' ? '🇻🇳 Vietnamese' : '🇻🇳 Việt')
+    : '🇬🇧 English';
+
+  const roleText = user.role === 'admin' ? t.userMenu.admin : user.role === 'guest' ? t.userMenu.guest : t.userMenu.member;
 
   return (
     <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -116,7 +130,7 @@ export default function UserProfileDropdown({
                   {user.full_name}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {user.role === 'admin' ? '👑 Quản trị viên' : user.role === 'guest' ? '🚀 Khách trải nghiệm' : '✨ Thành viên'}
+                  {roleText}
                 </div>
               </div>
             </div>
@@ -132,8 +146,68 @@ export default function UserProfileDropdown({
               paddingTop: '0.45rem',
               borderTop: '1px solid var(--border-color)'
             }}>
-              <span>Cấp {currentLevel} • {currentTitle}</span>
-              <span>{currentXp} XP</span>
+              <span>{t.common.level} {currentLevel} • {currentTitle}</span>
+              <span>{currentXp} {t.common.xp}</span>
+            </div>
+
+            {/* Language Pair Badge */}
+            <div style={{
+              marginTop: '0.45rem',
+              padding: '0.35rem 0.55rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(2, 132, 199, 0.08)',
+              border: '1px solid rgba(2, 132, 199, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.73rem'
+            }}>
+              <span style={{ color: 'var(--text-muted)' }}>{t.userMenu.routeLabel}</span>
+              <span style={{ fontWeight: 800, color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                {nativeLabel} ➔ {targetLabel} <span title="Lộ trình học đã cố định" style={{ fontSize: '0.65rem' }}>🔒</span>
+              </span>
+            </div>
+
+            {/* Quick App UI Language Switcher */}
+            <div style={{
+              marginTop: '0.45rem',
+              padding: '0.35rem 0.55rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)'
+            }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {uiLang === 'ru' ? 'Язык app:' : uiLang === 'en' ? 'App Lang:' : 'Ngôn ngữ app:'}
+              </span>
+              <div style={{ display: 'flex', gap: '3px' }}>
+                {[
+                  { code: 'vi', flag: '🇻🇳' },
+                  { code: 'en', flag: '🇬🇧' },
+                  { code: 'ru', flag: '🇷🇺' }
+                ].map((item) => (
+                  <button
+                    key={item.code}
+                    type="button"
+                    onClick={async () => {
+                      setUiLang(item.code);
+                    }}
+                    style={{
+                      padding: '0.15rem 0.35rem',
+                      borderRadius: '5px',
+                      border: uiLang === item.code ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                      background: uiLang === item.code ? 'rgba(2, 132, 199, 0.15)' : 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                    title={item.code.toUpperCase()}
+                  >
+                    {item.flag}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -163,7 +237,7 @@ export default function UserProfileDropdown({
               className="hover-card"
             >
               <Edit3 size={15} style={{ color: 'var(--accent-primary)' }} />
-              <span>Chỉnh sửa thông tin</span>
+              <span>{t.userMenu.editProfile}</span>
             </button>
 
             {onOpenSettings && (
@@ -191,7 +265,7 @@ export default function UserProfileDropdown({
                 className="hover-card"
               >
                 <Settings size={15} style={{ color: 'var(--text-muted)' }} />
-                <span>Cài đặt AI & Telegram</span>
+                <span>{t.userMenu.settings}</span>
               </button>
             )}
 
@@ -221,7 +295,7 @@ export default function UserProfileDropdown({
               className="hover-card"
             >
               <LogOut size={15} />
-              <span>Đăng xuất</span>
+              <span>{t.userMenu.logout}</span>
             </button>
           </div>
         </div>

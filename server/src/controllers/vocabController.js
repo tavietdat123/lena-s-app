@@ -11,9 +11,9 @@ export const vocabController = {
       const { search, tag, status, level, topic_id } = req.query;
       let query = `
         SELECT * FROM words 
-        WHERE (user_id = ? OR user_id IS NULL OR user_id = 'admin_master_user_id')
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `;
-      const params = [userId];
+      const params = [userId, userId, userId];
 
       if (search) {
         query += ' AND (word LIKE ? OR meaning_vi LIKE ? OR meaning_en LIKE ?)';
@@ -68,9 +68,9 @@ export const vocabController = {
       const userId = req.user?.id || 'admin_master_user_id';
       const stmt = db.prepare(`
         SELECT * FROM words 
-        WHERE id = ? AND (user_id = ? OR user_id IS NULL OR ? = 'admin_master_user_id')
+        WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `);
-      const word = stmt.get(id, userId, userId);
+      const word = stmt.get(id, userId, userId, userId);
 
       if (!word) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy từ vựng' });
@@ -179,8 +179,8 @@ export const vocabController = {
       const userId = req.user?.id || 'admin_master_user_id';
       const existingWord = db.prepare(`
         SELECT * FROM words 
-        WHERE id = ? AND (user_id = ? OR user_id IS NULL OR ? = 'admin_master_user_id')
-      `).get(id, userId, userId);
+        WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
+      `).get(id, userId, userId, userId);
 
       if (!existingWord) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy từ vựng' });
@@ -193,7 +193,7 @@ export const vocabController = {
           word = ?, phonetic = ?, audio_url = ?, part_of_speech = ?,
           meaning_vi = ?, meaning_en = ?, collocations = ?, examples = ?,
           tags = ?, level = ?, updated_at = ?, topic_id = ?
-        WHERE id = ? AND (user_id = ? OR user_id IS NULL OR ? = 'admin_master_user_id')
+        WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `);
 
       stmt.run(
@@ -210,6 +210,7 @@ export const vocabController = {
         now,
         finalTopicId,
         id,
+        userId,
         userId,
         userId
       );
@@ -231,9 +232,9 @@ export const vocabController = {
       const userId = req.user?.id || 'admin_master_user_id';
       const stmt = db.prepare(`
         DELETE FROM words 
-        WHERE id = ? AND (user_id = ? OR user_id IS NULL OR ? = 'admin_master_user_id')
+        WHERE id = ? AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `);
-      stmt.run(id, userId, userId);
+      stmt.run(id, userId, userId, userId);
       res.json({ success: true, message: 'Đã xóa từ vựng' });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });

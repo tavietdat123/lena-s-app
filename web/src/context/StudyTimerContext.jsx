@@ -16,10 +16,20 @@ export function formatTime(totalSeconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function formatDurationHuman(seconds) {
+export function formatDurationHuman(seconds, lang = 'en') {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  if (lang === 'en') {
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s > 0 ? `${s}s` : ''}`;
+    return `${s}s`;
+  }
+  if (lang === 'ru') {
+    if (h > 0) return `${h} ч ${m} мин`;
+    if (m > 0) return `${m} мин ${s > 0 ? `${s}с` : ''}`;
+    return `${s} сек`;
+  }
   if (h > 0) {
     return `${h} giờ ${m} phút`;
   }
@@ -50,20 +60,48 @@ export const ACTIVITIES = [
   { id: 'custom', label: 'Tự Đặt Tên...', emoji: '⚡', color: '#8b5cf6' }
 ];
 
-export function getActivityMeta(activityId, customTitle = '') {
+export function getActivityMeta(activityId, customTitle = '', t = null) {
   const found = ACTIVITIES.find(a => a.id === activityId);
+  const keyMap = t?.timer ? {
+    coding: t.timer.activityCoding,
+    work: t.timer.activityWork,
+    vocab: t.timer.activityVocab,
+    flashcard: t.timer.activityFlashcard,
+    reader: t.timer.activityReader,
+    quiz: t.timer.activityQuiz,
+    speaking: t.timer.activitySpeaking,
+    deepwork: t.timer.activityDeepwork,
+    writing: t.timer.activityWriting,
+    general: t.timer.activityGeneral,
+    custom: t.timer.activityCustom
+  } : null;
+  const localizedLabel = keyMap?.[activityId];
+
   if (found) {
     if (activityId === 'custom' && customTitle) {
       return { ...found, label: customTitle };
     }
-    return found;
+    return { ...found, label: localizedLabel || found.label };
   }
   return {
     id: activityId || 'custom',
-    label: customTitle || activityId || 'Công việc tự do',
+    label: customTitle || localizedLabel || activityId || 'Free focus',
     emoji: '⚡',
     color: '#6366f1'
   };
+}
+
+export function getSoundMeta(soundId, t = null) {
+  const found = SOUND_OPTIONS.find(s => s.id === soundId) || SOUND_OPTIONS[0];
+  if (!t || !t.timer) return found;
+  const soundKeyMap = {
+    melodic: { label: t.timer.soundMelodicLabel, desc: t.timer.soundMelodicDesc },
+    alarm: { label: t.timer.soundAlarmLabel, desc: t.timer.soundAlarmDesc },
+    zen: { label: t.timer.soundZenLabel, desc: t.timer.soundZenDesc },
+    fanfare: { label: t.timer.soundFanfareLabel, desc: t.timer.soundFanfareDesc }
+  };
+  const localized = soundKeyMap[soundId];
+  return localized ? { ...found, label: localized.label || found.label, desc: localized.desc || found.desc } : found;
 }
 
 // High-Fidelity Web Audio Sound Synthesizer

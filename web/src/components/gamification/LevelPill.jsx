@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Award, Zap, ChevronRight, Sparkles, Shield, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function LevelPill({ profile, onOpenReport }) {
+  const { t } = useLanguage();
   const [showLadderModal, setShowLadderModal] = useState(false);
 
   if (!profile) return null;
@@ -35,7 +37,7 @@ export default function LevelPill({ profile, onOpenReport }) {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
         }}
         className="hover-card"
-        title="Nhấn để xem Bảng Bậc Thang Cấp Độ & EXP"
+        title={t.levelPill?.ladderTitle || "Nhấn để xem Bảng Bậc Thang Cấp Độ & EXP"}
       >
         {/* Level Badge */}
         <div style={{
@@ -143,10 +145,10 @@ export default function LevelPill({ profile, onOpenReport }) {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    Bậc Thang Cấp Độ Học Thuật
+                    {t.levelPill?.ladderTitle || 'Bậc Thang Cấp Độ Học Thuật'}
                   </h3>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    Tích lũy EXP để mở khóa các danh hiệu ngôn ngữ cao cấp
+                    {t.levelPill?.ladderSubtitle || 'Tích lũy EXP để mở khóa các danh hiệu ngôn ngữ cao cấp'}
                   </p>
                 </div>
               </div>
@@ -171,13 +173,13 @@ export default function LevelPill({ profile, onOpenReport }) {
             }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                  CẤP ĐỘ HIỆN TẠI
+                  {t.levelPill?.currentRank || 'CẤP ĐỘ HIỆN TẠI'}
                 </span>
                 <h4 style={{ margin: '0.2rem 0 0 0', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   Level {level}: {title}
                 </h4>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Tiến độ: <b>{xpIntoLevel} / {xpNeededForLevel} XP</b> ({progressPercent}%) • Cần thêm +{xpNeededForLevel - xpIntoLevel} XP lên Lv.{nextLevel}
+                  <b>{xpIntoLevel} / {xpNeededForLevel} XP</b> ({progressPercent}%) • {t.levelPill?.xpNeeded ? t.levelPill.xpNeeded(xpNeededForLevel - xpIntoLevel) : `Cần thêm +${xpNeededForLevel - xpIntoLevel} XP`}
                 </p>
               </div>
 
@@ -186,7 +188,7 @@ export default function LevelPill({ profile, onOpenReport }) {
                   {totalXp}
                 </span>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block' }}>
-                  TỔNG EXP
+                  EXP
                 </span>
               </div>
             </div>
@@ -259,7 +261,7 @@ export default function LevelPill({ profile, onOpenReport }) {
                   style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
                 >
                   <Sparkles size={15} color="var(--accent-primary)" />
-                  <span>Xem Đánh Giá Năng Lực AI</span>
+                  <span>{t.nav?.aiReportBtn || 'Xem Đánh Giá Năng Lực AI'}</span>
                 </button>
               )}
               <button
@@ -267,7 +269,7 @@ export default function LevelPill({ profile, onOpenReport }) {
                 className="btn-primary"
                 style={{ fontSize: '0.85rem', padding: '0.5rem 1.25rem', marginLeft: 'auto' }}
               >
-                Đóng
+                {t.common?.close || 'Đóng'}
               </button>
             </div>
           </div>

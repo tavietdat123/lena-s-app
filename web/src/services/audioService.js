@@ -68,6 +68,17 @@ export const setGlobalAudioAccent = (accent) => {
 
 export const getGlobalAudioAccent = () => globalAudioAccent;
 
+let globalTargetLanguage = 'en';
+
+export const setGlobalTargetLanguage = (targetLang) => {
+  if (targetLang === 'vi' || targetLang === 'en') {
+    globalTargetLanguage = targetLang;
+  }
+  return globalTargetLanguage;
+};
+
+export const getGlobalTargetLanguage = () => globalTargetLanguage;
+
 /**
  * Disqualifies outdated/robotic/novelty macOS & Windows voices
  * such as Alex, Fred, Victoria, Ralph, Zarvox, Trinoids, etc.
@@ -82,7 +93,32 @@ const getVoiceForAccent = (targetLang) => {
     loadVoices();
   }
 
-  const normalizedTarget = targetLang.replace('_', '-').toLowerCase();
+  const normalizedTarget = (targetLang || 'en-US').replace('_', '-').toLowerCase();
+
+  // 1. Vietnamese Voice Matching (vi-VN)
+  if (normalizedTarget.startsWith('vi')) {
+    const viVoices = availableVoices.filter((voice) =>
+      String(voice.lang || '').replace('_', '-').toLowerCase().startsWith('vi')
+    );
+    if (viVoices.length > 0) {
+      const best = viVoices.find(v => /google|linh|mai|an|natural|premium/i.test(`${v.name} ${v.voiceURI}`)) || viVoices[0];
+      return best;
+    }
+    return null;
+  }
+
+  // 2. Russian Voice Matching (ru-RU)
+  if (normalizedTarget.startsWith('ru')) {
+    const ruVoices = availableVoices.filter((voice) =>
+      String(voice.lang || '').replace('_', '-').toLowerCase().startsWith('ru')
+    );
+    if (ruVoices.length > 0) {
+      return ruVoices[0];
+    }
+    return null;
+  }
+
+  // 3. English Natural Voice Matching (en-US / en-GB)
   const isUK = normalizedTarget === 'en-gb';
 
   // High-fidelity natural voices
@@ -288,7 +324,8 @@ export const playAudio = (text, audioUrl = null, lang = null, rate = null) => {
 
   const parsedRate = rate !== null ? parseFloat(rate) : globalAudioSpeed;
   const targetRate = !isNaN(parsedRate) ? Math.max(0.5, Math.min(1.8, parsedRate)) : 1.0;
-  const targetLang = lang || globalAudioAccent;
+  const defaultLang = globalTargetLanguage === 'vi' ? 'vi-VN' : globalAudioAccent;
+  const targetLang = lang || defaultLang;
   const cleanText = (text || '').trim();
 
   // Atomically cancel any active sound before starting the new one
@@ -457,7 +494,9 @@ export const audioService = {
   setSpeed: setGlobalAudioSpeed,
   getSpeed: getGlobalAudioSpeed,
   setAccent: setGlobalAudioAccent,
-  getAccent: getGlobalAudioAccent
+  getAccent: getGlobalAudioAccent,
+  setTargetLanguage: setGlobalTargetLanguage,
+  getTargetLanguage: getGlobalTargetLanguage
 };
 
 export const stopPlayback = stopCurrentPlayback;

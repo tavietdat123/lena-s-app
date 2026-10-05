@@ -18,18 +18,20 @@ import {
 } from 'lucide-react';
 import { playAudio } from '../../services/audioService';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function Dashboard({ 
   stats, 
   recentWords = [], 
   onStartReview, 
   onNavigate, 
-  audioSpeed = 1.0,
+  audioSpeed = 1.0, 
   gamificationProfile,
   onOpenAIMasteryReport,
   onSharePublicStats,
   onOpenSupervisorPortal
 }) {
+  const { uiLang, t } = useLanguage();
   const [playingWordId, setPlayingWordId] = useState(null);
 
   const totalDue = stats?.total_due_today || 0;
@@ -51,7 +53,7 @@ export default function Dashboard({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* 1. HERO SRS REVIEW CALL-TO-ACTION PRO MAX */}
-      <div style={{
+      <div className="dashboard-hero-card" style={{
         background: totalDue > 0 
           ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%)'
           : 'linear-gradient(135deg, #10b981 0%, #047857 50%, #064e3b 100%)',
@@ -99,14 +101,14 @@ export default function Dashboard({
 
           <h3 style={{ fontSize: '2.1rem', fontWeight: '800', lineHeight: 1.15, letterSpacing: '-0.03em', marginBottom: '0.65rem' }}>
             {totalDue > 0 
-              ? `Hôm nay bạn có ${totalDue} thẻ cần ôn tập`
-              : 'Tuyệt vời! Bạn đã hoàn thành hết mục tiêu hôm nay'}
+              ? (uiLang === 'ru' ? `Сегодня у вас ${totalDue} карточек для повторения` : uiLang === 'en' ? `You have ${totalDue} cards due for review today` : `Hôm nay bạn có ${totalDue} thẻ cần ôn tập`)
+              : (uiLang === 'ru' ? 'Отлично! Вы завершили все цели на сегодня' : uiLang === 'en' ? 'Awesome! You have completed all reviews for today' : 'Tuyệt vời! Bạn đã hoàn thành hết mục tiêu hôm nay')}
           </h3>
 
           <p style={{ opacity: 0.92, fontSize: '1rem', lineHeight: 1.5 }}>
             {totalDue > 0
-              ? 'Dành 3-5 phút ôn lại đúng thời điểm vàng để chống lại đường cong lãng quên (Forgetting Curve).'
-              : 'Mọi từ vựng và cấu trúc đều đang nằm trong chu kỳ ghi nhớ dài hạn an toàn.'}
+              ? (uiLang === 'ru' ? 'Повторите карточки вовремя, чтобы защитить память от кривой забывания.' : uiLang === 'en' ? 'Spend 3-5 minutes reviewing at the golden moment to fight the forgetting curve.' : 'Dành 3-5 phút ôn lại đúng thời điểm vàng để chống lại đường cong lãng quên (Forgetting Curve).')
+              : (uiLang === 'ru' ? 'Все слова и грамматические структуры находятся в безопасном цикле долговременной памяти.' : uiLang === 'en' ? 'All words and structures are safely retained in long-term memory.' : 'Mọi từ vựng và cấu trúc đều đang nằm trong chu kỳ ghi nhớ dài hạn an toàn.')}
           </p>
         </div>
 
@@ -129,7 +131,7 @@ export default function Dashboard({
               }}
               className="glow-hover"
             >
-              <span>Bắt Đầu Ôn Tập Ngay</span>
+              <span>{t.dashboard.startReviewBtn}</span>
               <ArrowRight size={20} />
             </button>
           ) : (
@@ -148,7 +150,7 @@ export default function Dashboard({
                 backdropFilter: 'blur(10px)'
               }}
             >
-              <span>Thêm Từ Mới Vào Kho</span>
+              <span>{t.dashboard.addWordBtn}</span>
               <ArrowRight size={18} />
             </button>
           )}
@@ -171,7 +173,7 @@ export default function Dashboard({
             className="glow-hover"
           >
             <Target size={18} />
-            <span>Làm Quiz</span>
+            <span>{uiLang === 'ru' ? 'Викторина' : uiLang === 'en' ? 'Topic Quiz' : 'Làm Quiz'}</span>
           </button>
 
           <button
@@ -192,7 +194,7 @@ export default function Dashboard({
             className="glow-hover"
           >
             <Sparkles size={18} />
-            <span>Luyện Speaking AI</span>
+            <span>{uiLang === 'ru' ? 'Тренировка речи' : uiLang === 'en' ? 'Speaking Lab' : 'Luyện Speaking AI'}</span>
           </button>
 
           {onOpenAIMasteryReport && (
@@ -215,7 +217,7 @@ export default function Dashboard({
               className="glow-hover"
             >
               <Brain size={18} />
-              <span>Báo Cáo Đánh Giá AI</span>
+              <span>{t.nav.aiReportBtn}</span>
             </button>
           )}
 
@@ -240,10 +242,10 @@ export default function Dashboard({
               cursor: 'pointer'
             }}
             className="glow-hover"
-            title="Mở giao diện Cổng Giám Sát Học Tập trong tab mới"
+            title={t.dashboard.supervisorPortalBtn || "Mở giao diện Cổng Giám Sát"}
           >
             <Eye size={18} />
-            <span>Xem Cổng Giám Sát</span>
+            <span>{t.dashboard.supervisorPortalBtn || 'Xem Cổng Giám Sát'}</span>
           </button>
 
           {/* Button 2: Copy Supervisor Link */}
@@ -272,10 +274,10 @@ export default function Dashboard({
               cursor: 'pointer'
             }}
             className="glow-hover"
-            title="Sao chép link Cổng Giám Sát gửi cho người khác xem"
+            title={t.dashboard.supervisorLinkBtn || "Sao chép link Cổng Giám Sát"}
           >
             <Share2 size={17} />
-            <span>Link Người Giám Sát</span>
+            <span>{t.dashboard.supervisorLinkBtn || 'Link Người Giám Sát'}</span>
           </button>
         </div>
       </div>
@@ -297,7 +299,7 @@ export default function Dashboard({
             <span style={{ fontSize: '1.5rem' }}>📢</span>
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Lời Nhắn Mới Từ Người Giám Sát ({stats.supervisorFeedbacks[0].supervisor_name}):
+                {t.dashboard.supervisorMessageTitle || 'Lời Nhắn Mới Từ Người Giám Sát'} ({stats.supervisorFeedbacks[0].supervisor_name}):
               </div>
               <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
                 "{stats.supervisorFeedbacks[0].message}"
@@ -312,7 +314,7 @@ export default function Dashboard({
             className="btn-secondary"
             style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', borderRadius: '10px' }}
           >
-            <span>Mở Cổng Giám Sát</span>
+            <span>{t.dashboard.openSupervisorBtn || 'Mở Cổng Giám Sát'}</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -339,7 +341,7 @@ export default function Dashboard({
           {/* XP Progress Bar */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <span>Tiến độ lên Lv.{nextLevel}</span>
+              <span>{t.dashboard.levelProgress ? t.dashboard.levelProgress(nextLevel) : `Tiến độ lên Lv.${nextLevel}`}</span>
               <b>{progressPercent}%</b>
             </div>
             <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -354,14 +356,14 @@ export default function Dashboard({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Daily Streak:</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.dashboard.dailyStreak || 'Daily Streak:'}</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
               <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-warning)' }}>
-                🔥 {streak} ngày liên tục
+                🔥 {t.dashboard.daysInRow ? t.dashboard.daysInRow(streak) : `${streak} ngày liên tục`}
               </span>
               {stats?.max_streak > 0 && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                  (Kỷ lục: {stats.max_streak})
+                  {t.dashboard.recordStreak ? t.dashboard.recordStreak(stats.max_streak) : `(Kỷ lục: ${stats.max_streak})`}
                 </span>
               )}
             </div>
@@ -374,9 +376,9 @@ export default function Dashboard({
             <BookOpen size={28} />
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Kho Từ Vựng & Collocation</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t.dashboard.totalWords}</span>
             <h4 style={{ fontSize: '1.85rem', fontWeight: '800', lineHeight: 1.1, marginTop: '0.2rem' }}>
-              {wordStats.total || 0} <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>từ</span>
+              {wordStats.total || 0}
             </h4>
           </div>
         </div>
@@ -387,9 +389,9 @@ export default function Dashboard({
             <CheckCircle2 size={28} />
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Đã Ghi Nhớ Thuần Thục</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t.dashboard.masteredWords}</span>
             <h4 style={{ fontSize: '1.85rem', fontWeight: '800', lineHeight: 1.1, marginTop: '0.2rem' }}>
-              {wordStats.mastered || 0} <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>từ</span>
+              {wordStats.mastered || 0}
             </h4>
           </div>
         </div>
@@ -400,9 +402,9 @@ export default function Dashboard({
             <Layers size={28} />
           </div>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Mẫu Câu & Cấu Trúc</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t.nav.patterns}</span>
             <h4 style={{ fontSize: '1.85rem', fontWeight: '800', lineHeight: 1.1, marginTop: '0.2rem' }}>
-              {stats?.patterns?.total || 0} <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>mẫu</span>
+              {stats?.patterns?.total || 0}
             </h4>
           </div>
         </div>
@@ -413,10 +415,10 @@ export default function Dashboard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <TrendingUp size={20} style={{ color: 'var(--accent-primary)' }} />
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>Chỉ Số Phân Bổ Trí Nhớ (Memory Retention Stages)</h4>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>{t.dashboard.retentionStagesTitle || 'Chỉ Số Phân Bổ Trí Nhớ (Memory Retention Stages)'}</h4>
           </div>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Tổng cộng: {wordStats.total || 0} mục
+            {t.dashboard.totalItems ? t.dashboard.totalItems(wordStats.total || 0) : `Tổng cộng: ${wordStats.total || 0} mục`}
           </span>
         </div>
 
@@ -471,29 +473,29 @@ export default function Dashboard({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.75rem', fontSize: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-success)' }} />
-            <span>Mastered (Thuần thục): <b>{wordStats.mastered || 0}</b></span>
+            <span>{t.dashboard.stageMastered || 'Mastered'}: <b>{wordStats.mastered || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
-            <span>Reviewing (Đang nhớ tốt): <b>{wordStats.reviewing || 0}</b></span>
+            <span>{t.dashboard.stageReviewing || 'Reviewing'}: <b>{wordStats.reviewing || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-warning)' }} />
-            <span>Learning (Đang học): <b>{wordStats.learning || 0}</b></span>
+            <span>{t.dashboard.stageLearning || 'Learning'}: <b>{wordStats.learning || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-            <span>New (Mới thêm): <b>{wordStats.new || 0}</b></span>
+            <span>{t.dashboard.stageNew || 'New'}: <b>{wordStats.new || 0}</b></span>
           </div>
         </div>
       </div>
 
-      {/* 3.5 MULTI-PERIOD INTERACTIVE ACTIVITY CHART (Tuần này, Tháng này, 30 ngày qua, Tổng thời gian) */}
+      {/* 3.5 MULTI-PERIOD INTERACTIVE ACTIVITY CHART */}
       {stats?.periodsData && (
         <ActivityHistoryChart 
           periodsData={stats.periodsData} 
           defaultPeriod="all"
-          title="Biểu Đồ Tiến Trình Học Tập"
+          title={uiLang === 'ru' ? 'График учебного процесса' : uiLang === 'en' ? 'Study Activity Progress Chart' : 'Biểu Đồ Tiến Trình Học Tập'}
         />
       )}
 
@@ -501,15 +503,15 @@ export default function Dashboard({
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div>
-            <h4 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Từ Vựng & Cụm Từ Nổi Bật Gần Đây</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Chạm biểu tượng loa để nghe phát âm tự nhiên</p>
+            <h4 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.dashboard.recentWordsTitle || 'Từ Vựng & Cụm Từ Nổi Bật Gần Đây'}</h4>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{uiLang === 'ru' ? 'Нажмите на динамик для прослушивания' : uiLang === 'en' ? 'Tap audio icon to hear native pronunciation' : 'Chạm biểu tượng loa để nghe phát âm tự nhiên'}</p>
           </div>
           <button 
             onClick={() => onNavigate('vocab')} 
             className="btn-secondary"
             style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
           >
-            <span>Mở toàn bộ kho từ</span>
+            <span>{t.dashboard.viewAll || 'Xem tất cả'}</span>
             <ArrowRight size={15} />
           </button>
         </div>

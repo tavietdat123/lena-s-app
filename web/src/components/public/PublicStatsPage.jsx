@@ -34,8 +34,10 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
+  const { t, uiLang } = useLanguage();
   const { username } = useParams();
   const navigate = useNavigate();
 
@@ -422,7 +424,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 </span>
               </div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.3px' }}>
-                CỔNG GIÁM SÁT HỌC TẬP & BÁO CÁO KỶ LUẬT
+                {t.supervisor?.portalTitle || 'CỔNG GIÁM SÁT HỌC TẬP & BÁO CÁO KỶ LUẬT'}
               </div>
             </div>
           </div>
@@ -1007,11 +1009,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               <MessageSquare size={18} />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-              Gửi Lời Động Viên & Nhắc Nhở Học Viên (Dành Cho Người Giám Sát)
+              {t.supervisor?.sendNudgeTitle || 'Gửi Lời Động Viên & Nhắc Nhở Học Viên (Dành Cho Người Giám Sát)'}
             </h3>
           </div>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            Bạn đang giám sát học viên <b>{user.displayName}</b>. Hãy gửi lời khen hoặc nhắc nhở kỷ luật; lời nhắn sẽ hiển thị trực tiếp trên Dashboard của người học!
+            {t.supervisor?.portalDesc || `Bạn đang giám sát học viên ${user.displayName}. Hãy gửi lời khen hoặc nhắc nhở kỷ luật; lời nhắn sẽ hiển thị trực tiếp trên Dashboard của người học!`}
           </p>
 
           {feedbackSuccessNotice && (
@@ -1061,7 +1063,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
-                placeholder="Tên người giám sát (VD: Bố/Mẹ, Thầy Hoàng, Bạn học...)"
+                placeholder={t.supervisor?.supervisorNamePlaceholder || 'Tên người giám sát (VD: Bố/Mẹ, Thầy Hoàng, Bạn học...)'}
                 value={supervisorName}
                 onChange={e => setSupervisorName(e.target.value)}
                 style={{
@@ -1130,7 +1132,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
 
             <textarea
               rows={2}
-              placeholder="Nhập nội dung lời nhắn hoặc bấm các mẫu gợi ý phía trên..."
+              placeholder={t.supervisor?.messagePlaceholder || 'Nhập nội dung lời nhắn hoặc bấm các mẫu gợi ý phía trên...'}
               value={feedbackMessage}
               onChange={e => setFeedbackMessage(e.target.value)}
               style={{
@@ -1165,7 +1167,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 }}
               >
                 <Send size={16} />
-                <span>{isSendingFeedback ? 'Đang gửi...' : 'Gửi Lời Nhắc Đến Học Viên'}</span>
+                <span>{isSendingFeedback ? 'Đang gửi...' : (t.supervisor?.sendBtn || 'Gửi Lời Nhắn Ngay')}</span>
               </button>
             </div>
           </form>
@@ -1174,7 +1176,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           {supervisorFeedbacks && supervisorFeedbacks.length > 0 && (
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                LỜI NHẮN ĐÃ GỬI GẦN ĐÂY ({supervisorFeedbacks.length}):
+                {t.supervisor?.historyTitle || 'LỜI NHẮN ĐÃ GỬI GẦN ĐÂY'} ({supervisorFeedbacks.length}):
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {supervisorFeedbacks.slice(0, 4).map(fb => (

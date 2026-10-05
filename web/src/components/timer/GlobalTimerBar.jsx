@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, Pause, Maximize2, X, Check } from 'lucide-react';
 import { useStudyTimer, getActivityMeta, formatTime } from '../../context/StudyTimerContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function GlobalTimerBar() {
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMinimized, setIsMinimized] = useState(false);
@@ -32,9 +34,9 @@ export default function GlobalTimerBar() {
   const isBreak = timerPhase === 'break';
   const meta = getActivityMeta(selectedActivity, customActivityTitle);
   const badgeLabel = isPomodoroCompleted
-    ? 'Đã tự động lưu'
+    ? (t.timer?.autoSaved || 'Đã tự động lưu')
     : (isBreak 
-        ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : 'Nghỉ giữa giờ') 
+        ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : (t.timer?.breakBadge || 'Nghỉ giữa giờ')) 
         : (customActivityTitle?.trim() || meta.label));
   const badgeEmoji = isPomodoroCompleted ? '✅' : (isBreak ? '☕' : meta.emoji);
   const badgeColor = isPomodoroCompleted ? '#16a34a' : (isBreak ? '#10b981' : meta.color);

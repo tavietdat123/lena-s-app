@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Award, TrendingUp, CheckCircle2, AlertCircle, RefreshCw, X, Shield, ArrowRight, BookOpen } from 'lucide-react';
 import { api } from '../../services/api.js';
+import { useLanguage } from '../../context/LanguageContext.jsx';
 
 export default function AIMasteryReportModal({ isOpen, onClose }) {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
@@ -86,10 +88,10 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-                Báo Cáo Đánh Giá Năng Lực Từ Vựng Theo AI
+                {t.aiMasteryReport?.title || 'Báo Cáo Đánh Giá Năng Lực Từ Vựng Theo AI'}
               </h3>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Khảo thí theo chuẩn CEFR & Thuật toán Trí nhớ ngắt quãng Spaced Repetition (SM-2)
+                {t.aiMasteryReport?.subtitle || 'Khảo thí theo chuẩn CEFR & Thuật toán Trí nhớ ngắt quãng Spaced Repetition (SM-2)'}
               </p>
             </div>
           </div>
@@ -143,13 +145,13 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
               }}>
                 <div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    TRÌNH ĐỘ TỔNG QUAN ƯỚC TÍNH (CEFR)
+                    {t.aiMasteryReport?.overallBand || 'TRÌNH ĐỘ TỔNG QUAN ƯỚC TÍNH (CEFR)'}
                   </span>
                   <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0.2rem 0', color: 'var(--text-primary)' }}>
                     {ai?.estimatedCefrLevel || 'B2 Upper-Intermediate'}
                   </h2>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                    Đạt <b>{m?.totalWords} từ vựng</b> • Level {m?.userLevel} ({m?.userTitle})
+                    {m?.totalWords} {t.dashboard?.cardCount || 'từ vựng'} • Level {m?.userLevel} ({m?.userTitle})
                   </p>
                 </div>
 
@@ -169,7 +171,7 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                     {ai?.overallScore || 80}
                   </span>
                   <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                    ĐIỂM AI
+                    {t.quiz?.score ? t.quiz.score.replace(':', '') : 'ĐIỂM AI'}
                   </span>
                 </div>
               </div>
@@ -184,13 +186,13 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                   textAlign: 'center'
                 }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>
-                    💎 MASTERED
+                    💎 {t.dashboard?.stageMastered || 'MASTERED'}
                   </span>
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.2rem 0', color: 'var(--text-primary)' }}>
-                    {m?.masteredCount} từ
+                    {m?.masteredCount} {t.dashboard?.cardCount || 'từ'}
                   </h3>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Thuộc sâu (trên 6 ngày)
+                    {t.dashboard?.stageMastered || 'Thuộc sâu'}
                   </span>
                 </div>
 
@@ -202,13 +204,13 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                   textAlign: 'center'
                 }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase' }}>
-                    🌿 FAMILIAR
+                    🌿 {t.dashboard?.stageReviewing || 'FAMILIAR'}
                   </span>
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.2rem 0', color: 'var(--text-primary)' }}>
-                    {m?.familiarCount} từ
+                    {m?.familiarCount} {t.dashboard?.cardCount || 'từ'}
                   </h3>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Đang nhớ tốt
+                    {t.dashboard?.stageReviewing || 'Đang ôn tập'}
                   </span>
                 </div>
 
@@ -220,13 +222,13 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                   textAlign: 'center'
                 }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
-                    🌱 LEARNING
+                    🌱 {t.dashboard?.stageLearning || 'LEARNING'}
                   </span>
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.2rem 0', color: 'var(--text-primary)' }}>
-                    {m?.learningCount} từ
+                    {m?.learningCount} {t.dashboard?.cardCount || 'từ'}
                   </h3>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Cần củng cố thêm
+                    {t.dashboard?.stageLearning || 'Đang học'}
                   </span>
                 </div>
               </div>
@@ -244,7 +246,7 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)' }}>
                   <Sparkles size={16} />
                   <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    NHẬN XÉT ĐỊNH TÍNH TỪ GIÁM KHẢO AI
+                    {t.aiMasteryReport?.recommendationsTitle || 'NHẬN XÉT ĐỊNH TÍNH TỪ GIÁM KHẢO AI'}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-primary)', lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -265,7 +267,7 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                   gap: '0.5rem'
                 }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
-                    💪 THẾ MẠNH TỪ VỰNG
+                    💪 {t.speaking?.scoreLabel ? t.speaking.scoreLabel.replace(':', '') : 'THẾ MẠNH TỪ VỰNG'}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {ai?.lexicalStrengths?.map((s, idx) => (
@@ -288,7 +290,7 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
                   gap: '0.5rem'
                 }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                    🚀 LỘ TRÌNH 3 BƯỚC TIẾP THEO
+                    🚀 {t.aiMasteryReport?.recommendationsTitle ? t.aiMasteryReport.recommendationsTitle.replace(':', '') : 'LỘ TRÌNH TIẾP THEO'}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {ai?.actionPlan?.map((step, idx) => (
@@ -329,14 +331,14 @@ export default function AIMasteryReportModal({ isOpen, onClose }) {
           background: 'var(--bg-tertiary)'
         }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Được đánh giá tự động bởi Google Gemini 2.0 AI Engine
+            Google Gemini AI Engine • LinguaVault Pro
           </span>
           <button
             onClick={onClose}
             className="btn-primary"
             style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}
           >
-            Đóng
+            {t.common?.close || 'Đóng'}
           </button>
         </div>
       </div>

@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Lock, CheckCircle2, AlertCircle, ShieldAlert, Trophy, XCircle } from 'lucide-react';
 import { alarmAudio } from '../../services/alarmAudio.js';
 import { api } from '../../services/api.js';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, words = [], questionCount = 3 }) {
+  const { t } = useLanguage();
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -204,7 +206,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
           }}>
             <Lock size={13} color="#fef08a" />
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fef08a', letterSpacing: '0.5px' }}>
-              KHÔNG CHO HOÃN
+              {t.alarmChallenge?.noSnooze || 'KHÔNG CHO HOÃN'}
             </span>
           </div>
         </div>
@@ -217,7 +219,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <ShieldAlert size={16} />
-                  <span>THỬ THÁCH GIẢI MÃ: CÂU {currentIndex + 1} / {questions.length}</span>
+                  <span>{t.alarmChallenge?.challenge || 'THỬ THÁCH GIẢI MÃ: CÂU'} {currentIndex + 1} / {questions.length}</span>
                 </span>
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
                   {questions.map((_, i) => (
@@ -249,7 +251,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   letterSpacing: '1px',
                   textTransform: 'uppercase'
                 }}>
-                  TỪ VỰNG CẦN GIẢI MÃ
+                  {t.alarmChallenge?.wordToSolve || 'TỪ VỰNG CẦN GIẢI MÃ'}
                 </span>
                 <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0.5rem 0 0.2rem 0', color: 'var(--text-primary)' }}>
                   {currentQ.word.toUpperCase()}
@@ -327,7 +329,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   fontWeight: 600
                 }}>
                   <AlertCircle size={16} />
-                  <span>Chưa chính xác! Hãy chọn đáp án khác cho đến khi đúng.</span>
+                  <span>{t.alarmChallenge?.incorrectHint || 'Chưa chính xác! Hãy chọn đáp án khác cho đến khi đúng.'}</span>
                 </div>
               )}
             </>
@@ -349,10 +351,10 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
 
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.4rem 0' }}>
-                  🎉 CHÚC MỪNG BẠN ĐÃ GIẢI MÃ THÀNH CÔNG!
+                  {t.alarmChallenge?.successTitle || '🎉 CHÚC MỪNG BẠN ĐÃ GIẢI MÃ THÀNH CÔNG!'}
                 </h3>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  Chuông báo thức đã được <b>TẮT</b> hoàn toàn. Chuỗi ngày học Streak 🔥 của bạn đã được bảo vệ an toàn!
+                  {t.alarmChallenge?.successDesc || 'Chuông báo thức đã được TẮT hoàn toàn. Chuỗi ngày học Streak 🔥 của bạn đã được bảo vệ an toàn!'}
                 </p>
               </div>
 
@@ -364,9 +366,9 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                 borderRadius: '12px',
                 border: '1px solid var(--border-color)'
               }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981' }}>+30 XP Thưởng</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981' }}>{t.alarmChallenge?.bonusXp || '+30 XP Thưởng'}</span>
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>•</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{questions.length}/{questions.length} Từ Vựng Đã Ôn</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{questions.length}/{questions.length} {t.alarmChallenge?.wordsReviewed || 'Từ Vựng Đã Ôn'}</span>
               </div>
 
               <button
@@ -383,7 +385,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   cursor: 'pointer'
                 }}
               >
-                ✅ Tắt Báo Thức & Trở Về Bàn Học
+                {t.alarmChallenge?.startStudyingBtn || 'Vào Học Ngay Bây Giờ 🚀'}
               </button>
             </div>
           )}

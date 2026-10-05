@@ -14,6 +14,7 @@ import {
   Command,
   Timer
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function CommandPalette({ 
   isOpen, 
@@ -27,6 +28,7 @@ export default function CommandPalette({
   isDark,
   onExportBackup
 }) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
 
   // Keyboard shortcut listener (Cmd/Ctrl + K or Esc to close)
@@ -51,12 +53,12 @@ export default function CommandPalette({
   // Filter items
   const filteredWords = words.filter(w => 
     w.word.toLowerCase().includes(query.toLowerCase()) ||
-    w.meaning_vi.toLowerCase().includes(query.toLowerCase())
+    (w.meaning_vi && w.meaning_vi.toLowerCase().includes(query.toLowerCase()))
   ).slice(0, 4);
 
   const filteredPatterns = patterns.filter(p => 
     p.name.toLowerCase().includes(query.toLowerCase()) ||
-    p.meaning_vi.toLowerCase().includes(query.toLowerCase())
+    (p.meaning_vi && p.meaning_vi.toLowerCase().includes(query.toLowerCase()))
   ).slice(0, 3);
 
   const filteredNotes = notes.filter(n => 
@@ -66,37 +68,37 @@ export default function CommandPalette({
   const actions = [
     {
       id: 'add-word',
-      title: 'Thêm nhanh từ vựng mới (1-Click Auto-Fill)',
+      title: t.commandPalette?.quickAddWord || 'Thêm nhanh từ vựng mới (1-Click Auto-Fill)',
       icon: Plus,
       action: () => { onClose(); onOpenQuickAdd(); }
     },
     {
       id: 'start-review',
-      title: 'Bắt đầu ôn tập Spaced Repetition hôm nay',
+      title: t.commandPalette?.startReview || 'Bắt đầu ôn tập Spaced Repetition hôm nay',
       icon: Sparkles,
       action: () => { onClose(); onNavigate('review'); }
     },
     {
       id: 'ai-lab',
-      title: 'Mở AI English Lab (Bóc tách câu & Sửa lỗi)',
+      title: t.commandPalette?.openAiLab || 'Mở AI English Lab (Bóc tách câu & Sửa lỗi)',
       icon: BrainCircuit,
       action: () => { onClose(); onNavigate('ai-lab'); }
     },
     {
       id: 'study-timer',
-      title: 'Bấm giờ học chủ động & Xem bảng thống kê thời gian',
+      title: t.commandPalette?.openTimer || 'Bấm giờ học chủ động & Xem bảng thống kê thời gian',
       icon: Timer,
       action: () => { onClose(); onNavigate('timer'); }
     },
     {
       id: 'toggle-theme',
-      title: isDark ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối',
+      title: isDark ? (t.header?.themeLight || 'Chuyển sang Giao diện Sáng') : (t.header?.themeDark || 'Chuyển sang Giao diện Tối'),
       icon: isDark ? Sun : Moon,
       action: () => { onToggleTheme(); }
     },
     {
       id: 'export-backup',
-      title: 'Sao lưu toàn bộ dữ liệu ra file JSON',
+      title: t.settings?.exportBtn || 'Sao lưu toàn bộ dữ liệu ra file JSON',
       icon: Download,
       action: () => { onClose(); onExportBackup(); }
     }
@@ -125,7 +127,7 @@ export default function CommandPalette({
           <Search size={20} style={{ color: 'var(--accent-primary)' }} />
           <input
             type="text"
-            placeholder="Tìm từ vựng, mẫu câu, bài đọc hoặc lệnh hành động... (Esc để đóng)"
+            placeholder={t.commandPalette?.placeholder || "Tìm từ vựng, mẫu câu, bài đọc hoặc lệnh hành động... (Esc để đóng)"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -148,7 +150,7 @@ export default function CommandPalette({
           {filteredActions.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                Hành Động Nhanh
+                {t.commandPalette?.actionsTitle || 'Hành Động Nhanh'}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredActions.map(a => {
@@ -186,7 +188,7 @@ export default function CommandPalette({
           {filteredWords.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                Từ Vựng
+                {t.nav?.vocab || 'Từ Vựng'}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredWords.map(w => (
@@ -222,7 +224,7 @@ export default function CommandPalette({
           {filteredPatterns.length > 0 && (
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                Mẫu Câu
+                {t.nav?.patterns || 'Mẫu Câu'}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredPatterns.map(p => (
@@ -266,7 +268,7 @@ export default function CommandPalette({
           fontSize: '0.75rem',
           color: 'var(--text-muted)'
         }}>
-          <span>Mẹo: Nhấn <b>⌘ + K</b> (hoặc Ctrl + K) bất cứ lúc nào để tìm kiếm</span>
+          <span>{t.commandPalette?.shortcutTip || 'Mẹo: Nhấn ⌘ + K (hoặc Ctrl + K) bất cứ lúc nào để tìm kiếm'}</span>
           <span>LinguaVault Pro Max</span>
         </div>
       </div>

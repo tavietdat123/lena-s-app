@@ -28,6 +28,7 @@ import {
   Calendar,
   GraduationCap
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Helper to render contextual sentence with bold target words or interactive blanks
 const renderQuestionText = (text) => {
@@ -154,6 +155,7 @@ const renderExplanationContent = (explanationText) => {
 };
 
 export default function QuizCenter({ onOpenReview }) {
+  const { t, uiLang } = useLanguage();
   const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
   const [quizCategory, setQuizCategory] = useState('vocab'); // 'vocab' | 'pattern'
   const [topics, setTopics] = useState([]);
@@ -567,29 +569,29 @@ export default function QuizCenter({ onOpenReview }) {
             <div className={`result-badge-icon ${isGreat ? 'success' : 'warning'}`}>
               {isGreat ? <Trophy size={42} /> : <Target size={42} />}
             </div>
-            <h2>{isGreat ? 'Xuất Sắc! Hoàn Thành Bài Quiz' : 'Hoàn Thành Bài Tập!'}</h2>
+            <h2>{isGreat ? (uiLang === 'ru' ? 'Отлично! Тест завершён' : uiLang === 'en' ? 'Excellent! Quiz Completed' : 'Xuất Sắc! Hoàn Thành Bài Quiz') : (t.quiz?.completedTitle || 'Hoàn Thành Bài Tập!')}</h2>
             <p className="result-subtitle">
-              Bạn đã trả lời đúng <b>{quizResult.correctCount} / {quizResult.totalQuestions}</b> câu hỏi
+              {uiLang === 'ru' ? 'Вы правильно ответили на ' : uiLang === 'en' ? 'You correctly answered ' : 'Bạn đã trả lời đúng '}<b>{quizResult.correctCount} / {quizResult.totalQuestions}</b> {uiLang === 'ru' ? 'вопросов' : uiLang === 'en' ? 'questions' : 'câu hỏi'}
             </p>
           </div>
 
           <div className="result-stats-row">
             <div className="result-stat-box">
-              <span className="stat-label">Điểm Số</span>
+              <span className="stat-label">{t.quiz?.scoreStat || 'Điểm Số'}</span>
               <span className="stat-val score">{quizResult.score}%</span>
             </div>
             <div className="result-stat-box">
-              <span className="stat-label">Kinh Nghiệm</span>
+              <span className="stat-label">{t.quiz?.xpStat || 'Kinh Nghiệm'}</span>
               <span className="stat-val xp">+{quizResult.xpEarned} XP</span>
             </div>
             <div className="result-stat-box">
-              <span className="stat-label">Độ Chính Xác</span>
-              <span className="stat-val accuracy">{quizResult.isPerfect ? '100% Hoàn hảo' : `${quizResult.correctCount}/${quizResult.totalQuestions}`}</span>
+              <span className="stat-label">{t.quiz?.accuracyStat || 'Độ Chính Xác'}</span>
+              <span className="stat-val accuracy">{quizResult.isPerfect ? (t.quiz?.perfectStat || '100% Hoàn hảo') : `${quizResult.correctCount}/${quizResult.totalQuestions}`}</span>
             </div>
           </div>
 
           <div className="result-breakdown">
-            <h3>Chi Tiết Câu Trả Lời</h3>
+            <h3>{t.quiz?.answerDetailsTitle || 'Chi Tiết Câu Trả Lời'}</h3>
             <div className="breakdown-list">
               {quizResult.results.map((item, idx) => (
                 <div key={idx} className={`breakdown-item ${item.isCorrect ? 'correct' : 'incorrect'}`}>
@@ -616,14 +618,14 @@ export default function QuizCenter({ onOpenReview }) {
                           color: '#0ea5e9',
                           border: '1px solid rgba(14, 165, 233, 0.25)'
                         }}>
-                          🎓 Bối cảnh: {item.context_level}
+                          🎓 {uiLang === 'ru' ? 'Контекст: ' : uiLang === 'en' ? 'Context: ' : 'Bối cảnh: '}{item.context_level}
                         </span>
                       )}
                     </div>
                     <div className="item-answers">
-                      <span>Bạn chọn: <i className={item.isCorrect ? 'text-green' : 'text-red'}>{item.userAnswer}</i></span>
+                      <span>{t.quiz?.youSelected || 'Bạn chọn:'} <i className={item.isCorrect ? 'text-green' : 'text-red'}>{item.userAnswer}</i></span>
                       {!item.isCorrect && (
-                        <span> • Đáp án đúng: <b className="text-green">{item.correctAnswer}</b></span>
+                        <span> • {t.quiz?.correctAnswerLabel || 'Đáp án đúng:'} <b className="text-green">{item.correctAnswer}</b></span>
                       )}
                     </div>
                     {Boolean(item.explanation || item.translation) && (
@@ -635,7 +637,7 @@ export default function QuizCenter({ onOpenReview }) {
                         )}
                         {Boolean(item.translation) && (
                           <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem', marginTop: '4px' }}>
-                            <span style={{ fontWeight: 700, fontStyle: 'normal' }}>🌐 Dịch ngữ cảnh: </span>
+                            <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t.quiz?.contextTranslationLabel || '🌐 Dịch ngữ cảnh: '}</span>
                             "{item.translation}"
                           </div>
                         )}
@@ -650,16 +652,16 @@ export default function QuizCenter({ onOpenReview }) {
           <div className="result-actions">
             <button className="btn btn-primary" onClick={handleRetakeCurrentQuiz} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <RotateCcw size={16} />
-              <span>Làm Lại Bài Quiz Này</span>
+              <span>{t.quiz?.retakeQuizBtn || 'Làm Lại Bài Quiz Này'}</span>
             </button>
             <button className="btn btn-secondary" onClick={() => { setQuizData(null); setQuizResult(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <BookOpen size={16} />
-              <span>Chọn Topic Khác</span>
+              <span>{t.quiz?.selectOtherTopicBtn || 'Chọn Topic Khác'}</span>
             </button>
             {onOpenReview && (
               <button className="btn btn-secondary" onClick={onOpenReview} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Zap size={16} />
-                <span>Vào Ôn Tập SRS</span>
+                <span>{t.quiz?.enterSRSReviewBtn || 'Vào Ôn Tập SRS'}</span>
               </button>
             )}
           </div>
@@ -681,7 +683,7 @@ export default function QuizCenter({ onOpenReview }) {
           <div className="quiz-top-bar">
             <div className="quiz-progress-info">
               <span className="question-counter-badge">
-                CÂU {currentIndex + 1} <span style={{ opacity: 0.6 }}>/ {quizData.questions.length}</span>
+                {t.quiz?.questionWord || 'CÂU'} {currentIndex + 1} <span style={{ opacity: 0.6 }}>/ {quizData.questions.length}</span>
               </span>
               {currentQ.difficulty && (
                 <span style={{
@@ -695,7 +697,7 @@ export default function QuizCenter({ onOpenReview }) {
                   color: currentQ.difficulty === 'easy' ? '#10b981' : currentQ.difficulty === 'hard' ? '#ef4444' : '#f59e0b',
                   border: `1px solid ${currentQ.difficulty === 'easy' ? 'rgba(16, 185, 129, 0.3)' : currentQ.difficulty === 'hard' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
                 }}>
-                  {currentQ.difficulty === 'easy' ? '🟢 Dễ' : currentQ.difficulty === 'hard' ? '🔴 Khó' : '🟡 Trung Bình'}
+                  {currentQ.difficulty === 'easy' ? '🟢 Easy' : currentQ.difficulty === 'hard' ? '🔴 Hard' : '🟡 Medium'}
                 </span>
               )}
               <span className="quiz-topic-pill">
@@ -712,13 +714,13 @@ export default function QuizCenter({ onOpenReview }) {
             <button 
               className="quiz-exit-btn"
               onClick={() => {
-                if (confirm('Bạn có chắc muốn thoát bài Quiz hiện tại?')) {
+                if (confirm('Exit current quiz?')) {
                   setQuizData(null);
                 }
               }}
-              title="Thoát bài thi"
+              title={t.quiz?.exitBtn || 'Thoát bài thi'}
             >
-              ✕ Thoát
+              ✕ {t.quiz?.exitBtn || 'Thoát'}
             </button>
           </div>
 
@@ -732,14 +734,14 @@ export default function QuizCenter({ onOpenReview }) {
             <div className="prompt-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <span className="prompt-type-badge">
-                  {currentQ.type === 'meaning_vi' && '🎯 Nghĩa Tiếng Việt'}
-                  {currentQ.type === 'reverse_en' && '🇬🇧 Tìm Từ Tiếng Anh'}
-                  {currentQ.type === 'cloze_blank' && '🧩 Điền Từ Vào Câu'}
-                  {currentQ.type === 'listening' && '🎧 Luyện Nghe & Chọn Nghĩa'}
-                  {currentQ.type === 'fill_clause' && '⚡ Điền Mẫu Câu / Liên Từ'}
-                  {currentQ.type === 'meaning_usage' && '💡 Ứng Dụng Mẫu Câu'}
-                  {currentQ.type === 'formula_check' && '📐 Công Thức Ngữ Pháp'}
-                  {currentQ.type === 'pattern_context' && '🤖 Cấu Trúc Ngữ Cảnh AI'}
+                  {currentQ.type === 'meaning_vi' && (t.quiz?.typeMeaningVi || '🎯 Nghĩa Tiếng Việt')}
+                  {currentQ.type === 'reverse_en' && (t.quiz?.typeReverseEn || '🇬🇧 Tìm Từ Tiếng Anh')}
+                  {currentQ.type === 'cloze_blank' && (t.quiz?.typeClozeBlank || '🧩 Điền Từ Vào Câu')}
+                  {currentQ.type === 'listening' && (t.quiz?.typeListening || '🎧 Luyện Nghe & Chọn Nghĩa')}
+                  {currentQ.type === 'fill_clause' && (t.quiz?.typeFillClause || '⚡ Điền Mẫu Câu / Liên Từ')}
+                  {currentQ.type === 'meaning_usage' && (t.quiz?.typeMeaningUsage || '💡 Ứng Dụng Mẫu Câu')}
+                  {currentQ.type === 'formula_check' && (t.quiz?.typeFormulaCheck || '📐 Công Thức Ngữ Pháp')}
+                  {currentQ.type === 'pattern_context' && (t.quiz?.typePatternContext || '🤖 Cấu Trúc Ngữ Cảnh AI')}
                 </span>
                 {currentQ.part_of_speech && (
                   <span style={{
@@ -770,7 +772,7 @@ export default function QuizCenter({ onOpenReview }) {
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    🎓 Bối cảnh: {currentQ.context_level}
+                    🎓 {uiLang === 'ru' ? 'Контекст: ' : uiLang === 'en' ? 'Context: ' : 'Bối cảnh: '}{currentQ.context_level}
                   </span>
                 )}
               </div>
@@ -790,8 +792,8 @@ export default function QuizCenter({ onOpenReview }) {
                     <Volume2 size={36} />
                   </button>
                   <div className="listening-hint-box">
-                    <span className="listening-hint">Nhấn nút loa để nghe phát âm</span>
-                    <span className="listening-subhint">(Có thể nghe lại nhiều lần)</span>
+                    <span className="listening-hint">{t.quiz?.listenAudioPrompt || 'Nhấn nút loa để nghe phát âm'}</span>
+                    <span className="listening-subhint">{t.quiz?.listenAudioRepeat || '(Có thể nghe lại nhiều lần)'}</span>
                   </div>
                 </div>
               ) : (
@@ -875,8 +877,12 @@ export default function QuizCenter({ onOpenReview }) {
                       <CheckCircle2 size={22} />
                     </div>
                     <div>
-                      <div className="feedback-title correct">Chính xác tuyệt đối! 🎉</div>
-                      <div className="feedback-desc">Bạn đã chọn đúng đáp án: <strong>{currentQ.correctAnswer}</strong></div>
+                      <div className="feedback-title correct">{t.quiz?.feedbackCorrectTitle || 'Chính xác tuyệt đối! 🎉'}</div>
+                      <div className="feedback-desc">
+                        {typeof t.quiz?.feedbackCorrectDesc === 'function'
+                          ? t.quiz.feedbackCorrectDesc(currentQ.correctAnswer)
+                          : `${uiLang === 'ru' ? 'Вы выбрали правильно: ' : uiLang === 'en' ? 'You selected correctly: ' : 'Bạn đã chọn đúng đáp án: '} ${currentQ.correctAnswer}`}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -885,9 +891,11 @@ export default function QuizCenter({ onOpenReview }) {
                       <XCircle size={22} />
                     </div>
                     <div>
-                      <div className="feedback-title incorrect">Chưa chính xác!</div>
+                      <div className="feedback-title incorrect">{t.quiz?.feedbackIncorrectTitle || 'Chưa chính xác!'}</div>
                       <div className="feedback-desc">
-                        Đáp án đúng là: <strong className="correct-answer-highlight">{currentQ.correctAnswer}</strong>
+                        {typeof t.quiz?.feedbackIncorrectDesc === 'function'
+                          ? t.quiz.feedbackIncorrectDesc(currentQ.correctAnswer)
+                          : `${uiLang === 'ru' ? 'Правильный ответ: ' : uiLang === 'en' ? 'The correct answer is: ' : 'Đáp án đúng là: '} ${currentQ.correctAnswer}`}
                       </div>
                     </div>
                   </div>
@@ -918,7 +926,7 @@ export default function QuizCenter({ onOpenReview }) {
                         borderRadius: '8px',
                         borderLeft: '2px solid rgba(99, 102, 241, 0.4)'
                       }}>
-                        <span style={{ fontWeight: 700, fontStyle: 'normal' }}>🌐 Dịch ngữ cảnh: </span>
+                        <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t.quiz?.contextTranslationLabel || '🌐 Dịch ngữ cảnh: '}</span>
                         "{currentQ.translation}"
                       </div>
                     )}
@@ -947,15 +955,15 @@ export default function QuizCenter({ onOpenReview }) {
                         transition: 'all 0.2s ease'
                       }}
                       onClick={() => audioService.speak(currentQ?.word || currentQ?.correctAnswer)}
-                      title="Nghe phát âm chuẩn của từ vựng này">
+                      title="Nghe phát âm">
                       <Volume2 size={18} />
-                      <span>Phát âm: <strong style={{ color: 'var(--text-primary)' }}>{currentQ?.word || currentQ?.correctAnswer}</strong> {currentQ?.phonetic ? <span style={{ fontFamily: 'monospace', opacity: 0.85 }}>({currentQ.phonetic})</span> : ''} 🔊</span>
+                      <span>{t.quiz?.pronounceWordLabel || 'Phát âm:'} <strong style={{ color: 'var(--text-primary)' }}>{currentQ?.word || currentQ?.correctAnswer}</strong> {currentQ?.phonetic ? <span style={{ fontFamily: 'monospace', opacity: 0.85 }}>({currentQ.phonetic})</span> : ''} 🔊</span>
                     </button>
                   </div>
                 )}
               </div>
               <button className="btn btn-primary next-quiz-btn" onClick={handleNextQuestion}>
-                <span>{currentIndex + 1 < quizData.questions.length ? 'Câu Tiếp Theo' : 'Xem Kết Quả Tổng Kết'}</span>
+                <span>{currentIndex + 1 < quizData.questions.length ? (t.quiz?.nextQuestionBtn || 'Câu Tiếp Theo') : (t.quiz?.viewSummaryBtn || 'Xem Kết Quả Tổng Kết')}</span>
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -992,7 +1000,7 @@ export default function QuizCenter({ onOpenReview }) {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
         >
           <Sparkles size={16} />
-          <span>Tạo Bộ Đề Mới</span>
+          <span>{t.quiz?.tabNew || 'Tạo Bộ Đề Mới'}</span>
         </button>
         <button
           className={`quiz-main-tab-btn tab-history ${activeTab === 'history' ? 'active' : ''}`}
@@ -1000,7 +1008,7 @@ export default function QuizCenter({ onOpenReview }) {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
         >
           <History size={16} />
-          <span>Lịch Sử Đề & Làm Lại</span>
+          <span>{t.quiz?.tabHistory || 'Lịch Sử Đề & Làm Lại'}</span>
           {quizHistory.length > 0 && (
             <span className="tab-badge">{quizHistory.length}</span>
           )}
@@ -1014,10 +1022,10 @@ export default function QuizCenter({ onOpenReview }) {
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <History size={20} color="var(--accent-primary)" />
-                <span>Kho Đề Thi & Bài Tập Đã Lưu</span>
+                <span>{t.quiz?.historyTitle || 'Kho Đề Thi & Bài Tập Đã Lưu'}</span>
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Tất cả các bộ đề AI và đề tuỳ chỉnh đã được lưu trữ an toàn. Bấm "Làm Lại" để luyện tập bất kỳ lúc nào!
+                {t.quiz?.historyDesc || 'Tất cả các bộ đề AI và đề tuỳ chỉnh đã được lưu trữ an toàn. Bấm "Làm Lại" để luyện tập bất kỳ lúc nào!'}
               </p>
             </div>
             <button 
@@ -1026,7 +1034,7 @@ export default function QuizCenter({ onOpenReview }) {
               style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
               <RefreshCw size={13} />
-              <span>Làm mới</span>
+              <span>{t.quiz?.refreshBtn || 'Làm mới'}</span>
             </button>
           </div>
 
@@ -1061,12 +1069,12 @@ export default function QuizCenter({ onOpenReview }) {
           {filteredHistory.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
               <div style={{ fontSize: '3rem', marginBottom: '0.8rem' }}>📭</div>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>Chưa có bộ đề nào trong mục này</h3>
+              <h3 style={{ margin: '0 0 0.4rem 0' }}>{t.quiz?.emptyHistory || 'Chưa có bộ đề nào trong mục này'}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1.2rem 0' }}>
-                Khi bạn bấm "Tạo Bộ Đề Bằng AI" hoặc bắt đầu bài thi, hệ thống sẽ tự động lưu lại toàn bộ câu hỏi tại đây.
+                {t.quiz?.emptyHistorySub || 'Khi bạn bấm "Tạo Bộ Đề Bằng AI" hoặc bắt đầu bài thi, hệ thống sẽ tự động lưu lại toàn bộ câu hỏi tại đây.'}
               </p>
               <button className="btn btn-primary" onClick={() => setActiveTab('new')}>
-                ✨ Tạo Bộ Đề Mới Ngay
+                {t.quiz?.createQuizNowBtn || '✨ Tạo Bộ Đề Mới Ngay'}
               </button>
             </div>
           ) : (
@@ -1095,7 +1103,7 @@ export default function QuizCenter({ onOpenReview }) {
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{item.title}</h4>
                         {Boolean(item.is_ai) ? (
                           <span style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', color: '#fff', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 800 }}>
-                            ✨ AI Đề
+                            ✨ AI
                           </span>
                         ) : (
                           <span style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600 }}>
@@ -1108,22 +1116,26 @@ export default function QuizCenter({ onOpenReview }) {
                       </div>
 
                       <div style={{ display: 'flex', gap: '1rem', fontSize: '0.82rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span>📝 <b>{item.total_questions}</b> câu hỏi</span>
+                        <span>📝 <b>{item.total_questions}</b> {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : 'câu hỏi'}</span>
                         <span>•</span>
                         <span>
                           {item.best_score !== null && item.best_score !== undefined ? (
                             <span style={{ color: item.best_score >= 80 ? '#10b981' : '#f59e0b', fontWeight: 800 }}>
-                              🏆 Cao nhất: {item.best_score}%
+                              {typeof t.quiz?.highestScore === 'function' ? t.quiz.highestScore(item.best_score) : `🏆 ${uiLang === 'ru' ? 'Лучший' : uiLang === 'en' ? 'Highest' : 'Cao nhất'}: ${item.best_score}%`}
                             </span>
                           ) : (
-                            <span>🌱 Chưa làm</span>
+                            <span>{t.quiz?.notAttempted || '🌱 Chưa làm'}</span>
                           )}
                         </span>
                         <span>•</span>
-                        <span>🎯 Đã làm <b>{item.attempts_count || 0}</b> lần</span>
+                        <span>
+                          {typeof t.quiz?.attemptedTimes === 'function'
+                            ? t.quiz.attemptedTimes(item.attempts_count || 0)
+                            : `🎯 ${uiLang === 'ru' ? 'Пройдено' : uiLang === 'en' ? 'Attempted' : 'Đã làm'} ${item.attempts_count || 0} ${uiLang === 'ru' ? 'раз' : uiLang === 'en' ? 'times' : 'lần'}`}
+                        </span>
                         <span>•</span>
                         <span style={{ opacity: 0.8 }}>
-                          📅 {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                          📅 {new Date(item.created_at).toLocaleDateString(uiLang === 'vi' ? 'vi-VN' : uiLang === 'ru' ? 'ru-RU' : 'en-US')}
                         </span>
                       </div>
                     </div>
@@ -1144,12 +1156,12 @@ export default function QuizCenter({ onOpenReview }) {
                         }}
                       >
                         <RotateCcw size={14} />
-                        <span>Làm Lại</span>
+                        <span>{t.quiz?.retakeHistoryBtn || 'Làm Lại'}</span>
                       </button>
                       <button
                         className="btn btn-secondary"
                         onClick={(e) => handleDeleteHistory(item.id, e)}
-                        title="Xóa đề này"
+                        title={t.quiz?.deleteQuizTooltip || "Xóa đề này"}
                         style={{
                           padding: '0.55rem 0.8rem',
                           fontSize: '0.88rem',
@@ -1183,8 +1195,8 @@ export default function QuizCenter({ onOpenReview }) {
                 <BookOpen size={24} color="var(--accent-primary)" />
               </div>
               <div className="cat-text-box">
-                <span className="cat-title">Quiz Kho Từ Vựng</span>
-                <span className="cat-desc">Nghĩa từ, ngữ cảnh & phản xạ phát âm</span>
+                <span className="cat-title">{t.quiz?.vocabCardTitle || 'Quiz Kho Từ Vựng'}</span>
+                <span className="cat-desc">{t.quiz?.vocabCardDesc || 'Nghĩa từ, ngữ cảnh & phản xạ phát âm'}</span>
               </div>
               <div className="cat-radio">
                 {quizCategory === 'vocab' && <div className="cat-radio-inner" />}
@@ -1199,8 +1211,8 @@ export default function QuizCenter({ onOpenReview }) {
                 <Puzzle size={24} color="#ec4899" />
               </div>
               <div className="cat-text-box">
-                <span className="cat-title">Quiz Mẫu Câu & Cấu Trúc</span>
-                <span className="cat-desc">Cấu trúc câu, đảo ngữ & viết luận</span>
+                <span className="cat-title">{t.quiz?.patternCardTitle || 'Quiz Mẫu Câu & Cấu Trúc'}</span>
+                <span className="cat-desc">{t.quiz?.patternCardDesc || 'Cấu trúc câu, đảo ngữ & viết luận'}</span>
               </div>
               <div className="cat-radio">
                 {quizCategory === 'pattern' && <div className="cat-radio-inner" />}
@@ -1215,14 +1227,14 @@ export default function QuizCenter({ onOpenReview }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Calendar size={18} color="var(--accent-primary)" />
-                <span>1. Chọn Ngày Nạp Từ Vựng Cụ Thể (Daily Scope)</span>
+                <span>{t.quiz?.stepDate || '1. Chọn Ngày Nạp Từ Vựng Cụ Thể (Daily Scope)'}</span>
               </h3>
               <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
-                {dateScope === 'all' && '🌐 Toàn bộ kho từ'}
-                {dateScope === 'today' && '⚡ Từ vựng nạp Hôm nay'}
-                {dateScope === 'yesterday' && '🕒 Từ vựng nạp Hôm qua'}
-                {dateScope === 'last_7_days' && '🔥 7 ngày gần nhất'}
-                {dateScope === 'range' && `🗓️ Từ ${startDate || '...'} đến ${endDate || '...'}`}
+                {dateScope === 'all' && (t.quiz?.allTimeScope ? '🌐 ' + t.quiz.allTimeScope : '🌐 Toàn bộ kho từ')}
+                {dateScope === 'today' && (t.quiz?.todayScope ? '⚡ ' + t.quiz.todayScope : '⚡ Từ vựng nạp Hôm nay')}
+                {dateScope === 'yesterday' && (t.quiz?.yesterdayScope ? '🕒 ' + t.quiz.yesterdayScope : '🕒 Từ vựng nạp Hôm qua')}
+                {dateScope === 'last_7_days' && (t.quiz?.last7DaysScope ? '🔥 ' + t.quiz.last7DaysScope : '🔥 7 ngày gần nhất')}
+                {dateScope === 'range' && `🗓️ ${t.quiz?.fromDate || 'Từ'} ${startDate || '...'} ${t.quiz?.toDate || 'đến'} ${endDate || '...'}`}
                 {dateScope === 'specific' && (
                   selectedDates.length === 1 
                     ? `📅 Ngày ${selectedDates[0]}` 
@@ -1234,11 +1246,11 @@ export default function QuizCenter({ onOpenReview }) {
             {/* Quick Scope Presets */}
             <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '0.85rem' }}>
               {[
-                { id: 'all', label: 'Toàn Bộ Thời Gian', icon: Sparkles, desc: 'Tất cả các từ' },
-                { id: 'today', label: 'Hôm Nay', icon: Clock, desc: 'Từ nạp hôm nay' },
-                { id: 'yesterday', label: 'Hôm Qua', icon: Clock, desc: 'Từ nạp hôm qua' },
-                { id: 'last_7_days', label: '7 Ngày Qua', icon: Flame, desc: '1 tuần gần nhất' },
-                { id: 'range', label: 'Khoảng Ngày', icon: Calendar, desc: 'Từ ngày... đến ngày...' }
+                { id: 'all', label: t.quiz?.allTimeScope || 'Toàn Bộ Thời Gian', icon: Sparkles, desc: t.quiz?.allWordsDesc || 'Tất cả các từ' },
+                { id: 'today', label: t.quiz?.todayScope || 'Hôm Nay', icon: Clock, desc: t.quiz?.todayWordsDesc || 'Từ nạp hôm nay' },
+                { id: 'yesterday', label: t.quiz?.yesterdayScope || 'Hôm Qua', icon: Clock, desc: t.quiz?.yesterdayWordsDesc || 'Từ nạp hôm qua' },
+                { id: 'last_7_days', label: t.quiz?.last7DaysScope || '7 Ngày Qua', icon: Flame, desc: t.quiz?.last7DaysDesc || '1 tuần gần nhất' },
+                { id: 'range', label: t.quiz?.rangeScope || 'Khoảng Ngày', icon: Calendar, desc: t.quiz?.rangeWordsDesc || 'Từ ngày... đến ngày...' }
               ].map(scope => {
                 const isSelected = dateScope === scope.id && (scope.id !== 'all' || selectedDates.length === 0);
                 const IconComp = scope.icon;
@@ -1276,7 +1288,7 @@ export default function QuizCenter({ onOpenReview }) {
                 flexWrap: 'wrap'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Từ ngày:</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.quiz?.fromDate || 'Từ ngày:'}</span>
                   <input
                     type="date"
                     value={startDate}
@@ -1293,7 +1305,7 @@ export default function QuizCenter({ onOpenReview }) {
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Đến ngày:</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.quiz?.toDate || 'Đến ngày:'}</span>
                   <input
                     type="date"
                     value={endDate}
@@ -1322,7 +1334,7 @@ export default function QuizCenter({ onOpenReview }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    🎯 Chọn theo từng ngày học (Có thể chọn nhiều ngày cùng lúc):
+                    {t.quiz?.pickDatesPrompt || '🎯 Chọn theo từng ngày học (Có thể chọn nhiều ngày cùng lúc):'}
                   </span>
                   {selectedDates.length > 0 && (
                     <button
@@ -1337,13 +1349,13 @@ export default function QuizCenter({ onOpenReview }) {
                         textDecoration: 'underline'
                       }}
                     >
-                      Bỏ chọn (Về tất cả)
+                      {t.quiz?.clearDatesBtn || 'Bỏ chọn (Về tất cả)'}
                     </button>
                   )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Chọn ngày bất kỳ:</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{t.quiz?.pickAnyDate || 'Chọn ngày bất kỳ:'}</span>
                   <input
                     type="date"
                     value={customCalendarDate}
@@ -1362,7 +1374,7 @@ export default function QuizCenter({ onOpenReview }) {
               </div>
 
               {quizDates.length === 0 ? (
-                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Chưa có dữ liệu ngày nào.</p>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t.quiz?.noDateRecords || 'Chưa có dữ liệu ngày nào.'}</p>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {quizDates.map(qd => {
@@ -1413,14 +1425,14 @@ export default function QuizCenter({ onOpenReview }) {
           {quizCategory === 'vocab' ? (
             <div className="setup-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                <h3 style={{ margin: 0 }}>2. Chọn Chủ Đề (Topic) - <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)' }}>Có thể chọn nhiều chủ đề cùng lúc</small></h3>
+                <h3 style={{ margin: 0 }}>{t.quiz?.stepTopic || '2. Chọn Chủ Đề (Topic)'}</h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '600' }}>
-                  Đã chọn: {selectedTopics.includes('All') ? 'Tất cả chủ đề' : `${selectedTopics.length} chủ đề`}
+                  {selectedTopics.includes('All') ? (t.vocab?.allTopics || 'Tất cả chủ đề') : `${selectedTopics.length} ${t.common?.tags || 'chủ đề'}`}
                 </span>
               </div>
                 <div className="topics-chip-grid">
-                  {topics.map(t => {
-                    const topicKey = t.id || t.name;
+                  {topics.map(topItem => {
+                    const topicKey = topItem.id || topItem.name;
                     const isSelected = selectedTopics.includes(topicKey) || (topicKey.toLowerCase() === 'all' && selectedTopics.includes('All'));
                     return (
                       <button
@@ -1429,8 +1441,8 @@ export default function QuizCenter({ onOpenReview }) {
                         onClick={() => toggleTopic(topicKey)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <span className="topic-name">{t.name}</span>
-                        <span className="topic-count">{t.count} từ</span>
+                        <span className="topic-name">{topItem.name}</span>
+                        <span className="topic-count">{topItem.count} {t.dashboard?.cardCount || 'từ'}</span>
                         {isSelected && <span style={{ fontWeight: '900', color: '#10b981' }}>✓</span>}
                       </button>
                     );
@@ -1440,45 +1452,33 @@ export default function QuizCenter({ onOpenReview }) {
             ) : (
               <div className="setup-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                  <h3 style={{ margin: 0 }}>2. Chọn Mục Đích / Chức Năng Diễn Đạt</h3>
+                  <h3 style={{ margin: 0 }}>{t.quiz?.stepPatternCategory || '2. Chọn Mục Đích / Chức Năng Diễn Đạt'}</h3>
                   <span style={{ fontSize: '0.82rem', color: '#ec4899', fontWeight: '600' }}>
-                    Phân loại theo tư duy giao tiếp & viết luận
+                    {t.patterns?.title || 'Phân loại theo tư duy giao tiếp & viết luận'}
                   </span>
                 </div>
                 <div className="topics-chip-grid">
                   {[
-                    { id: 'all', name: 'Tất cả chức năng (All)' },
+                    { id: 'all', name: t.patterns?.allCategories || 'Tất cả chức năng (All)' },
                     ...(patternCategories.length > 0 ? patternCategories : [
                       { id: 'cause_effect', name: '⚡ Nguyên nhân & Hệ quả' },
                       { id: 'purpose', name: '🎯 Mục đích & Kết quả' },
                       { id: 'condition', name: '⚠️ Điều kiện & Giả định' },
                       { id: 'concession', name: '⚖️ Nhượng bộ & Đối lập' },
                       { id: 'comparison', name: '📊 So sánh & Tương phản' },
-                      { id: 'exception', name: '🚫 Loại trừ & Ngoại lệ' },
-                      { id: 'emphasis', name: '💥 Nhấn mạnh & Đảo ngữ' },
-                      { id: 'advice', name: '💡 Khuyên bảo & Thúc giục' },
-                      { id: 'speculation', name: '🔮 Suy đoán & Khả năng' },
-                      { id: 'opinion', name: '💬 Khẳng định Quan điểm' },
-                      { id: 'addition', name: '➕ Bổ sung & Liệt kê' },
-                      { id: 'example', name: '📌 Dẫn chứng & Minh họa' },
-                      { id: 'clarification', name: '🔍 Giải thích & Làm rõ' },
-                      { id: 'transition', name: '🔄 Chuyển ý & Liên kết' },
-                      { id: 'sequence', name: '⏳ Thời gian & Trình tự' },
-                      { id: 'conclusion', name: '🏁 Tổng kết & Kết luận' },
-                      { id: 'request', name: '🤝 Yêu cầu & Đề nghị' },
-                      { id: 'definition', name: '📖 Định nghĩa & Khái niệm' }
+                      { id: 'emphasis', name: '💥 Nhấn mạnh & Đảo ngữ' }
                     ])
-                  ].map(t => {
-                    const isSelected = selectedPatternCategory === t.id;
+                  ].map(catItem => {
+                    const isSelected = selectedPatternCategory === catItem.id;
                     return (
                       <button
-                        key={t.id}
+                        key={catItem.id}
                         className={`topic-chip-btn ${isSelected ? 'active' : ''}`}
-                        onClick={() => setSelectedPatternCategory(t.id)}
+                        onClick={() => setSelectedPatternCategory(catItem.id)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: isSelected ? '#ec4899' : '' }}
                       >
-                        <span className="topic-name">{t.name}</span>
-                        {t.patterns_count !== undefined && <span className="topic-count">{t.patterns_count} câu</span>}
+                        <span className="topic-name">{catItem.name}</span>
+                        {catItem.patterns_count !== undefined && <span className="topic-count">{catItem.patterns_count}</span>}
                         {isSelected && <span style={{ fontWeight: '900', color: '#ec4899' }}>✓</span>}
                       </button>
                     );
@@ -1490,12 +1490,12 @@ export default function QuizCenter({ onOpenReview }) {
             {/* Step 3: Difficulty & IELTS Level Tier */}
             <div className="setup-section" style={{ marginTop: '1.2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h3 style={{ margin: 0 }}>3. Độ Khó Để Giải Câu Hỏi (Solving Difficulty)</h3>
+                <h3 style={{ margin: 0 }}>{t.quiz?.solvingDiffTitle || '3. Độ Khó Để Giải Câu Hỏi (Solving Difficulty)'}</h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
-                  {selectedLevel === 'all' && '🌟 Mọi mức độ'}
-                  {selectedLevel === 'easy' && '🟢 Mức Dễ (Có gợi ý, dễ loại trừ)'}
-                  {selectedLevel === 'medium' && '🟡 Mức Trung Bình (Chuẩn ngữ cảnh)'}
-                  {selectedLevel === 'hard' && '🔴 Mức Khó (Bẫy từ loại & ngữ pháp)'}
+                  {selectedLevel === 'all' && (t.quiz?.diffAll || '🌟 Mọi Độ Khó')}
+                  {selectedLevel === 'easy' && (t.quiz?.diffEasy || '🟢 Dễ Giải (Có gợi ý)')}
+                  {selectedLevel === 'medium' && (t.quiz?.diffMedium || '🟡 Trung Bình (Chuẩn)')}
+                  {selectedLevel === 'hard' && (t.quiz?.diffHard || '🔴 Khó (Đánh đố cao)')}
                   {selectedLevel.startsWith('ielts') && `🎯 ${selectedLevel.replace('ielts_', 'Band ').replace('_', '.')}`}
                 </span>
               </div>
@@ -1503,10 +1503,10 @@ export default function QuizCenter({ onOpenReview }) {
               {/* Core 3 Difficulty Levels + All */}
               <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
                 {[
-                  { id: 'all', label: '🌟 Mọi Độ Khó', desc: 'Kết hợp linh hoạt câu dễ, vừa và thử thách' },
-                  { id: 'easy', label: '🟢 Dễ Giải (Có gợi ý)', desc: 'Kèm gợi ý trực quan, đáp án nhiễu dễ loại trừ' },
-                  { id: 'medium', label: '🟡 Trung Bình (Chuẩn)', desc: 'Đọc hiểu ngữ cảnh câu, 4 lựa chọn cùng loại từ' },
-                  { id: 'hard', label: '🔴 Khó (Đánh đố cao)', desc: 'Bẫy từ loại (Word Forms), từ đồng nghĩa & ngữ pháp' }
+                  { id: 'all', label: t.quiz?.diffAll || '🌟 Mọi Độ Khó', desc: t.quiz?.diffAllDesc || 'Kết hợp linh hoạt câu dễ, vừa và thử thách' },
+                  { id: 'easy', label: t.quiz?.diffEasy || '🟢 Dễ Giải (Có gợi ý)', desc: t.quiz?.diffEasyDesc || 'Kèm gợi ý trực quan, đáp án nhiễu dễ loại trừ' },
+                  { id: 'medium', label: t.quiz?.diffMedium || '🟡 Trung Bình (Chuẩn)', desc: t.quiz?.diffMediumDesc || 'Đọc hiểu ngữ cảnh câu, 4 lựa chọn cùng loại từ' },
+                  { id: 'hard', label: t.quiz?.diffHard || '🔴 Khó (Đánh đố cao)', desc: t.quiz?.diffHardDesc || 'Bẫy từ loại (Word Forms), từ đồng nghĩa & ngữ pháp' }
                 ].map(lvl => (
                   <button
                     key={lvl.id}
@@ -1523,15 +1523,15 @@ export default function QuizCenter({ onOpenReview }) {
               {/* Granular IELTS Band Selection */}
               <details style={{ marginTop: '0.4rem', fontSize: '0.82rem' }}>
                 <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 0' }}>
-                  🎯 Tùy chọn chi tiết theo Band điểm IELTS (Nhấn để mở rộng)
+                  {t.quiz?.ieltsOptionTitle || '🎯 Tùy chọn chi tiết theo Band điểm IELTS (Nhấn để mở rộng)'}
                 </summary>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem', marginTop: '0.6rem' }}>
                   {[
-                    { id: 'ielts_4_5', label: '🥉 IELTS 4.0 - 5.0', desc: 'Nền tảng (A2 - B1)' },
-                    { id: 'ielts_55_60', label: '🎖️ IELTS 5.5 - 6.0', desc: 'Tiền trung cấp (B1 - B2)' },
-                    { id: 'ielts_65_70', label: '🥈 IELTS 6.5 - 7.0', desc: 'Trung cấp khá (B2 - C1)' },
-                    { id: 'ielts_75_80', label: '🥇 IELTS 7.5 - 8.0', desc: 'Cao cấp (C1 Mastery)' },
-                    { id: 'ielts_85_90', label: '👑 IELTS 8.5 - 9.0', desc: 'Bản xứ / Chuyên gia (C2)' }
+                    { id: 'ielts_4_5', label: '🥉 IELTS 4.0 - 5.0', desc: 'A2 - B1' },
+                    { id: 'ielts_55_60', label: '🎖️ IELTS 5.5 - 6.0', desc: 'B1 - B2' },
+                    { id: 'ielts_65_70', label: '🥈 IELTS 6.5 - 7.0', desc: 'B2 - C1' },
+                    { id: 'ielts_75_80', label: '🥇 IELTS 7.5 - 8.0', desc: 'C1 Mastery' },
+                    { id: 'ielts_85_90', label: '👑 IELTS 8.5 - 9.0', desc: 'C2 Native' }
                   ].map(lvl => (
                     <button
                       key={lvl.id}
@@ -1552,24 +1552,24 @@ export default function QuizCenter({ onOpenReview }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <GraduationCap size={18} color="var(--accent-primary)" />
-                  <span>4. Trình Độ Bối Cảnh Câu Văn (Context Proficiency Level)</span>
-                  <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>• Có thể chọn nhiều trình độ</small>
+                  <span>{t.quiz?.contextProficiencyTitle || '4. Trình Độ Bối Cảnh Câu Văn (Context Proficiency Level)'}</span>
+                  <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{t.quiz?.contextProficiencyNote || '• Có thể chọn nhiều trình độ'}</small>
                 </h3>
                 <span style={{ fontSize: '0.82rem', color: '#0ea5e9', fontWeight: '700' }}>
                   {selectedContextLevels.includes('all')
-                    ? '🌟 Mọi trình độ (A1 - C2)'
-                    : `🎯 Đã chọn ${selectedContextLevels.length} trình độ (${selectedContextLevels.map(l => l.toUpperCase().replace('_', '-')).join(', ')})`}
+                    ? (t.quiz?.contextAll || '🌟 Mọi Trình Độ')
+                    : `🎯 (${selectedContextLevels.map(l => l.toUpperCase().replace('_', '-')).join(', ')})`}
                 </span>
               </div>
 
               <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.6rem', marginBottom: '0.6rem' }}>
                 {[
-                  { id: 'all', label: '🌟 Mọi Trình Độ', desc: 'Linh hoạt mọi bối cảnh từ A1 đến C2' },
-                  { id: 'a1_a2', label: '🌱 A1 - A2 (Cơ Bản)', desc: 'Giao tiếp đời thường, câu ngắn dễ hiểu' },
-                  { id: 'b1', label: '🌿 B1 (Tiền Trung Cấp)', desc: 'Công sở & Giao tiếp thực tế hàng ngày' },
-                  { id: 'b2', label: '🚀 B2 (Trung Cấp Khá)', desc: 'Chuyên nghiệp, phong phú tình huống' },
-                  { id: 'c1', label: '💎 C1 (Cao Cấp)', desc: 'Học thuật IELTS Band 7.0 - 8.0' },
-                  { id: 'c2', label: '👑 C2 (Bản Xứ)', desc: 'Bản xứ / IELTS Band 8.5 - 9.0' }
+                  { id: 'all', label: t.quiz?.contextAll || '🌟 Mọi Trình Độ', desc: t.quiz?.contextAllDesc || 'Linh hoạt mọi bối cảnh từ A1 đến C2' },
+                  { id: 'a1_a2', label: t.quiz?.contextA1A2 || '🌱 A1 - A2 (Cơ Bản)', desc: t.quiz?.contextA1A2Desc || 'Giao tiếp đời thường, câu ngắn dễ hiểu' },
+                  { id: 'b1', label: t.quiz?.contextB1 || '🌿 B1 (Tiền Trung Cấp)', desc: t.quiz?.contextB1Desc || 'Công sở & Giao tiếp thực tế hàng ngày' },
+                  { id: 'b2', label: t.quiz?.contextB2 || '🚀 B2 (Trung Cấp Khá)', desc: t.quiz?.contextB2Desc || 'Chuyên nghiệp, phong phú tình huống' },
+                  { id: 'c1', label: t.quiz?.contextC1 || '💎 C1 (Cao Cấp)', desc: t.quiz?.contextC1Desc || 'Học thuật IELTS Band 7.0 - 8.0' },
+                  { id: 'c2', label: t.quiz?.contextC2 || '👑 C2 (Bản Xứ)', desc: t.quiz?.contextC2Desc || 'Bản xứ / IELTS Band 8.5 - 9.0' }
                 ].map(lvl => {
                   const isPicked = selectedContextLevels.includes(lvl.id);
                   return (
@@ -1598,14 +1598,14 @@ export default function QuizCenter({ onOpenReview }) {
 
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>💡</span>
-                <span>Bạn có thể chọn 1 hoặc nhiều trình độ (ví dụ: B1 + B2 để câu hỏi luân phiên theo cả 2 trình độ này).</span>
+                <span>{t.quiz?.contextMultiSelectTip || 'Bạn có thể chọn 1 hoặc nhiều trình độ (ví dụ: B1 + B2 để câu hỏi luân phiên theo cả 2 trình độ này).'}</span>
               </div>
             </div>
 
             {/* Step 5 & 6: Question Count & Mode */}
             <div className="setup-grid-row">
               <div className="setup-section">
-                <h3>5. Số Lượng Câu Hỏi</h3>
+                <h3>{t.quiz?.questionCountTitle || '5. Số Lượng Câu Hỏi'}</h3>
                 <div className="count-selector-row">
                   {[5, 10, 15].map(cnt => (
                     <button
@@ -1613,25 +1613,25 @@ export default function QuizCenter({ onOpenReview }) {
                       className={`count-pill-btn ${questionCount === cnt ? 'active' : ''}`}
                       onClick={() => setQuestionCount(cnt)}
                     >
-                      <b>{cnt} câu</b>
-                      <small>{cnt === 5 ? 'Nhanh (2p)' : cnt === 10 ? 'Chuẩn (5p)' : 'Chuyên sâu (8p)'}</small>
+                      <b>{cnt} {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : 'câu'}</b>
+                      <small>{cnt === 5 ? (uiLang === 'ru' ? 'Быстро (2м)' : uiLang === 'en' ? 'Quick (2m)' : 'Nhanh (2p)') : cnt === 10 ? (uiLang === 'ru' ? 'Стандарт (5м)' : uiLang === 'en' ? 'Standard (5m)' : 'Chuẩn (5p)') : (uiLang === 'ru' ? 'Глубокий (8м)' : uiLang === 'en' ? 'Deep (8m)' : 'Chuyên sâu (8p)')}</small>
                     </button>
                   ))}
                 </div>
                 <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <span>🛡️</span>
-                  <span>Đảm bảo 100% câu hỏi không trùng lặp (Mỗi câu 1 từ vựng riêng biệt)</span>
+                  <span>{t.quiz?.questionUniqueNotice || 'Đảm bảo 100% câu hỏi không trùng lặp (Mỗi câu 1 từ vựng riêng biệt)'}</span>
                 </div>
               </div>
 
               <div className="setup-section">
-                <h3>6. Chế Độ Câu Hỏi</h3>
+                <h3>{t.quiz?.questionModeTitle || '6. Chế Độ Câu Hỏi'}</h3>
                 <div className="mode-selector-row">
                   {[
-                    { id: 'mixed', label: 'Hỗn Hợp (Tất cả)', icon: Shuffle },
-                    { id: 'meaning_vi', label: 'Chọn Nghĩa', icon: FileText },
-                    { id: 'cloze_blank', label: 'Điền Vào Câu', icon: Edit3 },
-                    { id: 'listening', label: 'Luyện Nghe', icon: Headphones }
+                    { id: 'mixed', label: t.quiz?.modeMixed || 'Hỗn Hợp (Tất cả)', icon: Shuffle },
+                    { id: 'meaning_vi', label: t.quiz?.modeMeaningVi || 'Chọn Nghĩa', icon: FileText },
+                    { id: 'cloze_blank', label: t.quiz?.modeCloze || 'Điền Vào Câu', icon: Edit3 },
+                    { id: 'listening', label: t.quiz?.modeListening || 'Luyện Nghe', icon: Headphones }
                   ].map(m => {
                     const IconComp = m.icon;
                     return (
@@ -1659,7 +1659,7 @@ export default function QuizCenter({ onOpenReview }) {
                 style={{ flex: 1, minWidth: '220px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <Zap size={18} />
-                <span>{loading ? 'Đang chuẩn bị...' : 'Bắt Đầu Làm Quiz (Nhanh 0s)'}</span>
+                <span>{loading ? (t.common?.loading || 'Đang chuẩn bị...') : (t.quiz?.instantQuizBtn || 'Bắt Đầu Làm Quiz')}</span>
               </button>
               <button 
                 className="btn btn-secondary start-quiz-big-btn"
@@ -1668,7 +1668,7 @@ export default function QuizCenter({ onOpenReview }) {
                 style={{ flex: 1, minWidth: '220px', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <Sparkles size={18} />
-                <span>{loading ? 'AI đang biên soạn đề thi...' : 'Tạo Bộ Đề Bằng AI (Ngữ Cảnh Thực Tế)'}</span>
+                <span>{loading ? (t.common?.loading || 'AI đang soạn đề...') : (t.quiz?.aiQuizBtn || 'Tạo Bộ Đề Bằng AI')}</span>
               </button>
             </div>
           </div>

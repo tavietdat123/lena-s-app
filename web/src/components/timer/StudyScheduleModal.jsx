@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, Coffee, BellRing, Calendar, Sparkles, Check, Volume2 } from 'lucide-react';
-import { SOUND_OPTIONS, ACTIVITIES, playChime } from '../../context/StudyTimerContext';
+import { SOUND_OPTIONS, ACTIVITIES, playChime, getSoundMeta, getActivityMeta } from '../../context/StudyTimerContext';
+import { useLanguage } from '../../context/LanguageContext';
 
-const DAYS_OF_WEEK = [
-  { id: 'mon', label: 'T2', name: 'Thứ 2' },
-  { id: 'tue', label: 'T3', name: 'Thứ 3' },
-  { id: 'wed', label: 'T4', name: 'Thứ 4' },
-  { id: 'thu', label: 'T5', name: 'Thứ 5' },
-  { id: 'fri', label: 'T6', name: 'Thứ 6' },
-  { id: 'sat', label: 'T7', name: 'Thứ 7' },
-  { id: 'sun', label: 'CN', name: 'Chủ Nhật' }
-];
+function getDaysOfWeek(t) {
+  return [
+    { id: 'mon', label: t?.scheduleModal?.dayMonShort || 'T2', name: t?.scheduleModal?.dayMon || 'Thứ 2' },
+    { id: 'tue', label: t?.scheduleModal?.dayTueShort || 'T3', name: t?.scheduleModal?.dayTue || 'Thứ 3' },
+    { id: 'wed', label: t?.scheduleModal?.dayWedShort || 'T4', name: t?.scheduleModal?.dayWed || 'Thứ 4' },
+    { id: 'thu', label: t?.scheduleModal?.dayThuShort || 'T5', name: t?.scheduleModal?.dayThu || 'Thứ 5' },
+    { id: 'fri', label: t?.scheduleModal?.dayFriShort || 'T6', name: t?.scheduleModal?.dayFri || 'Thứ 6' },
+    { id: 'sat', label: t?.scheduleModal?.daySatShort || 'T7', name: t?.scheduleModal?.daySat || 'Thứ 7' },
+    { id: 'sun', label: t?.scheduleModal?.daySunShort || 'CN', name: t?.scheduleModal?.daySun || 'Chủ Nhật' }
+  ];
+}
 
 export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }) {
+  const { t, uiLang } = useLanguage();
+  const daysOfWeek = getDaysOfWeek(t);
   const [title, setTitle] = useState('');
   const [activityType, setActivityType] = useState('coding');
   const [startTime, setStartTime] = useState('20:00');
@@ -156,10 +161,10 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                {schedule ? 'Chỉnh Sửa Lịch Làm Việc / Học Tập' : 'Thiết Lập Lịch Dài Hạn & Nghỉ Giữa Giờ'}
+                {schedule ? (t.scheduleModal?.editTitle || 'Chỉnh Sửa Lịch Làm Việc / Học Tập') : (t.scheduleModal?.createTitle || 'Thiết Lập Lịch Dài Hạn & Nghỉ Giữa Giờ')}
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
-                Định hình khung giờ từ bao giờ đến bao giờ, cày code, làm việc hoặc học tập.
+                {t.scheduleModal?.subtitle || 'Định hình khung giờ từ bao giờ đến bao giờ, cày code, làm việc hoặc học tập.'}
               </p>
             </div>
           </div>
@@ -172,7 +177,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
           {/* 1. Activity Type Selection */}
           <div>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>
-              🎯 Loại Ca Hoạt Động (Học code, Làm việc, Ngoại ngữ...):
+              {t.scheduleModal?.activityTypeLabel || '🎯 Loại Ca Hoạt Động (Học code, Làm việc, Ngoại ngữ...):'}
             </label>
             <div style={{
               display: 'flex',
@@ -181,6 +186,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             }}>
               {ACTIVITIES.map(act => {
                 const isSelected = activityType === act.id;
+                const localizedLabel = getActivityMeta(act.id, '', t).label;
                 return (
                   <button
                     key={act.id}
@@ -213,7 +219,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                     }}
                   >
                     <span>{act.emoji}</span>
-                    <span>{act.label}</span>
+                    <span>{localizedLabel}</span>
                   </button>
                 );
               })}
@@ -223,14 +229,14 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
           {/* 2. Schedule Name */}
           <div>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-              📌 Tên Lịch / Ca Hoạt Động:
+              {t.scheduleModal?.nameLabel || '📌 Tên Lịch / Ca Hoạt Động:'}
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: Ca cày code tối, Giải quyết task dự án, Ôn từ vựng..."
+              placeholder={t.scheduleModal?.namePlaceholder || 'VD: Ca cày code tối, Giải quyết task dự án, Ôn từ vựng...'}
               style={{
                 width: '100%',
                 padding: '0.65rem 0.85rem',
@@ -253,12 +259,12 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
           }}>
             <div style={{ fontSize: '0.82rem', fontWeight: 800, marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)' }}>
               <Clock size={15} />
-              <span>Khung giờ học (Từ bao giờ đến bao giờ):</span>
+              <span>{t.scheduleModal?.timeRangeLabel || 'Khung giờ học (Từ bao giờ đến bao giờ):'}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '0.75rem', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Bắt đầu từ:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>{t.scheduleModal?.startTimeLabel || 'Bắt đầu từ:'}</span>
                 <input
                   type="time"
                   required
@@ -281,7 +287,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
               <div style={{ fontSize: '1.1rem', color: 'var(--text-muted)', fontWeight: 800, paddingTop: '1rem' }}>➔</div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Kết thúc lúc:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>{t.scheduleModal?.endTimeLabel || 'Kết thúc lúc:'}</span>
                 <input
                   type="time"
                   required
@@ -302,7 +308,9 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
               </div>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', textAlign: 'center' }}>
-              ⏱️ Tổng thời lượng ca học: <strong>{Math.floor(summary.totalMinutes / 60)} giờ {summary.totalMinutes % 60 > 0 ? `${summary.totalMinutes % 60} phút` : ''}</strong> ({summary.totalMinutes} phút)
+              {typeof t.scheduleModal?.shiftDurationSummary === 'function'
+                ? t.scheduleModal.shiftDurationSummary(Math.floor(summary.totalMinutes / 60), summary.totalMinutes % 60)
+                : `⏱️ Tổng thời lượng ca học: ${Math.floor(summary.totalMinutes / 60)}h ${summary.totalMinutes % 60}m (${summary.totalMinutes}m)`}
             </div>
           </div>
 
@@ -316,7 +324,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
               border: '1px solid var(--border-color)'
             }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
-                <span>📚 Học mỗi hiệp:</span>
+                <span>{t.scheduleModal?.studyMinsLabel || '📚 Học mỗi hiệp:'}</span>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <select
@@ -333,13 +341,13 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                     fontWeight: 700
                   }}
                 >
-                  <option value={15}>15 phút</option>
-                  <option value={20}>20 phút</option>
-                  <option value={25}>25 phút (Chuẩn 🍅)</option>
-                  <option value={30}>30 phút</option>
-                  <option value={45}>45 phút (Tập trung)</option>
-                  <option value={50}>50 phút (50/10)</option>
-                  <option value={60}>60 phút (1 Tiếng)</option>
+                  <option value={15}>15 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={20}>20 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={25}>25 {t.timer?.minutesUnit || 'phút'} (Pomodoro 🍅)</option>
+                  <option value={30}>30 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={45}>45 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={50}>50 {t.timer?.minutesUnit || 'phút'} (50/10)</option>
+                  <option value={60}>60 {t.timer?.minutesUnit || 'phút'}</option>
                 </select>
               </div>
             </div>
@@ -353,7 +361,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.4rem' }}>
                 <Coffee size={14} />
-                <span>Nghỉ giữa giờ:</span>
+                <span>{t.scheduleModal?.breakMinsLabel || 'Nghỉ giữa giờ:'}</span>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <select
@@ -370,10 +378,10 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                     fontWeight: 700
                   }}
                 >
-                  <option value={3}>3 phút (Nghỉ chớp mắt)</option>
-                  <option value={5}>5 phút (Chuẩn Pomodoro)</option>
-                  <option value={10}>10 phút (Thư giãn)</option>
-                  <option value={15}>15 phút (Nghỉ sâu)</option>
+                  <option value={3}>3 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={5}>5 {t.timer?.minutesUnit || 'phút'} (Pomodoro)</option>
+                  <option value={10}>10 {t.timer?.minutesUnit || 'phút'}</option>
+                  <option value={15}>15 {t.timer?.minutesUnit || 'phút'}</option>
                 </select>
               </div>
             </div>
@@ -382,10 +390,10 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
           {/* 4. Days of week selector */}
           <div>
             <label style={{ fontSize: '0.82rem', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-              📅 Các ngày áp dụng trong tuần:
+              {t.scheduleModal?.daysLabel || '📅 Các ngày áp dụng trong tuần:'}
             </label>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {DAYS_OF_WEEK.map(d => {
+              {daysOfWeek.map(d => {
                 const isSelected = selectedDays.includes(d.id);
                 return (
                   <button
@@ -421,7 +429,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <BellRing size={14} color="var(--accent-primary)" />
-                <span>Nhạc chuông báo hết giờ:</span>
+                <span>{t.scheduleModal?.soundLabel || 'Nhạc chuông báo hết giờ:'}</span>
               </label>
               <button
                 type="button"
@@ -441,12 +449,13 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                 }}
               >
                 <Volume2 size={13} />
-                <span>Nghe thử</span>
+                <span>{t.timer?.testSound || 'Nghe thử'}</span>
               </button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
               {SOUND_OPTIONS.map(opt => {
+                const sMeta = getSoundMeta(opt.id, t);
                 const isSelected = soundType === opt.id;
                 return (
                   <button
@@ -473,7 +482,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                     }}
                   >
                     <span>{opt.emoji}</span>
-                    <span>{opt.label}</span>
+                    <span>{sMeta.label}</span>
                   </button>
                 );
               })}
@@ -491,9 +500,11 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
             color: 'var(--text-secondary)'
           }}>
             <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-              💡 Tóm Tắt Chu Kỳ Ca Học Tự Động:
+              {t.scheduleModal?.shiftCycleSummaryTitle || '💡 Tóm Tắt Chu Kỳ Ca Học Tự Động:'}
             </div>
-            Trong khung <strong>{startTime} – {endTime}</strong> ({summary.totalMinutes} phút): Hệ thống sẽ tự động dẫn dắt bạn qua <strong>{summary.cycles} hiệp học</strong> (tổng {summary.totalStudy} phút học) xen kẽ <strong>{summary.cycles - 1} lần nghỉ giữa giờ</strong> (tổng {summary.totalBreak} phút nghỉ ngơi).
+            {typeof t.scheduleModal?.shiftCycleSummaryDesc === 'function'
+              ? t.scheduleModal.shiftCycleSummaryDesc(startTime, endTime, summary.totalMinutes, studyMins, breakMins, summary.cycles)
+              : `Trong khung ${startTime} – ${endTime} (${summary.totalMinutes} phút): Hệ thống sẽ tự động dẫn dắt bạn qua ${summary.cycles} hiệp học (${summary.totalStudy} phút học, nghỉ ${summary.totalBreak} phút).`}
           </div>
 
           {/* Modal Actions */}
@@ -504,7 +515,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
               className="btn-secondary"
               style={{ padding: '0.6rem 1.25rem', borderRadius: '10px' }}
             >
-              Hủy
+              {t.timer?.cancelBtn || 'Hủy'}
             </button>
             <button
               type="submit"
@@ -517,7 +528,7 @@ export default function StudyScheduleModal({ isOpen, onClose, onSave, schedule }
                 fontWeight: 700
               }}
             >
-              {isSubmitting ? 'Đang lưu...' : (schedule ? 'Cập Nhật Lịch' : 'Tạo Lịch Học')}
+              {isSubmitting ? (t.scheduleModal?.savingBtn || 'Đang lưu...') : (schedule ? (t.common?.save || 'Cập Nhật Lịch') : (t.scheduleModal?.saveBtn || 'Tạo Lịch Học'))}
             </button>
           </div>
         </form>

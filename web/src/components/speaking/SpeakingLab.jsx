@@ -26,8 +26,10 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { audioService } from '../../services/audioService';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function SpeakingLab({ onSaveWord }) {
+  const { t } = useLanguage();
   // Modes: 'read-aloud' (Đọc theo mẫu) | 'qa' (Hỏi đáp đối thoại)
   const [activeMode, setActiveMode] = useState('read-aloud');
   const [prompts, setPrompts] = useState([]);
@@ -229,7 +231,7 @@ export default function SpeakingLab({ onSaveWord }) {
 
       setIsRecording(true);
     } catch (err) {
-      alert('Không thể truy cập Microphone: ' + err.message + '. Vui lòng cấp quyền Micro trong trình duyệt.');
+      alert((t.speaking?.errMic || 'Không thể truy cập Microphone: ') + err.message);
     }
   };
 
@@ -262,7 +264,7 @@ export default function SpeakingLab({ onSaveWord }) {
   // Submit and Analyze with AI (Multimodal Audio Understanding)
   const handleAnalyze = async () => {
     if (!userAudioBase64 && !spokenTranscript.trim()) {
-      alert('Chưa có file thu âm giọng nói. Vui lòng bấm micro và nói vào mic nhé!');
+      alert(t.speaking?.errNoAudio || 'Chưa có file thu âm giọng nói. Vui lòng bấm micro và nói vào mic nhé!');
       return;
     }
 
@@ -296,7 +298,7 @@ export default function SpeakingLab({ onSaveWord }) {
         }
       }
     } catch (err) {
-      alert('Lỗi chấm điểm: ' + err.message);
+      alert((t.speaking?.errScoring || 'Lỗi chấm điểm: ') + err.message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -381,10 +383,10 @@ export default function SpeakingLab({ onSaveWord }) {
               <span>MULTIMODAL ACOUSTIC PHONETICS ENGINE</span>
             </div>
             <h2 style={{ fontSize: '1.85rem', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              Chấm Điểm Phát Âm & Speaking Chuẩn Xác
+              {t.speaking?.title || 'Chấm Điểm Phát Âm & Speaking Chuẩn Xác'}
             </h2>
             <p style={{ opacity: 0.9, fontSize: '0.95rem', marginTop: '0.3rem' }}>
-              Lắng nghe trực tiếp file âm thanh micro: Soi kỹ từng phụ âm đuôi (/s/, /t/, /d/), nguyên âm IPA và ngữ điệu câu.
+              {t.speaking?.subtitle || 'Lắng nghe trực tiếp file âm thanh micro: Soi kỹ từng phụ âm đuôi (/s/, /t/, /d/), nguyên âm IPA và ngữ điệu câu.'}
             </p>
           </div>
 
@@ -414,7 +416,7 @@ export default function SpeakingLab({ onSaveWord }) {
               }}
             >
               <Ear size={16} />
-              <span>1. Đọc Đoạn Văn Mẫu</span>
+              <span>{t.speaking?.tabReadAloud || '1. Đọc Đoạn Văn Mẫu'}</span>
             </button>
 
             <button
@@ -435,7 +437,7 @@ export default function SpeakingLab({ onSaveWord }) {
               }}
             >
               <MessageSquare size={16} />
-              <span>2. Hỏi Đáp Đối Thoại</span>
+              <span>{t.speaking?.tabQA || '2. Hỏi Đáp Đối Thoại'}</span>
             </button>
           </div>
         </div>
@@ -448,12 +450,12 @@ export default function SpeakingLab({ onSaveWord }) {
             {activeMode === 'read-aloud' ? (
               <>
                 <BookOpen size={16} color="var(--accent-primary)" />
-                <span>Chọn Đoạn Văn Luyện Đọc:</span>
+                <span>{t.speaking?.selectPromptTitle || 'Chọn Đoạn Văn Luyện Đọc:'}</span>
               </>
             ) : (
               <>
                 <Target size={16} color="var(--accent-primary)" />
-                <span>Chọn Chủ Đề Câu Hỏi Speaking:</span>
+                <span>{t.speaking?.selectQATitle || 'Chọn Chủ Đề Câu Hỏi Speaking:'}</span>
               </>
             )}
           </h4>
@@ -466,12 +468,12 @@ export default function SpeakingLab({ onSaveWord }) {
               {isCustomMode ? (
                 <>
                   <BookOpen size={13} />
-                  <span>Xem đoạn văn mẫu</span>
+                  <span>{t.speaking?.sampleTextBtn || 'Xem đoạn văn mẫu'}</span>
                 </>
               ) : (
                 <>
                   <Edit3 size={13} />
-                  <span>Tự nhập văn bản của bạn</span>
+                  <span>{t.speaking?.customTextBtn || 'Tự nhập văn bản của bạn'}</span>
                 </>
               )}
             </button>
@@ -515,7 +517,7 @@ export default function SpeakingLab({ onSaveWord }) {
             <textarea
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
-              placeholder="Dán câu hoặc đoạn văn tiếng Anh bạn muốn luyện phát âm vào đây..."
+              placeholder={t.speaking?.customPlaceholder || "Dán câu hoặc đoạn văn tiếng Anh bạn muốn luyện phát âm vào đây..."}
               style={{
                 width: '100%',
                 minHeight: '80px',
@@ -552,7 +554,7 @@ export default function SpeakingLab({ onSaveWord }) {
               borderRadius: 'var(--radius-full)',
               textTransform: 'uppercase'
             }}>
-              {activeMode === 'read-aloud' ? 'Văn Bản Chuẩn Cần Đọc' : 'Câu Hỏi Khảo Thí'}
+              {activeMode === 'read-aloud' ? (t.speaking?.standardTextHeader || 'Văn Bản Chuẩn Cần Đọc') : (t.speaking?.examQuestionHeader || 'Câu Hỏi Khảo Thí')}
             </span>
 
             {/* Reference Audio Player */}
@@ -560,10 +562,10 @@ export default function SpeakingLab({ onSaveWord }) {
               onClick={() => handlePlayReference(isCustomMode ? customText : (activeMode === 'read-aloud' ? selectedPrompt?.targetText : selectedPrompt?.question))}
               className="btn-secondary"
               style={{ padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: 700, gap: '0.4rem' }}
-              title="Nghe audio người bản xứ đọc mẫu"
+              title={t.speaking?.listenReference || "Nghe audio người bản xứ đọc mẫu"}
             >
               <Volume2 size={16} style={{ color: 'var(--accent-primary)' }} />
-              <span>{isPlayingReference ? 'Đang đọc mẫu...' : 'Nghe Giọng Mẫu 🔊'}</span>
+              <span>{isPlayingReference ? (t.speaking?.readingModel || 'Đang đọc mẫu...') : (t.speaking?.listenModelVoice || 'Nghe Giọng Mẫu 🔊')}</span>
             </button>
           </div>
 
@@ -574,7 +576,7 @@ export default function SpeakingLab({ onSaveWord }) {
             color: 'var(--text-primary)',
             letterSpacing: '-0.01em'
           }}>
-            {isCustomMode ? (customText || 'Hãy nhập văn bản tùy ý vào ô phía trên...') : (activeMode === 'read-aloud' ? selectedPrompt?.targetText : selectedPrompt?.question)}
+            {isCustomMode ? (customText || t.speaking?.customPromptPlaceholder || 'Hãy nhập văn bản tùy ý vào ô phía trên...') : (activeMode === 'read-aloud' ? selectedPrompt?.targetText : selectedPrompt?.question)}
           </h3>
 
           {selectedPrompt?.tips && activeMode === 'read-aloud' && !isCustomMode && (
@@ -591,7 +593,7 @@ export default function SpeakingLab({ onSaveWord }) {
               gap: '0.5rem'
             }}>
               <Lightbulb size={16} color="var(--accent-warning)" />
-              <span><b>Mẹo phát âm:</b> {selectedPrompt.tips}</span>
+              <span><b>{t.speaking?.pronunciationTipsPrefix || 'Mẹo phát âm:'}</b> {selectedPrompt.tips}</span>
             </div>
           )}
         </div>
@@ -653,7 +655,7 @@ export default function SpeakingLab({ onSaveWord }) {
           </button>
 
           <span style={{ fontSize: '0.88rem', fontWeight: 700, color: isRecording ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>
-            {isRecording ? '🔴 Đang thu âm âm thanh gốc... Bấm để dừng' : 'Bấm Micro để bắt đầu thu âm bài nói'}
+            {isRecording ? (t.speaking?.recordingState || '🔴 Đang lắng nghe... Nói đi bạn!') : (t.speaking?.startRecord || 'Bắt Đầu Nói (Record)')}
           </span>
 
           {/* User Audio Playback Bar */}
@@ -690,12 +692,12 @@ export default function SpeakingLab({ onSaveWord }) {
                   {isPlayingUserAudio ? <Pause size={16} /> : <Play size={16} />}
                 </button>
                 <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  🎧 Nghe Lại Bản Thu Của Bạn ({recordTimer}s)
+                  {typeof t.speaking?.reListenRecording === 'function' ? t.speaking.reListenRecording(recordTimer) : `🎧 Nghe Lại Bản Thu Của Bạn (${recordTimer}s)`}
                 </span>
               </div>
 
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                ĐÃ THU ÂM FILE
+                {t.speaking?.audioRecordedBadge || 'ĐÃ THU ÂM FILE'}
               </span>
             </div>
           )}
@@ -711,7 +713,7 @@ export default function SpeakingLab({ onSaveWord }) {
               marginTop: '0.5rem'
             }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>
-                Nhận diện giọng nói tham chiếu:
+                {t.speaking?.recognizedSpeech || 'Nhận diện giọng nói tham chiếu:'}
               </span>
               <p style={{ fontSize: '1rem', color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.5 }}>
                 "{spokenTranscript}"
@@ -728,7 +730,7 @@ export default function SpeakingLab({ onSaveWord }) {
                 style={{ padding: '0.75rem 1.25rem', fontWeight: 700 }}
               >
                 <RotateCcw size={16} />
-                <span>Thu âm lại</span>
+                <span>{t.speaking?.reRecordBtn || 'Thu âm lại'}</span>
               </button>
 
               <button
@@ -738,7 +740,7 @@ export default function SpeakingLab({ onSaveWord }) {
                 style={{ padding: '0.75rem 2rem', fontWeight: 800, fontSize: '1rem' }}
               >
                 <Sparkles size={18} />
-                <span>{isAnalyzing ? 'AI Đang Phân Tích Audio Gốc...' : 'Chấm Điểm Chuẩn Xác ➔'}</span>
+                <span>{isAnalyzing ? (t.speaking?.evaluatingAudioBtn || 'AI Đang Phân Tích Audio Gốc...') : (t.speaking?.accurateScoreBtn || 'Chấm Điểm Chuẩn Xác ➔')}</span>
               </button>
             </div>
           )}
@@ -759,28 +761,28 @@ export default function SpeakingLab({ onSaveWord }) {
             {/* Score Header Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
               <div className="card" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-tertiary)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>TỔNG ĐIỂM</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.speaking?.scoreTotal || 'TỔNG ĐIỂM'}</span>
                 <h3 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--accent-primary)', marginTop: '0.2rem' }}>
                   {readAloudResult.overallScore}%
                 </h3>
               </div>
 
               <div className="card" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-tertiary)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ĐỘ CHUẨN ÂM VỊ</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.speaking?.scorePhoneme || 'ĐỘ CHUẨN ÂM VỊ'}</span>
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', marginTop: '0.2rem' }}>
                   {readAloudResult.accuracyScore}%
                 </h3>
               </div>
 
               <div className="card" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-tertiary)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ĐỘ TRÔI CHẢY</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.speaking?.scoreFluency || 'ĐỘ TRÔI CHẢY'}</span>
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.2rem' }}>
                   {readAloudResult.fluencyScore}%
                 </h3>
               </div>
 
               <div className="card" style={{ textAlign: 'center', padding: '1.25rem', background: 'var(--bg-tertiary)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>HOÀN CHỈNH CÂU</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.speaking?.scoreCompleteness || 'HOÀN CHỈNH CÂU'}</span>
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#a855f7', marginTop: '0.2rem' }}>
                   {readAloudResult.completenessScore}%
                 </h3>
@@ -791,12 +793,12 @@ export default function SpeakingLab({ onSaveWord }) {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>
-                  🔍 Soi Chi Tiết Từng Từ (Bấm vào từ để nghe phát âm & xem IPA):
+                  {t.speaking?.inspectBreakdown || '🔍 Soi Chi Tiết Từng Từ (Bấm vào từ để nghe phát âm & xem IPA):'}
                 </h4>
                 <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', fontWeight: 700 }}>
-                  <span style={{ color: '#10b981' }}>🟢 Chuẩn xác</span>
-                  <span style={{ color: '#f59e0b' }}>🟡 Nuốt âm / Lệch</span>
-                  <span style={{ color: '#ef4444' }}>🔴 Sai / Bỏ sót</span>
+                  <span style={{ color: '#10b981' }}>{t.speaking?.phonemeAccurate || '🟢 Chuẩn xác'}</span>
+                  <span style={{ color: '#f59e0b' }}>{t.speaking?.phonemeDeviant || '🟡 Nuốt âm / Lệch'}</span>
+                  <span style={{ color: '#ef4444' }}>{t.speaking?.phonemeWrong || '🔴 Sai / Bỏ sót'}</span>
                 </div>
               </div>
 
@@ -845,7 +847,7 @@ export default function SpeakingLab({ onSaveWord }) {
                         alignItems: 'center',
                         gap: '0.3rem'
                       }}
-                      title="Bấm để nghe phát âm chuẩn"
+                      title={t.speaking?.listenReference || "Bấm để nghe phát âm chuẩn"}
                     >
                       <span>{item.word}</span>
                     </button>
@@ -879,7 +881,7 @@ export default function SpeakingLab({ onSaveWord }) {
                     style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
                   >
                     <Volume2 size={15} />
-                    <span>Nghe lại</span>
+                    <span>{t.speaking?.listenAgainBtn || 'Nghe lại'}</span>
                   </button>
                 </div>
               )}
@@ -889,7 +891,7 @@ export default function SpeakingLab({ onSaveWord }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Lightbulb size={16} color="var(--accent-warning)" />
-                <span>Lời Khuyên Cải Thiện Phát Âm:</span>
+                <span>{t.speaking?.pronunciationAdvice || 'Lời Khuyên Cải Thiện Phát Âm:'}</span>
               </h4>
               {readAloudResult.phoneticTips?.map((tip, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
@@ -916,9 +918,9 @@ export default function SpeakingLab({ onSaveWord }) {
             {/* Band Score Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem' }}>
               <div>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>ĐÁNH GIÁ PHẢN XẠ NÓI</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.speaking?.speakingInterviewTitle || 'ĐÁNH GIÁ PHẢN XẠ NÓI'}</span>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-                  Kết Quả Phỏng Vấn Speaking
+                  {t.speaking?.speakingInterviewTitle || 'Kết Quả Phỏng Vấn Speaking'}
                 </h3>
               </div>
 
@@ -939,16 +941,16 @@ export default function SpeakingLab({ onSaveWord }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               {Object.entries(qaResult.criteria || {}).map(([key, val]) => {
                 const labels = {
-                  fluency: 'Độ Trôi Chảy & Mạch Lạc',
-                  pronunciation: 'Phát Âm & Ngữ Điệu',
-                  grammar: 'Ngữ Pháp & Cấu Trúc',
-                  vocabulary: 'Vốn Từ & Collocations'
+                  fluency: t.speaking?.fluencyCriterion || 'Độ Trôi Chảy & Mạch Lạc',
+                  pronunciation: t.speaking?.pronunciationCriterion || 'Phát Âm & Ngữ Điệu',
+                  grammar: t.speaking?.grammarCriterion || 'Ngữ Pháp & Cấu Trúc',
+                  vocabulary: t.speaking?.vocabCriterion || 'Vốn Từ & Collocations'
                 };
 
                 return (
                   <div key={key} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>{labels[key]}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>{labels[key] || key}</span>
                       <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--accent-primary)' }}>Band {val.band}</span>
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{val.feedback}</p>
@@ -969,7 +971,7 @@ export default function SpeakingLab({ onSaveWord }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Award size={18} style={{ color: 'var(--accent-primary)' }} />
                     <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                      Câu Trả Lời Mẫu Nâng Cấp (Native Band 8.5+):
+                      {t.speaking?.upgradeSampleAnswer || 'Câu Trả Lời Mẫu Nâng Cấp (Native Band 8.5+):'}
                     </h4>
                   </div>
                   <button
@@ -978,7 +980,7 @@ export default function SpeakingLab({ onSaveWord }) {
                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 700 }}
                   >
                     <Volume2 size={15} />
-                    <span>Luyện Nghe Mẫu 🔊</span>
+                    <span>{t.speaking?.listenUpgradeModel || 'Luyện Nghe Mẫu 🔊'}</span>
                   </button>
                 </div>
 

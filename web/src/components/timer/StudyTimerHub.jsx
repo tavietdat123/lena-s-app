@@ -40,7 +40,8 @@ import {
   Laptop
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { useStudyTimer, SOUND_OPTIONS, ACTIVITIES, getActivityMeta } from '../../context/StudyTimerContext';
+import { useStudyTimer, SOUND_OPTIONS, ACTIVITIES, getActivityMeta, getSoundMeta } from '../../context/StudyTimerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import StudyScheduleModal from './StudyScheduleModal';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
 
@@ -58,19 +59,51 @@ const ACTIVITY_ICONS = {
   custom: Zap
 };
 
-const POMODORO_PRESETS = [
-  { label: '5m', tag: 'Khởi động', fullLabel: '5 phút (Khởi động nhanh)', seconds: 5 * 60 },
-  { label: '10m', tag: 'Cấp tốc', fullLabel: '10 phút (Ôn 10 từ cấp tốc)', seconds: 10 * 60 },
-  { label: '15m', tag: 'Ôn thẻ', fullLabel: '15 phút (Ôn flashcards)', seconds: 15 * 60 },
-  { label: '20m', tag: 'Luyện nghe', fullLabel: '20 phút (Luyện nghe / nói)', seconds: 20 * 60 },
-  { label: '25m', tag: 'Chuẩn 🍅', fullLabel: '25 phút (Pomodoro Tiêu chuẩn)', seconds: 25 * 60 },
-  { label: '30m', tag: 'Làm Quiz', fullLabel: '30 phút (Làm bài tập Quiz)', seconds: 30 * 60 },
-  { label: '45m', tag: 'Tập trung', fullLabel: '45 phút (Tập trung chuyên sâu)', seconds: 45 * 60 },
-  { label: '50m', tag: '50/10', fullLabel: '50 phút (Phương pháp học 50/10)', seconds: 50 * 60 },
-  { label: '60m', tag: '1 Tiếng', fullLabel: '60 phút (1 giờ học đầy đủ)', seconds: 60 * 60 },
-  { label: '90m', tag: 'Sóng não', fullLabel: '90 phút (Chu kỳ sinh học Ultradian)', seconds: 90 * 60 },
-  { label: '120m', tag: '2 Tiếng', fullLabel: '120 phút (Thi thử & Luyện đề lớn)', seconds: 120 * 60 }
-];
+function getPomodoroPresets(lang = 'en') {
+  if (lang === 'vi') {
+    return [
+      { label: '5m', tag: 'Khởi động', fullLabel: '5 phút (Khởi động nhanh)', seconds: 5 * 60 },
+      { label: '10m', tag: 'Cấp tốc', fullLabel: '10 phút (Ôn 10 từ cấp tốc)', seconds: 10 * 60 },
+      { label: '15m', tag: 'Ôn thẻ', fullLabel: '15 phút (Ôn flashcards)', seconds: 15 * 60 },
+      { label: '20m', tag: 'Luyện nghe', fullLabel: '20 phút (Luyện nghe / nói)', seconds: 20 * 60 },
+      { label: '25m', tag: 'Chuẩn 🍅', fullLabel: '25 phút (Pomodoro Tiêu chuẩn)', seconds: 25 * 60 },
+      { label: '30m', tag: 'Làm Quiz', fullLabel: '30 phút (Làm bài tập Quiz)', seconds: 30 * 60 },
+      { label: '45m', tag: 'Tập trung', fullLabel: '45 phút (Tập trung chuyên sâu)', seconds: 45 * 60 },
+      { label: '50m', tag: '50/10', fullLabel: '50 phút (Phương pháp học 50/10)', seconds: 50 * 60 },
+      { label: '60m', tag: '1 Tiếng', fullLabel: '60 phút (1 giờ học đầy đủ)', seconds: 60 * 60 },
+      { label: '90m', tag: 'Sóng não', fullLabel: '90 phút (Chu kỳ sinh học Ultradian)', seconds: 90 * 60 },
+      { label: '120m', tag: '2 Tiếng', fullLabel: '120 phút (Thi thử & Luyện đề lớn)', seconds: 120 * 60 }
+    ];
+  }
+  if (lang === 'ru') {
+    return [
+      { label: '5m', tag: 'Разминка', fullLabel: '5 минут (Быстрый старт)', seconds: 5 * 60 },
+      { label: '10m', tag: 'Экспресс', fullLabel: '10 минут (Экспресс-повтор)', seconds: 10 * 60 },
+      { label: '15m', tag: 'Карточки', fullLabel: '15 минут (Flashcards SRS)', seconds: 15 * 60 },
+      { label: '20m', tag: 'Аудио', fullLabel: '20 минут (Слушание / речь)', seconds: 20 * 60 },
+      { label: '25m', tag: 'Помодоро 🍅', fullLabel: '25 минут (Стандарт Помодоро)', seconds: 25 * 60 },
+      { label: '30m', tag: 'Квиз', fullLabel: '30 минут (Практика тестов)', seconds: 30 * 60 },
+      { label: '45m', tag: 'Фокус', fullLabel: '45 минут (Глубокий фокус)', seconds: 45 * 60 },
+      { label: '50m', tag: '50/10', fullLabel: '50 минут (Метод 50/10)', seconds: 50 * 60 },
+      { label: '60m', tag: '1 час', fullLabel: '60 минут (Полный час)', seconds: 60 * 60 },
+      { label: '90m', tag: 'Ультрадиан', fullLabel: '90 минут (Ультрадианный ритм)', seconds: 90 * 60 },
+      { label: '120m', tag: 'Экзамен', fullLabel: '120 минут (Большой экзамен)', seconds: 120 * 60 }
+    ];
+  }
+  return [
+    { label: '5m', tag: 'Warm-up', fullLabel: '5 mins (Quick warm-up)', seconds: 5 * 60 },
+    { label: '10m', tag: 'Rapid', fullLabel: '10 mins (Rapid review)', seconds: 10 * 60 },
+    { label: '15m', tag: 'Flashcards', fullLabel: '15 mins (Review cards)', seconds: 15 * 60 },
+    { label: '20m', tag: 'Listening', fullLabel: '20 mins (Listening / Speaking)', seconds: 20 * 60 },
+    { label: '25m', tag: 'Standard 🍅', fullLabel: '25 mins (Pomodoro Standard)', seconds: 25 * 60 },
+    { label: '30m', tag: 'Quiz', fullLabel: '30 mins (Practice Quiz)', seconds: 30 * 60 },
+    { label: '45m', tag: 'Deep focus', fullLabel: '45 mins (Deep focus session)', seconds: 45 * 60 },
+    { label: '50m', tag: '50/10', fullLabel: '50 mins (50/10 Study method)', seconds: 50 * 60 },
+    { label: '60m', tag: '1 Hour', fullLabel: '60 mins (Full 1-hour block)', seconds: 60 * 60 },
+    { label: '90m', tag: 'Ultradian', fullLabel: '90 mins (Ultradian rhythm)', seconds: 90 * 60 },
+    { label: '120m', tag: 'Full Exam', fullLabel: '120 mins (Mock exam & test)', seconds: 120 * 60 }
+  ];
+}
 
 const MOTIVATIONAL_QUOTES = [
   { quote: "Consistency is what transforms average into excellence.", author: "Tony Robbins" },
@@ -89,10 +122,20 @@ function formatTime(totalSeconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function formatDurationHuman(seconds) {
+function formatDurationHuman(seconds, lang = 'vi', uiLang) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
+  if (lang === 'en') {
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s > 0 ? `${s}s` : ''}`;
+    return `${s}s`;
+  }
+  if (lang === 'ru') {
+    if (h > 0) return `${h} ч ${m} мин`;
+    if (m > 0) return `${m} мин ${s > 0 ? `${s}с` : ''}`;
+    return `${s} сек`;
+  }
   if (h > 0) {
     return `${h} giờ ${m} phút`;
   }
@@ -125,6 +168,8 @@ function playChime() {
 }
 
 export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
+  const { t, uiLang } = useLanguage();
+  const pomodoroPresets = getPomodoroPresets(uiLang);
   const [activeTab, setActiveTab] = useState('timer'); // 'timer' | 'stats'
   
   // Consume Global Persistent Timer Context
@@ -323,7 +368,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
       if (res.success) {
         const xpEarned = res.xpEarned || 20;
         if (onAddToast) {
-          onAddToast(`🎉 Đã lưu ${resolvedTitle} (${formatDurationHuman(liveSeconds)})! (+${xpEarned} XP)`);
+          onAddToast(`🎉 Đã lưu ${resolvedTitle} (${formatDurationHuman(liveSeconds, uiLang)})! (+${xpEarned} XP)`);
         }
         if (onSessionFinished) onSessionFinished(res);
 
@@ -354,7 +399,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
     }
   };
 
-  const currentActivity = getActivityMeta(selectedActivity, customActivityTitle);
+  const currentActivity = getActivityMeta(selectedActivity, customActivityTitle, t);
   const displayTimeSeconds = timerMode === 'pomodoro' ? pomodoroRemaining : elapsedSeconds;
 
   // Calculate Pomodoro Progress percentage
@@ -391,10 +436,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
           </div>
           <div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-              Đồng Hồ Bấm Giờ Học & Thống Kê
+              {t.timer?.title || 'Đồng Hồ Bấm Giờ Học & Thống Kê'}
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '3px 0 0 0' }}>
-              Bấm giờ chủ động, kiểm soát kỷ luật Pomodoro và theo dõi biểu đồ thời gian học.
+              {t.timer?.subtitle || 'Bấm giờ chủ động, kiểm soát kỷ luật Pomodoro và theo dõi biểu đồ thời gian học.'}
             </p>
           </div>
         </div>
@@ -427,7 +472,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}
           >
             <Clock size={16} />
-            <span>Bấm Giờ Học</span>
+            <span>{t.timer?.tabTimer || 'Bấm Giờ Học'}</span>
             {isRunning && (
               <span style={{
                 width: '8px',
@@ -458,7 +503,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}
           >
             <CalendarDays size={16} />
-            <span>Lịch Học & Nghỉ Giữa Giờ</span>
+            <span>{t.timer?.tabSchedules || 'Lịch Học & Nghỉ Giữa Giờ'}</span>
             {scheduleCycle && (
               <span style={{
                 width: '8px',
@@ -489,7 +534,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}
           >
             <BarChart3 size={16} />
-            <span>Bảng Thống Kê</span>
+            <span>{t.timer?.tabStats || 'Bảng Thống Kê'}</span>
           </button>
         </div>
       </div>
@@ -565,8 +610,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     </div>
                     <div style={{ fontSize: '0.76rem', color: timerPhase === 'break' ? '#10b981' : 'var(--accent-primary)', fontWeight: 700 }}>
                       {timerPhase === 'break'
-                        ? `☕ Giờ nghỉ giữa giờ (${scheduleCycle.breakDurationMinutes} phút)`
-                        : `📚 Đang học hiệp ${scheduleCycle.currentCycle} (${scheduleCycle.studyDurationMinutes} phút)`}
+                        ? `☕ ${t.timer?.breakStatus || 'Giờ nghỉ giữa giờ'} (${scheduleCycle.breakDurationMinutes} ${t.timer?.minutesUnit || 'phút'})`
+                        : `📚 ${t.timer?.studyingStatus || 'Đang học hiệp'} ${scheduleCycle.currentCycle} (${scheduleCycle.studyDurationMinutes} ${t.timer?.minutesUnit || 'phút'})`}
                     </div>
                   </div>
                 </div>
@@ -590,13 +635,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       }}
                     >
                       <SkipForward size={13} />
-                      <span>Vào học ngay</span>
+                      <span>{t.timer?.enterScheduleBtn || 'Vào học ngay'}</span>
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm('Bạn có muốn dừng ca học theo lịch này không?')) {
+                      if (window.confirm(t.timer?.stopShiftConfirm || 'Bạn có muốn dừng ca học theo lịch này không?')) {
                         stopScheduleCycle();
                       }
                     }}
@@ -609,7 +654,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       color: 'var(--text-muted)'
                     }}
                   >
-                    Dừng ca
+                    {t.timer?.stopShiftBtn || 'Dừng ca'}
                   </button>
                 </div>
               </div>
@@ -647,7 +692,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     cursor: 'pointer'
                   }}
                 >
-                  ⏱️ Bấm Giờ Tự Do
+                  {t.timer?.stopwatchMode || '⏱️ Bấm Giờ Tự Do'}
                 </button>
                 <button
                   type="button"
@@ -663,7 +708,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     cursor: 'pointer'
                   }}
                 >
-                  🍅 Pomodoro Đếm Ngược
+                  {t.timer?.pomodoroMode || '🍅 Pomodoro Đếm Ngược'}
                 </button>
               </div>
 
@@ -688,7 +733,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   title="Cài đặt nhạc chuông báo hết giờ"
                 >
                   <BellRing size={14} color={soundEnabled ? 'var(--accent-primary)' : 'var(--text-muted)'} />
-                  <span>{SOUND_OPTIONS.find(s => s.id === soundType)?.label || 'Chuông'}</span>
+                  <span>{getSoundMeta(soundType, t)?.label || t.timer?.bellRingtone || 'Chuông'}</span>
                 </button>
 
                 <button
@@ -710,7 +755,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   }}
                 >
                   <Volume2 size={13} />
-                  <span>Nghe thử</span>
+                  <span>{t.timer?.testSound || 'Nghe thử'}</span>
                 </button>
 
                 {isSoundPickerOpen && (
@@ -727,7 +772,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     width: '270px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>🔔 Nhạc Chuông Báo Giờ</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>{t.timer?.ringtoneTitle || '🔔 Nhạc Chuông Báo Giờ'}</span>
                       <button
                         type="button"
                         onClick={() => setSoundEnabled(!soundEnabled)}
@@ -742,7 +787,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           cursor: 'pointer'
                         }}
                       >
-                        {soundEnabled ? 'BẬT' : 'TẮT'}
+                        {soundEnabled ? (t.timer?.soundOn || 'BẬT') : (t.timer?.soundOff || 'TẮT')}
                       </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -770,7 +815,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                               <span>{s.emoji}</span>
                               <div>
                                 <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-                                  {s.label}
+                                  {getSoundMeta(s.id, t)?.label || s.label}
                                 </div>
                               </div>
                             </div>
@@ -787,7 +832,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                                 cursor: 'pointer',
                                 padding: '2px'
                               }}
-                              title="Nghe thử"
+                              title={t.timer?.testSound || "Nghe thử"}
                             >
                               <Volume2 size={13} />
                             </button>
@@ -818,7 +863,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   gap: '0.35rem',
                   flexWrap: 'wrap'
                 }}>
-                  {POMODORO_PRESETS.map(p => {
+                  {pomodoroPresets.map(p => {
                     const isSelected = pomodoroTarget === p.seconds;
                     return (
                       <button
@@ -876,19 +921,19 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       fontSize: '0.78rem',
                       fontWeight: 700,
                       border: '1px solid',
-                      borderColor: (!POMODORO_PRESETS.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? '#ef4444' : 'var(--border-color)',
-                      background: (!POMODORO_PRESETS.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)',
-                      color: (!POMODORO_PRESETS.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? '#ef4444' : 'var(--text-secondary)',
+                      borderColor: (!pomodoroPresets.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? '#ef4444' : 'var(--border-color)',
+                      background: (!pomodoroPresets.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-tertiary)',
+                      color: (!pomodoroPresets.some(p => p.seconds === pomodoroTarget) || showCustomInput) ? '#ef4444' : 'var(--text-secondary)',
                       cursor: isRunning ? 'not-allowed' : 'pointer',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Tùy chỉnh số phút đếm ngược bất kỳ"
+                    title={t.timer?.customMinutesPrompt || "Tùy chỉnh số phút đếm ngược bất kỳ"}
                   >
                     <SlidersHorizontal size={13} />
                     <span>
-                      {!POMODORO_PRESETS.some(p => p.seconds === pomodoroTarget)
-                        ? `${Math.round(pomodoroTarget / 60)}p (Tự chọn)`
-                        : 'Tùy chọn phút...'}
+                      {!pomodoroPresets.some(p => p.seconds === pomodoroTarget)
+                        ? `${Math.round(pomodoroTarget / 60)}${t.timer?.minutesUnit || 'p'} ${t.timer?.customMinutesTag || '(Tự chọn)'}`
+                        : (t.timer?.customMinutesPrompt || 'Tùy chọn phút...')}
                     </span>
                   </button>
                 </div>
@@ -921,7 +966,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     }}
                   >
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                      Thời gian đếm ngược:
+                      {t.timer?.customFormTitle || 'Thời gian đếm ngược:'}
                     </span>
                     <input
                       type="number"
@@ -943,7 +988,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         textAlign: 'center'
                       }}
                     />
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>phút</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t.timer?.minutesUnit || 'phút'}</span>
                     <button
                       type="submit"
                       style={{
@@ -957,7 +1002,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         cursor: 'pointer'
                       }}
                     >
-                      Áp dụng
+                      {t.timer?.applyBtn || 'Áp dụng'}
                     </button>
                     <button
                       type="button"
@@ -972,7 +1017,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         cursor: 'pointer'
                       }}
                     >
-                      Đóng
+                      {t.timer?.closeBtn || 'Đóng'}
                     </button>
                   </form>
                 )}
@@ -1035,12 +1080,12 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 }} />
                 <span>
                   {isPomodoroCompleted
-                    ? `🎉 Đã hoàn thành & tự động lưu vào hệ thống (+${lastSavedSession?.xpEarned || 20} XP)!`
+                    ? `${t.timer?.completedAutoSavedNotice || '🎉 Đã hoàn thành & tự động lưu vào hệ thống'} (+${lastSavedSession?.xpEarned || 20} XP)!`
                     : (timerPhase === 'break'
-                        ? `☕ Đang nghỉ giữa giờ (Hiệp ${scheduleCycle?.currentCycle || 1})`
+                        ? `☕ ${t.timer?.breakStatus || 'Đang nghỉ giữa giờ'} (${scheduleCycle ? `Hiệp ${scheduleCycle.currentCycle}` : ''})`
                         : (isRunning 
-                            ? (customActivityTitle ? `Đang thực hiện: ${customActivityTitle}` : `Đang ${currentActivity.label}...`)
-                            : (elapsedSeconds > 0 ? 'Đang tạm dừng' : `Sẵn sàng: ${customActivityTitle || currentActivity.label}`)))}
+                            ? (customActivityTitle ? `${t.timer?.studyingStatus || 'Đang thực hiện'}: ${customActivityTitle}` : `${t.timer?.studyingStatus || 'Đang'}: ${currentActivity.label}`)
+                            : (elapsedSeconds > 0 ? (t.timer?.pausedStatus || 'Đang tạm dừng') : `${t.timer?.readyStatus || 'Sẵn sàng'}: ${customActivityTitle || currentActivity.label}`)))}
                 </span>
                 {timerMode === 'pomodoro' && isRunning && (
                   <span style={{ marginLeft: '4px', opacity: 0.85 }}>({pomodoroProgressPercent}%)</span>
@@ -1065,7 +1110,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   maxWidth: '480px'
                 }}>
                   <span>💧</span>
-                  <span>Hãy uống một ngụm nước, vươn vai thư giãn hoặc phóng tầm mắt ra xa để đôi mắt được nghỉ ngơi!</span>
+                  <span>{t.timer?.breakAdvice || 'Hãy uống một ngụm nước, vươn vai thư giãn hoặc phóng tầm mắt ra xa để đôi mắt được nghỉ ngơi!'}</span>
                 </div>
               )}
 
@@ -1105,10 +1150,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     </div>
                     <div>
                       <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        Đã Tự Động Lưu Vào Hệ Thống!
+                        {t.timer?.autoSavedTitle || 'Đã Tự Động Lưu Vào Hệ Thống!'}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>
-                        {lastSavedSession?.title || currentActivity.label} • {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget)} (+{lastSavedSession?.xpEarned || 20} XP)
+                        {lastSavedSession?.title || currentActivity.label} • {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget, uiLang)} (+{lastSavedSession?.xpEarned || 20} XP)
                       </div>
                     </div>
                   </div>
@@ -1126,7 +1171,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         background: 'linear-gradient(135deg, #0284c7, #0ea5e9)'
                       }}
                     >
-                      🚀 Hiệp Mới
+                      {t.timer?.newRoundBtn || '🚀 Hiệp Mới'}
                     </button>
                     <button
                       type="button"
@@ -1139,7 +1184,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         borderRadius: '10px'
                       }}
                     >
-                      📊 Thống Kê
+                      {t.timer?.statsBtn || '📊 Thống Kê'}
                     </button>
                   </div>
                 </div>
@@ -1166,7 +1211,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     }}
                   >
                     <Play size={18} fill="currentColor" />
-                    <span>🍅 Bắt Đầu Hiệp Mới</span>
+                    <span>{t.timer?.startNewRound || '🍅 Bắt Đầu Hiệp Mới'}</span>
                   </button>
 
                   <button
@@ -1184,7 +1229,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     }}
                   >
                     <BarChart3 size={17} />
-                    <span>Xem Bảng Thống Kê</span>
+                    <span>{t.timer?.viewStats || 'Xem Bảng Thống Kê'}</span>
                   </button>
 
                   <button
@@ -1196,7 +1241,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       borderRadius: '16px',
                       color: 'var(--text-muted)'
                     }}
-                    title="Đặt lại đồng hồ"
+                    title={t.timer?.resetBtn || "Đặt lại đồng hồ"}
                   >
                     <RotateCcw size={18} />
                   </button>
@@ -1224,8 +1269,8 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       <Play size={20} fill="currentColor" />
                       <span>
                         {timerPhase === 'break'
-                          ? 'Tiếp Tục Nghỉ'
-                          : (elapsedSeconds > 0 ? 'Tiếp Tục Học' : 'Bắt Đầu Học')}
+                          ? (t.timer?.continueBreakBtn || 'Tiếp Tục Nghỉ')
+                          : (elapsedSeconds > 0 ? (t.timer?.continueStudyBtn || 'Tiếp Tục Học') : (t.timer?.startStudyBtn || 'Bắt Đầu Học'))}
                       </span>
                     </button>
                   ) : (
@@ -1246,7 +1291,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       }}
                     >
                       <Pause size={20} fill="currentColor" />
-                      <span>Tạm Dừng</span>
+                      <span>{t.timer?.pauseBtn || 'Tạm Dừng'}</span>
                     </button>
                   )}
 
@@ -1269,7 +1314,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       }}
                     >
                       <SkipForward size={18} />
-                      <span>Vào Học Hiệp Kế Tiếp</span>
+                      <span>{t.timer?.nextRoundBtn || 'Vào Học Hiệp Kế Tiếp'}</span>
                     </button>
                   )}
 
@@ -1292,7 +1337,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       }}
                     >
                       <CheckCircle2 size={19} />
-                      <span>Hoàn Thành & Lưu</span>
+                      <span>{t.timer?.finishAndSaveBtn || 'Hoàn Thành & Lưu'}</span>
                     </button>
                   )}
 
@@ -1307,7 +1352,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         borderRadius: '16px',
                         color: 'var(--text-muted)'
                       }}
-                      title="Đặt lại đồng hồ"
+                      title={t.timer?.resetBtn || "Đặt lại đồng hồ"}
                     >
                       <RotateCcw size={18} />
                     </button>
@@ -1321,10 +1366,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                🎯 Bạn đang làm gì? (Chọn loại công việc & học tập để phân loại):
+                {t.timer?.whatAreYouDoing || '🎯 Bạn đang làm gì? (Chọn loại công việc & học tập để phân loại):'}
               </label>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Hỗ trợ cày code, làm việc, ngoại ngữ & deep work
+                {t.timer?.whatAreYouDoingSub || 'Hỗ trợ cày code, làm việc, ngoại ngữ & deep work'}
               </span>
             </div>
 
@@ -1393,7 +1438,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span>✏️ Tên công việc / mục tiêu cụ thể:</span>
+                  <span>{t.timer?.customTaskLabel || '✏️ Tên công việc / mục tiêu cụ thể:'}</span>
                   {customActivityTitle && (
                     <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 700 }}>
                       «{customActivityTitle}»
@@ -1413,7 +1458,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       textDecoration: 'underline'
                     }}
                   >
-                    ✕ Xóa tên cụ thể
+                    {t.timer?.clearCustomTask || '✕ Xóa tên cụ thể'}
                   </button>
                 )}
               </div>
@@ -1447,7 +1492,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
 
               {/* Quick Suggestion Chips */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 700 }}>Gợi ý nhanh:</span>
+                <span style={{ fontSize: '0.73rem', color: 'var(--text-muted)', fontWeight: 700 }}>{t.timer?.quickSuggestions || 'Gợi ý nhanh:'}</span>
                 {(selectedActivity === 'coding' ? [
                   '💻 Code Backend API',
                   '🐛 Fix Bug Thanh Toán',
@@ -1586,11 +1631,11 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <CalendarDays size={22} color="var(--accent-primary)" />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
-                  Kế Hoạch Ca Học Dài Hạn & Nghỉ Giữa Giờ
+                  {t.timer?.schedulesHeader || 'Kế Hoạch Ca Học Dài Hạn & Nghỉ Giữa Giờ'}
                 </h3>
               </div>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '640px', lineHeight: 1.5 }}>
-                Tạo các ca học cố định (Ví dụ: Từ <b>20:00</b> đến <b>22:30</b>). Hệ thống sẽ tự động dẫn dắt bạn qua các hiệp học (VD: 25 phút) xen kẽ chu kỳ nghỉ giữa giờ (VD: 5 phút), kèm chuông báo thức tỉnh tự động.
+                {t.timer?.schedulesSub || 'Tạo các ca học cố định (Ví dụ: Từ 20:00 đến 22:30). Hệ thống sẽ tự động dẫn dắt bạn qua các hiệp học xen kẽ chu kỳ nghỉ giữa giờ, kèm chuông báo thức tỉnh tự động.'}
               </p>
             </div>
 
@@ -1613,7 +1658,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               }}
             >
               <Plus size={18} />
-              <span>Tạo Lịch Học Dài Hạn Mới</span>
+              <span>{t.timer?.createScheduleBtn || 'Tạo Lịch Học Dài Hạn Mới'}</span>
             </button>
           </div>
 
@@ -1644,10 +1689,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               </div>
               <div style={{ maxWidth: '440px' }}>
                 <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 0.4rem 0' }}>
-                  Chưa có lịch học dài hạn nào
+                  {t.timer?.emptySchedulesTitle || 'Chưa có lịch học dài hạn nào'}
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  Hãy thiết lập ca học đầu tiên của bạn (Ví dụ: 20:00 - 22:30 mỗi tối) để ứng dụng tự động kiểm soát chu kỳ học và nghỉ giữa giờ.
+                  {t.timer?.emptySchedulesDesc || 'Hãy thiết lập ca học đầu tiên của bạn để ứng dụng tự động kiểm soát chu kỳ học và nghỉ giữa giờ.'}
                 </p>
               </div>
               <button
@@ -1663,7 +1708,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   borderRadius: '10px'
                 }}
               >
-                ➕ Thiết Lập Lịch Học Ngay
+                {t.timer?.setupScheduleNow || '➕ Thiết Lập Lịch Học Ngay'}
               </button>
             </div>
           )}
@@ -1692,13 +1737,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 const cyclesCount = Math.max(1, Math.floor(totalMins / cycleMins));
 
                 const allDays = [
-                  { id: 'mon', label: 'T2' },
-                  { id: 'tue', label: 'T3' },
-                  { id: 'wed', label: 'T4' },
-                  { id: 'thu', label: 'T5' },
-                  { id: 'fri', label: 'T6' },
-                  { id: 'sat', label: 'T7' },
-                  { id: 'sun', label: 'CN' }
+                  { id: 'mon', label: t?.scheduleModal?.dayMonShort || 'T2' },
+                  { id: 'tue', label: t?.scheduleModal?.dayTueShort || 'T3' },
+                  { id: 'wed', label: t?.scheduleModal?.dayWedShort || 'T4' },
+                  { id: 'thu', label: t?.scheduleModal?.dayThuShort || 'T5' },
+                  { id: 'fri', label: t?.scheduleModal?.dayFriShort || 'T6' },
+                  { id: 'sat', label: t?.scheduleModal?.daySatShort || 'T7' },
+                  { id: 'sun', label: t?.scheduleModal?.daySunShort || 'CN' }
                 ];
                 const activeDays = Array.isArray(sch.days_of_week) ? sch.days_of_week : [];
 
@@ -1736,13 +1781,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                                 gap: '0.25rem',
                                 padding: '0.15rem 0.45rem',
                                 borderRadius: '6px',
-                                background: `${getActivityMeta(sch.activity_type).color}15`,
-                                color: getActivityMeta(sch.activity_type).color,
+                                background: `${getActivityMeta(sch.activity_type, '', t).color}15`,
+                                color: getActivityMeta(sch.activity_type, '', t).color,
                                 fontSize: '0.72rem',
                                 fontWeight: 700
                               }}>
-                                <span>{getActivityMeta(sch.activity_type).emoji}</span>
-                                <span>{getActivityMeta(sch.activity_type).label}</span>
+                                <span>{getActivityMeta(sch.activity_type, '', t).emoji}</span>
+                                <span>{getActivityMeta(sch.activity_type, '', t).label}</span>
                               </span>
                             )}
                             {isCurrentActive && (
@@ -1754,12 +1799,12 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                                 fontSize: '0.68rem',
                                 fontWeight: 800
                               }}>
-                                Đang chạy
+                                {t.timer?.scheduleRunning || 'Đang chạy'}
                               </span>
                             )}
                           </div>
                           <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                            Tổng ca: {Math.floor(totalMins / 60)}h{totalMins % 60 > 0 ? `${totalMins % 60}p` : ''} ({cyclesCount} hiệp học)
+                            {t.timer?.totalShiftTime || 'Tổng ca:'} {Math.floor(totalMins / 60)}h{totalMins % 60 > 0 ? `${totalMins % 60}p` : ''} ({cyclesCount} {t.timer?.shiftCycles || 'hiệp học'})
                           </span>
                         </div>
 
@@ -1779,7 +1824,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           }}
                           title={sch.is_active ? 'Nhấn để tạm tắt lịch này' : 'Nhấn để bật lịch này'}
                         >
-                          {sch.is_active ? '✓ Đang bật' : '✕ Đang tắt'}
+                          {sch.is_active ? (t.timer?.scheduleTurnOn || '✓ Đang bật') : (t.timer?.scheduleTurnOff || '✕ Đang tắt')}
                         </button>
                       </div>
 
@@ -1800,7 +1845,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           </span>
                         </div>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                          {totalMins} phút
+                          {totalMins} {t.timer?.minutesUnit || 'phút'}
                         </span>
                       </div>
 
@@ -1813,9 +1858,9 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           border: '1px solid rgba(2, 132, 199, 0.18)',
                           fontSize: '0.78rem'
                         }}>
-                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Học mỗi hiệp:</span>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>{t.timer?.studyEachRound || 'Học mỗi hiệp:'}</span>
                           <strong style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
-                            📚 {sch.study_duration_minutes} phút
+                            📚 {sch.study_duration_minutes} {t.timer?.minutesUnit || 'phút'}
                           </strong>
                         </div>
 
@@ -1826,9 +1871,9 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           border: '1px solid rgba(16, 185, 129, 0.25)',
                           fontSize: '0.78rem'
                         }}>
-                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>Nghỉ giữa giờ:</span>
+                          <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.7rem' }}>{t.timer?.breakEachRound || 'Nghỉ giữa giờ:'}</span>
                           <strong style={{ color: '#10b981', fontSize: '0.9rem' }}>
-                            ☕ {sch.break_duration_minutes} phút
+                            ☕ {sch.break_duration_minutes} {t.timer?.minutesUnit || 'phút'}
                           </strong>
                         </div>
                       </div>
@@ -1873,7 +1918,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                         marginBottom: '1rem'
                       }}>
                         <span>{soundMeta.emoji}</span>
-                        <span>Chuông: {soundMeta.label}</span>
+                        <span>{t.timer?.bellRingtone || 'Chuông'}: {getSoundMeta(sch.sound_type || 'melodic', t).label}</span>
                         <button
                           type="button"
                           onClick={() => previewSound(sch.sound_type || 'melodic')}
@@ -1886,7 +1931,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                             display: 'inline-flex',
                             alignItems: 'center'
                           }}
-                          title="Nghe thử chuông này"
+                          title={t.timer?.testSound || "Nghe thử chuông này"}
                         >
                           <Volume2 size={12} />
                         </button>
@@ -1914,7 +1959,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           title="Chỉnh sửa lịch học"
                         >
                           <Edit2 size={13} />
-                          <span>Sửa</span>
+                          <span>{t.timer?.editBtn || 'Sửa'}</span>
                         </button>
                         <button
                           type="button"
@@ -1941,7 +1986,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                             borderColor: '#10b981'
                           }}
                         >
-                          <span>Đang chạy ➔ Xem</span>
+                          <span>{t.timer?.runningView || 'Đang chạy ➔ Xem'}</span>
                         </button>
                       ) : (
                         <button
@@ -1963,7 +2008,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                           }}
                         >
                           <Play size={14} fill="currentColor" />
-                          <span>Bắt Đầu Ca Học</span>
+                          <span>{t.timer?.startShift || 'Bắt Đầu Ca Học'}</span>
                         </button>
                       )}
                     </div>
@@ -1995,10 +2040,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 <span style={{ fontSize: '1.6rem' }}>🎉</span>
                 <div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span>Đã tự động lưu phiên Pomodoro: {lastSavedSession?.title || currentActivity.label}</span>
+                    <span>{t.timer?.autoSaved || 'Đã tự động lưu phiên Pomodoro'}: {lastSavedSession?.title || currentActivity.label}</span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>
-                    Thời lượng: {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget)} • Được cộng +{lastSavedSession?.xpEarned || 20} XP vào hồ sơ & lịch sử bên dưới!
+                    {t.timer?.durationLearned || 'Thời lượng:'} {formatDurationHuman(lastSavedSession?.duration || pomodoroTarget, uiLang)} • +{lastSavedSession?.xpEarned || 20} {t.common?.xp || 'XP'}!
                   </div>
                 </div>
               </div>
@@ -2023,7 +2068,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   }}
                 >
                   <Play size={14} fill="currentColor" />
-                  <span>Vào Bấm Giờ Hiệp Mới</span>
+                  <span>{t.timer?.startNewRound || 'Vào Bấm Giờ Hiệp Mới'}</span>
                 </button>
               </div>
             </div>
@@ -2050,10 +2095,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                       background: isRunning ? '#22c55e' : '#f59e0b',
                       animation: isRunning ? 'pulse 1.5s infinite' : 'none'
                     }} />
-                    <span>Đồng hồ đang {isRunning ? 'chạy' : 'tạm dừng'}: {currentActivity.label}</span>
+                    <span>{isRunning ? (t.timer?.studyingStatus || 'Đang chạy') : (t.timer?.pausedStatus || 'Đang tạm dừng')}: {currentActivity.label}</span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Thời gian hiện tại: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.9rem' }}>{formatTime(displayTimeSeconds)}</strong> ({timerMode === 'pomodoro' ? 'Pomodoro đếm ngược' : 'Bấm giờ đếm xuôi'})
+                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.9rem' }}>{formatTime(displayTimeSeconds)}</strong> ({timerMode === 'pomodoro' ? (t.timer?.pomodoroMode || 'Pomodoro') : (t.timer?.stopwatchMode || 'Bấm giờ')})
                   </div>
                 </div>
               </div>
@@ -2077,7 +2122,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   }}
                 >
                   {isRunning ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
-                  <span>{isRunning ? 'Tạm dừng' : 'Tiếp tục'}</span>
+                  <span>{isRunning ? (t.timer?.pauseBtn || 'Tạm dừng') : (t.timer?.resumeBtn || 'Tiếp tục')}</span>
                 </button>
 
                 <button
@@ -2097,7 +2142,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                     cursor: 'pointer'
                   }}
                 >
-                  <span>Xem đồng hồ lớn</span>
+                  <span>{t.timer?.runningView || 'Xem đồng hồ lớn'}</span>
                 </button>
               </div>
             </div>
@@ -2133,10 +2178,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               </div>
               <div>
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Tổng Thời Gian Tích Lũy
+                  {t.timer?.statTotalTimeTitle || 'Tổng Thời Gian Tích Lũy'}
                 </span>
                 <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                  {formatDurationHuman(stats?.totalSeconds || 0)}
+                  {formatDurationHuman(stats?.totalSeconds || 0, uiLang)}
                 </div>
               </div>
             </div>
@@ -2166,10 +2211,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               </div>
               <div>
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Thời Gian Hôm Nay
+                  {t.timer?.statTodayTimeTitle || 'Thời Gian Hôm Nay'}
                 </span>
                 <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ef4444' }}>
-                  {formatDurationHuman(stats?.todaySeconds || 0)}
+                  {formatDurationHuman(stats?.todaySeconds || 0, uiLang)}
                 </div>
               </div>
             </div>
@@ -2199,10 +2244,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               </div>
               <div>
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  7 Ngày Gần Nhất
+                  {t.timer?.stat7DaysTimeTitle || '7 Ngày Gần Nhất'}
                 </span>
                 <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#10b981' }}>
-                  {formatDurationHuman(stats?.thisWeekSeconds || 0)}
+                  {formatDurationHuman(stats?.thisWeekSeconds || 0, uiLang)}
                 </div>
               </div>
             </div>
@@ -2232,10 +2277,10 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               </div>
               <div>
                 <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Số Phiên Học Đã Lưu
+                  {t.timer?.statSavedSessionsTitle || 'Số Phiên Học Đã Lưu'}
                 </span>
                 <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#8b5cf6' }}>
-                  {stats?.totalSessions || 0} phiên
+                  {stats?.totalSessions || 0} {t.timer?.sessionsUnit || 'phiên'}
                 </div>
               </div>
             </div>
@@ -2344,25 +2389,25 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}>
               <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
-                  📜 Lịch Sử Các Phiên Bấm Giờ Học
+                  📜 {t.timer?.historyTitle || 'Lịch Sử Các Phiên Bấm Giờ Học'}
                 </h3>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Tổng cộng: {totalSessionsCount} phiên đã lưu
+                  {t.timer?.totalSessionsCount ? `${totalSessionsCount} ${t.timer.totalSessionsCount}` : `Tổng cộng: ${totalSessionsCount} phiên đã lưu`}
                 </span>
               </div>
 
               {/* Filter by Activity */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lọc:</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.timer?.filterLabel || 'Lọc:'}</span>
                 <select
                   className="input-control"
                   value={historyFilter}
                   onChange={(e) => setHistoryFilter(e.target.value)}
                   style={{ padding: '0.35rem 0.65rem', fontSize: '0.82rem', width: 'auto' }}
                 >
-                  <option value="all">Tất cả hoạt động</option>
+                  <option value="all">{t.timer?.allActivities || 'Tất cả hoạt động'}</option>
                   {ACTIVITIES.map(a => (
-                    <option key={a.id} value={a.id}>{a.emoji} {a.label}</option>
+                    <option key={a.id} value={a.id}>{a.emoji} {getActivityMeta(a.id, '', t).label}</option>
                   ))}
                 </select>
               </div>
@@ -2375,14 +2420,14 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 color: 'var(--text-muted)'
               }}>
                 <Clock size={36} style={{ margin: '0 auto 0.5rem auto', opacity: 0.4 }} />
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>Chưa có phiên học nào được ghi nhận.</p>
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>{t.timer?.emptySessions || 'Chưa có phiên học nào được ghi nhận.'}</p>
                 <button
                   type="button"
                   onClick={() => setActiveTab('timer')}
                   className="btn-primary"
                   style={{ marginTop: '0.85rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
                 >
-                  Bắt Đầu Phiên Học Đầu Tiên
+                  {t.timer?.startFirstSession || 'Bắt Đầu Phiên Học Đầu Tiên'}
                 </button>
               </div>
             ) : (
@@ -2390,17 +2435,17 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Thời Gian</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Hoạt Động</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Chế Độ</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Thời Lượng</th>
-                      <th style={{ padding: '0.75rem 0.5rem' }}>Ghi Chú</th>
-                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>Thao Tác</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>{t.timer?.colTime || 'Thời Gian'}</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>{t.timer?.colActivity || 'Hoạt Động'}</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>{t.timer?.colMode || 'Chế Độ'}</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>{t.timer?.colDuration || 'Thời Lượng'}</th>
+                      <th style={{ padding: '0.75rem 0.5rem' }}>{t.timer?.colNotes || 'Ghi Chú'}</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>{t.timer?.colActions || 'Thao Tác'}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sessions.map(s => {
-                      const act = getActivityMeta(s.activity_type, s.activity_title);
+                      const act = getActivityMeta(s.activity_type, s.activity_title, t);
                       const displayTitle = s.activity_title || act.label;
                       const dateObj = new Date(s.started_at);
                       const dateFormatted = `${dateObj.getDate()}/${dateObj.getMonth() + 1} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
@@ -2427,13 +2472,13 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                             </span>
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>
-                            {s.mode === 'pomodoro' ? '🍅 Pomodoro' : '⏱️ Tự do'}
+                            {s.mode === 'pomodoro' ? '🍅 Pomodoro' : (t.timer?.modeFree || '⏱️ Tự do')}
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                            {formatDurationHuman(s.duration_seconds)}
+                            {formatDurationHuman(s.duration_seconds, uiLang)}
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)', maxWidth: '250px' }}>
-                            {s.notes || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Không có</span>}
+                            {s.notes || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t.timer?.noNotes || 'Không có'}</span>}
                           </td>
                           <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
                             <button
@@ -2441,7 +2486,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                               onClick={() => handleDeleteSession(s.id)}
                               className="btn-icon"
                               style={{ color: '#ef4444', width: '28px', height: '28px' }}
-                              title="Xóa phiên học này"
+                              title={t.common?.delete || 'Xóa phiên học này'}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -2470,7 +2515,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle2 size={20} style={{ color: 'var(--accent-success)' }} />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Lưu Phiên Học Của Bạn</h3>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>{t.timer?.saveModalTitle || 'Lưu Phiên Học Của Bạn'}</h3>
               </div>
               <button onClick={() => setIsSaveModalOpen(false)} className="btn-icon">
                 <X size={18} />
@@ -2486,9 +2531,9 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                 border: '1px solid var(--border-color)',
                 textAlign: 'center'
               }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Thời lượng bạn đã học:</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.timer?.durationLearned || 'Thời lượng bạn đã học:'}</span>
                 <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--accent-primary)', margin: '4px 0' }}>
-                  {formatDurationHuman(elapsedSeconds)}
+                  {formatDurationHuman(elapsedSeconds, uiLang)}
                 </div>
                 <div style={{
                   display: 'inline-flex',
@@ -2517,7 +2562,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Award size={16} />
-                  <span>Điểm Kinh Nghiệm Nhận Được:</span>
+                  <span>{t.timer?.xpEarnedLabel || 'Điểm Kinh Nghiệm Nhận Được:'}</span>
                 </span>
                 <span style={{ fontSize: '1rem', fontWeight: 900 }}>
                   +{Math.min(100, Math.max(10, 10 + Math.floor(elapsedSeconds / 60) * 2))} XP
@@ -2527,12 +2572,12 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
               {/* Session Note Input */}
               <div>
                 <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '0.35rem' }}>
-                  📝 Ghi chú về buổi học (Tùy chọn):
+                  {t.timer?.notesSessionLabel || '📝 Ghi chú về buổi học (Tùy chọn):'}
                 </label>
                 <textarea
                   className="input-control"
                   rows={3}
-                  placeholder="Ví dụ: Đã học xong 15 từ vựng chủ đề Kinh tế, giải được 2 bài đọc..."
+                  placeholder={t.timer?.notesSessionPlaceholder || 'Ví dụ: Đã học xong 15 từ vựng, giải được 2 bài đọc...'}
                   value={sessionNotes}
                   onChange={(e) => setSessionNotes(e.target.value)}
                   style={{ fontSize: '0.85rem' }}
@@ -2547,7 +2592,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   className="btn-secondary"
                   style={{ padding: '0.6rem 1.1rem' }}
                 >
-                  Hủy Bỏ
+                  {t.timer?.cancelBtn || 'Hủy Bỏ'}
                 </button>
                 <button
                   type="button"
@@ -2556,7 +2601,7 @@ export default function StudyTimerHub({ onSessionFinished, onAddToast }) {
                   className="btn-primary"
                   style={{ padding: '0.6rem 1.5rem', background: '#10b981', borderColor: '#10b981' }}
                 >
-                  {isSaving ? 'Đang lưu...' : 'Xác Nhận & Lưu Phiên Học'}
+                  {isSaving ? (t.timer?.savingBtn || 'Đang lưu...') : (t.timer?.confirmSaveBtn || 'Xác Nhận & Lưu Phiên Học')}
                 </button>
               </div>
             </div>

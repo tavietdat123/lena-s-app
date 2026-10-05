@@ -131,7 +131,13 @@ function mountPublicRoutes(app, authLimiter) {
   app.post(
     '/api/auth/register',
     authLimiter,
-    validateBody({ username: rules.username, password: rules.password, full_name: rules.fullName }),
+    validateBody({
+      username: rules.username,
+      password: rules.password,
+      full_name: rules.fullName,
+      native_language: { type: 'string', required: false, enum: ['vi', 'en', 'ru'], label: 'Ngôn ngữ thành thạo' },
+      target_language: { type: 'string', required: false, enum: ['en', 'vi'], label: 'Ngôn ngữ muốn học' }
+    }),
     authController.register
   );
   app.post(

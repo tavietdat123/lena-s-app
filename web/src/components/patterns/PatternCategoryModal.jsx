@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Plus, Edit2, Trash2, Layers, Check, AlertCircle, RotateCcw } from "lucide-react";
 import { api } from "../../services/api";
+import { useLanguage } from "../../context/LanguageContext";
 
 const COLOR_PRESETS = [
   "#8b5cf6", // Purple
@@ -16,6 +17,7 @@ const COLOR_PRESETS = [
 const EMOJI_SUGGESTIONS = ["💥", "⚖️", "🎯", "⚠️", "💬", "⏳", "⏰", "🎓", "💼", "☕", "🔥", "💡", "🧠", "✨", "📚", "🚀"];
 
 export default function PatternCategoryModal({ isOpen, categories = [], onClose, onCategoriesChange }) {
+  const { t } = useLanguage();
   const [editingCategory, setEditingCategory] = useState(null);
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🧩");
@@ -51,7 +53,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
   const handleSave = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg("Vui lòng nhập tên chức năng");
+      setErrorMsg(t.patterns?.categoryNameLabel ? `${t.patterns.categoryNameLabel.replace('*', '').trim()}` : "Vui lòng nhập tên chức năng");
       return;
     }
 
@@ -88,7 +90,10 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
   };
 
   const handleDelete = async (cat) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa chức năng "${cat.name}"? Các mẫu câu thuộc nhóm này sẽ được chuyển về "Nhấn mạnh & Đảo ngữ".`)) {
+    const confirmText = typeof t.patterns?.deleteCategoryConfirm === 'function'
+      ? t.patterns.deleteCategoryConfirm(cat.name)
+      : `Bạn có chắc chắn muốn xóa chức năng "${cat.name}"?`;
+    if (!window.confirm(confirmText)) {
       return;
     }
 
@@ -105,7 +110,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
   };
 
   const handleResetDefaults = async () => {
-    if (!window.confirm("Bạn có chắc muốn khôi phục đầy đủ 18 nhóm chức năng diễn đạt chuẩn học thuật?")) return;
+    if (!window.confirm(t.patterns?.reset18ConfirmPrompt || "Bạn có chắc muốn khôi phục đầy đủ 18 nhóm chức năng diễn đạt chuẩn học thuật?")) return;
     setIsResetting(true);
     setErrorMsg("");
     try {
@@ -152,9 +157,11 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
               <Layers size={22} />
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800 }}>Quản Lý Chức Năng Mẫu Câu</h2>
+              <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800 }}>
+                {t.patterns?.manageCategoriesBtn || 'Quản Lý Chức Năng Mẫu Câu'}
+              </h2>
               <p style={{ margin: "2px 0 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                Phân loại mẫu câu & cấu trúc ngữ pháp theo mục đích diễn đạt
+                {t.patterns?.title || 'Phân loại mẫu câu & cấu trúc ngữ pháp theo mục đích diễn đạt'}
               </p>
             </div>
           </div>
@@ -169,7 +176,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
           {/* Top Actions */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <span style={{ fontSize: "0.9rem", color: "var(--text-secondary)", fontWeight: 600 }}>
-              Đang có <b style={{ color: "var(--text-primary)" }}>{categories.length}</b> nhóm chức năng
+              {categories.length} {t.patterns?.patternsCountUnit || t.common?.tags || 'nhóm chức năng'}
             </span>
             {!showAddForm && (
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -179,14 +186,14 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                   disabled={isResetting} 
                   className="btn-secondary" 
                   style={{ padding: "0.45rem 0.85rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  title="Khôi phục danh sách 24 danh mục câu chuẩn"
+                  title="Reset"
                 >
                   <RotateCcw size={14} className={isResetting ? "animate-spin" : ""} />
-                  <span>{isResetting ? "Đang nạp..." : "Nạp 24 Nhóm Chuẩn"}</span>
+                  <span>{isResetting ? (t.common?.loading || "Đang nạp...") : (t.common?.reset || "Nạp Lại")}</span>
                 </button>
                 <button onClick={handleStartCreate} className="btn-primary" style={{ padding: "0.45rem 0.9rem", fontSize: "0.85rem" }}>
                   <Plus size={16} />
-                  <span>Thêm Mới</span>
+                  <span>{t.common?.new || "Thêm Mới"}</span>
                 </button>
               </div>
             )}
@@ -208,14 +215,14 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h4 style={{ fontSize: "1rem", fontWeight: 800, color: "var(--accent-primary)" }}>
-                  {editingCategory ? "Chỉnh Sửa Chức Năng" : "Thêm Chức Năng Mới"}
+                  {editingCategory ? (t.common?.edit || "Chỉnh Sửa Chức Năng") : (t.common?.new || "Thêm Chức Năng Mới")}
                 </h4>
                 <button 
                   type="button" 
                   onClick={() => setShowAddForm(false)} 
                   style={{ fontSize: "0.8rem", color: "var(--text-muted)", cursor: "pointer", background: "none", border: "none" }}
                 >
-                  Hủy bỏ
+                  {t.common?.cancel || "Hủy bỏ"}
                 </button>
               </div>
 
@@ -229,7 +236,9 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
               {/* Name & Emoji */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 2.5fr", gap: "0.75rem" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>Biểu tượng</label>
+                  <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>
+                    {t.patterns?.categoryIconLabel || 'Biểu tượng'}
+                  </label>
                   <input
                     type="text"
                     className="input-control"
@@ -239,11 +248,13 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>Tên chức năng diễn đạt *</label>
+                  <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>
+                    {t.patterns?.categoryNameLabel || 'Tên chức năng diễn đạt *'}
+                  </label>
                   <input
                     type="text"
                     className="input-control"
-                    placeholder="Ví dụ: Nhấn mạnh & Đảo ngữ, So sánh..."
+                    placeholder={t.patterns?.categoryNamePlaceholder || 'Ví dụ: Nhấn mạnh & Đảo ngữ, So sánh...'}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -254,7 +265,9 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
 
               {/* Emoji quick pick */}
               <div>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.3rem" }}>Gợi ý biểu tượng:</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.3rem" }}>
+                  {t.patterns?.categoryIconHint || 'Gợi ý biểu tượng:'}
+                </span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                   {EMOJI_SUGGESTIONS.map(em => (
                     <button
@@ -278,7 +291,9 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
 
               {/* Color Presets */}
               <div>
-                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>Màu sắc đại diện</label>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>
+                  {t.patterns?.categoryColorLabel || 'Màu sắc đại diện'}
+                </label>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   {COLOR_PRESETS.map(c => (
                     <button
@@ -301,11 +316,13 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
 
               {/* Description */}
               <div>
-                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>Mô tả mục đích sử dụng</label>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.3rem" }}>
+                  {t.patterns?.categoryDescLabel || 'Mô tả mục đích sử dụng'}
+                </label>
                 <textarea
                   className="input-control"
                   rows={2}
-                  placeholder="Ví dụ: Dùng khi muốn nhấn mạnh sự việc hoặc tạo điểm nhấn trong bài luận..."
+                  placeholder={t.patterns?.categoryDescPlaceholder || 'Ví dụ: Dùng khi muốn nhấn mạnh sự việc hoặc tạo điểm nhấn trong bài luận...'}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -314,10 +331,10 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
               {/* Submit Buttons */}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "0.5rem" }}>
                 <button type="button" onClick={() => setShowAddForm(false)} className="btn-secondary" style={{ padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
-                  Hủy
+                  {t.common?.cancel || "Hủy"}
                 </button>
                 <button type="submit" className="btn-primary" disabled={isSaving} style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem" }}>
-                  {isSaving ? "Đang lưu..." : editingCategory ? "Lưu Thay Đổi" : "Tạo Mới"}
+                  {isSaving ? (t.common?.loading || "Đang lưu...") : editingCategory ? (t.common?.save || "Lưu Thay Đổi") : (t.common?.new || "Tạo Mới")}
                 </button>
               </div>
             </form>
@@ -338,9 +355,11 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
             }}>
               <Layers size={36} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
               <div>
-                <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Chưa có danh mục chức năng nào</h4>
+                <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>
+                  {t.patterns?.emptyCategoriesTitle || 'Chưa có danh mục chức năng nào'}
+                </h4>
                 <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                  Bạn có thể tạo mới thủ công hoặc nhấn nút bên dưới để tự động nạp 18 nhóm chức năng câu chuẩn.
+                  {t.patterns?.emptyCategoriesDesc || 'Bạn có thể tạo mới thủ công hoặc nhấn nút bên dưới để tự động nạp 18 nhóm chức năng câu chuẩn.'}
                 </p>
               </div>
               <button
@@ -351,7 +370,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                 style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
                 <RotateCcw size={15} className={isResetting ? "animate-spin" : ""} />
-                <span>Nạp 18 Nhóm Chức Năng Chuẩn</span>
+                <span>{t.patterns?.reset18CategoriesBtn || 'Nạp 18 Nhóm Chức Năng Chuẩn'}</span>
               </button>
             </div>
           ) : (
@@ -397,7 +416,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                         background: (cat.color || "#8b5cf6") + "15",
                         color: cat.color || "#8b5cf6"
                       }}>
-                        {cat.patterns_count || 0} mẫu câu
+                        {cat.patterns_count || 0} {t.patterns?.patternsCountUnit || 'mẫu câu'}
                       </span>
                     </div>
                     {cat.description && (
@@ -413,7 +432,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                   <button 
                     onClick={() => handleStartEdit(cat)} 
                     className="btn-icon" 
-                    title="Chỉnh sửa chức năng"
+                    title={t.patterns?.editPatternTooltip || "Chỉnh sửa chức năng"}
                     style={{ padding: "0.4rem" }}
                   >
                     <Edit2 size={15} />
@@ -421,7 +440,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
                   <button 
                     onClick={() => handleDelete(cat)} 
                     className="btn-icon" 
-                    title="Xóa chức năng"
+                    title={t.patterns?.deletePatternTooltip || "Xóa chức năng"}
                     style={{ padding: "0.4rem", color: "var(--accent-danger)" }}
                   >
                     <Trash2 size={15} />
@@ -437,7 +456,7 @@ export default function PatternCategoryModal({ isOpen, categories = [], onClose,
         {/* Modal Footer */}
         <div style={{ padding: "1rem 1.25rem", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "flex-end" }}>
           <button onClick={onClose} className="btn-secondary" style={{ padding: "0.5rem 1.25rem" }}>
-            Đóng
+            {t.common?.close || "Đóng"}
           </button>
         </div>
       </div>

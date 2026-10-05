@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Sliders, Play, Check, ChevronDown, Sparkles, Zap, Search, Target, FastForward } from 'lucide-react';
 import { audioService } from '../../services/audioService';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [accent, setAccent] = useState('en-US');
   const [isPlayingSample, setIsPlayingSample] = useState(false);
@@ -50,13 +52,13 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
   };
 
   // Speed description tag
-  let speedTag = { label: 'Tự nhiên (Bản xứ)', color: 'var(--accent-primary)', icon: Zap };
+  let speedTag = { label: t.audioSpeed?.naturalTag || 'Tự nhiên (Bản xứ)', color: 'var(--accent-primary)', icon: Zap };
   if (audioSpeed <= 0.65) {
-    speedTag = { label: 'Rất chậm (Soi IPA)', color: 'var(--accent-warning)', icon: Search };
+    speedTag = { label: t.audioSpeed?.verySlowTag || 'Rất chậm (Soi IPA)', color: 'var(--accent-warning)', icon: Search };
   } else if (audioSpeed <= 0.85) {
-    speedTag = { label: 'Chậm (Luyện Shadowing)', color: 'var(--accent-success)', icon: Target };
+    speedTag = { label: t.audioSpeed?.slowTag || 'Chậm (Luyện Shadowing)', color: 'var(--accent-success)', icon: Target };
   } else if (audioSpeed >= 1.15) {
-    speedTag = { label: 'Nhanh (Thử thách)', color: 'var(--accent-purple)', icon: FastForward };
+    speedTag = { label: t.audioSpeed?.fastTag || 'Nhanh (Thử thách)', color: 'var(--accent-purple)', icon: FastForward };
   }
 
   const TagIcon = speedTag.icon;
@@ -79,7 +81,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
           borderColor: isOpen ? 'var(--accent-primary)' : 'var(--border-color)',
           background: isOpen ? 'var(--accent-primary-light)' : 'var(--bg-card)'
         }}
-        title="Tùy chỉnh tốc độ phát âm chi tiết (0.5x - 1.5x)"
+        title={t.audioSpeed?.triggerTooltip || "Tùy chỉnh tốc độ phát âm chi tiết (0.5x - 1.5x)"}
       >
         <Volume2 size={16} style={{ color: 'var(--accent-primary)' }} />
         <span>{audioSpeed.toFixed(2).replace(/\.?0+$/, '')}x</span>
@@ -109,7 +111,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Sliders size={16} style={{ color: 'var(--accent-primary)' }} />
               <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                Tốc Độ Phát Âm
+                {t.audioSpeed?.title || 'Tốc Độ Phát Âm'}
               </h4>
             </div>
             <span style={{
@@ -131,7 +133,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
           {/* Granular Slider & Live Value */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Tùy chỉnh mịn:</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t.audioSpeed?.granularLabel || 'Tùy chỉnh mịn:'}</span>
               <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
                 {audioSpeed.toFixed(2)}x
               </span>
@@ -155,16 +157,16 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem', fontWeight: 600 }}>
-              <span>0.5x (Chậm)</span>
-              <span>1.0x (Chuẩn)</span>
-              <span>1.5x (Nhanh)</span>
+              <span>{t.audioSpeed?.sliderSlow || '0.5x (Chậm)'}</span>
+              <span>{t.audioSpeed?.sliderNormal || '1.0x (Chuẩn)'}</span>
+              <span>{t.audioSpeed?.sliderFast || '1.5x (Nhanh)'}</span>
             </div>
           </div>
 
           {/* Quick Presets */}
           <div>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.45rem' }}>
-              Mức độ gợi ý:
+              {t.audioSpeed?.suggestedLabel || 'Mức độ gợi ý:'}
             </span>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.35rem' }}>
               {presets.map(p => (
@@ -193,7 +195,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
           {/* Accent Selection */}
           <div>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '0.45rem' }}>
-              Chất giọng phát âm (Accent):
+              {t.audioSpeed?.accentLabel || 'Chất giọng phát âm (Accent):'}
             </span>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               <button
@@ -214,7 +216,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
                   cursor: 'pointer'
                 }}
               >
-                <span>🇺🇸 Anh - Mỹ (US)</span>
+                <span>🇺🇸 {t.audioSpeed?.accentUS || 'Anh - Mỹ (US)'}</span>
                 {accent === 'en-US' && <Check size={14} />}
               </button>
 
@@ -236,7 +238,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
                   cursor: 'pointer'
                 }}
               >
-                <span>🇬🇧 Anh - Anh (UK)</span>
+                <span>🇬🇧 {t.audioSpeed?.accentUK || 'Anh - Anh (UK)'}</span>
                 {accent === 'en-GB' && <Check size={14} />}
               </button>
             </div>
@@ -257,7 +259,7 @@ export default function AudioSpeedPopover({ audioSpeed, onSpeedChange }) {
             }}
           >
             <Play size={15} />
-            <span>{isPlayingSample ? 'Đang phát âm mẫu...' : 'Nghe Thử Tốc Độ Này'}</span>
+            <span>{isPlayingSample ? (t.audioSpeed?.playingSample || 'Đang phát âm mẫu...') : (t.audioSpeed?.testBtn || 'Nghe Thử Tốc Độ Này')}</span>
           </button>
         </div>
       )}

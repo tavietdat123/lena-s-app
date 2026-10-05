@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Layers, Plus, Trash2, Loader2, Check } from 'lucide-react';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PatternModal({ initialData = null, onClose, onSaved }) {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [formula, setFormula] = useState('');
   const [explanation, setExplanation] = useState('');
@@ -89,7 +91,7 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Layers size={20} style={{ color: 'var(--accent-primary)' }} />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-              {initialData?.id ? 'Chỉnh Sửa Mẫu Câu' : 'Thêm Mẫu Câu / Cấu Trúc Ngữ Pháp Mới'}
+              {initialData?.id ? (t.common?.edit || 'Chỉnh Sửa Mẫu Câu') : (t.patterns?.addPatternBtn || 'Thêm Mẫu Câu / Cấu Trúc Ngữ Pháp Mới')}
             </h3>
           </div>
           <button onClick={onClose} className="btn-icon">
@@ -116,7 +118,7 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.75rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                Tên cấu trúc (Pattern Name) *
+                {t.patterns?.title || 'Tên cấu trúc (Pattern Name)'} *
               </label>
               <input
                 type="text"
@@ -131,7 +133,7 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                Mục đích / Chức năng *
+                {t.common?.tags || 'Mục đích / Chức năng'} *
               </label>
               <select
                 className="input-control"
@@ -146,24 +148,11 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
                   ))
                 ) : (
                   <>
-                    <option value="cause_effect">⚡ Nguyên nhân & Hệ quả</option>
-                    <option value="purpose">🎯 Mục đích & Kết quả</option>
-                    <option value="condition">⚠️ Điều kiện & Giả định</option>
-                    <option value="concession">⚖️ Nhượng bộ & Đối lập</option>
-                    <option value="comparison">📊 So sánh & Tương phản</option>
-                    <option value="exception">🚫 Loại trừ & Ngoại lệ</option>
-                    <option value="emphasis">💥 Nhấn mạnh & Đảo ngữ</option>
-                    <option value="advice">💡 Khuyên bảo & Thúc giục</option>
-                    <option value="speculation">🔮 Suy đoán & Khả năng</option>
-                    <option value="opinion">💬 Khẳng định Quan điểm</option>
-                    <option value="addition">➕ Bổ sung & Liệt kê</option>
-                    <option value="example">📌 Dẫn chứng & Minh họa</option>
-                    <option value="clarification">🔍 Giải thích & Làm rõ</option>
-                    <option value="transition">🔄 Chuyển ý & Liên kết</option>
-                    <option value="sequence">⏳ Thời gian & Trình tự</option>
-                    <option value="conclusion">🏁 Tổng kết & Kết luận</option>
-                    <option value="request">🤝 Yêu cầu & Đề nghị</option>
-                    <option value="definition">📖 Định nghĩa & Khái niệm</option>
+                    <option value="cause_effect">⚡ Cause & Effect</option>
+                    <option value="purpose">🎯 Purpose</option>
+                    <option value="condition">⚠️ Condition</option>
+                    <option value="concession">⚖️ Concession</option>
+                    <option value="emphasis">💥 Emphasis</option>
                   </>
                 )}
               </select>
@@ -173,7 +162,7 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
           {/* 2. Formula */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-              Công thức tổng quát (Formula) *
+              {t.patterns?.formula || 'Công thức tổng quát (Formula)'} *
             </label>
             <input
               type="text"
@@ -186,10 +175,10 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
             />
           </div>
 
-          {/* 3. Meaning VI */}
+          {/* 3. Meaning */}
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-              Nghĩa tiếng Việt *
+              {t.patterns?.meaning || 'Ý nghĩa:'} *
             </label>
             <input
               type="text"
@@ -204,7 +193,7 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
           {/* 4. Explanation */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-              Giải thích cách dùng & lưu ý ngữ pháp
+              {t.patterns?.explanation || 'Giải thích cách dùng & lưu ý ngữ pháp'}
             </label>
             <textarea
               className="input-control"
@@ -218,13 +207,13 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
           {/* 5. Examples */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Câu ví dụ thực tế</label>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t.patterns?.examples || 'Câu ví dụ thực tế'}</label>
               <button
                 type="button"
                 onClick={() => setExamples([...examples, ''])}
                 style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}
               >
-                + Thêm ví dụ
+                + {t.common?.new || 'Thêm'}
               </button>
             </div>
             {examples.map((ex, idx) => (
@@ -255,8 +244,6 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
             ))}
           </div>
 
-
-
           {/* Actions */}
           <div style={{
             display: 'flex',
@@ -267,11 +254,11 @@ export default function PatternModal({ initialData = null, onClose, onSaved }) {
             marginTop: '0.5rem'
           }}>
             <button type="button" onClick={onClose} className="btn-secondary">
-              Hủy bỏ
+              {t.common?.cancel || 'Hủy bỏ'}
             </button>
             <button type="submit" disabled={isSaving} className="btn-primary">
               {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              <span>{initialData?.id ? 'Lưu Thay Đổi' : 'Lưu Mẫu Câu'}</span>
+              <span>{initialData?.id ? (t.common?.save || 'Lưu Thay Đổi') : (t.common?.save || 'Lưu Mẫu Câu')}</span>
             </button>
           </div>
         </form>
