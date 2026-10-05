@@ -4,8 +4,9 @@ import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load .env from cwd, then fallback to repo root .env
+// Load .env from cwd, server folder, then fallback to repo root .env
 dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const DEFAULT_JWT_SECRET = 'linguavault_secure_jwt_local_secret_2026_super_key';
