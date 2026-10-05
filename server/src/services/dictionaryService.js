@@ -460,16 +460,19 @@ const CURATED_LEXICON = {
   }
 };
 
-export async function lookupDictionary(word) {
+export async function lookupDictionary(word, targetLang = 'en', nativeLang = 'en') {
   if (!word || !word.trim()) {
     throw new Error('Vui lòng nhập từ hoặc cụm từ cần tra cứu');
   }
 
-  const cleanWord = word.trim().toLowerCase();
+  const cleanWord = word.trim();
+  const lowerWord = cleanWord.toLowerCase();
+  const hasVietnameseChars = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(cleanWord);
+  const isTargetVi = targetLang === 'vi' || hasVietnameseChars;
 
-  // 1. Check if word exists in Curated High-Yield Lexicon
-  if (CURATED_LEXICON[cleanWord]) {
-    const item = CURATED_LEXICON[cleanWord];
+  // 1. Check if word exists in Curated High-Yield Lexicon (for English)
+  if (!isTargetVi && CURATED_LEXICON[lowerWord]) {
+    const item = CURATED_LEXICON[lowerWord];
     return {
       ...item,
       topic_id: item.topic_id || inferTopic(item.word, item.part_of_speech, item.meaning_vi)
@@ -494,9 +497,47 @@ export async function lookupDictionary(word) {
         topicListPrompt = `   - "work" (Công việc)\n   - "tech" (Công nghệ)\n   - "ai" (Trí tuệ nhân tạo)\n   - "daily" (Đời sống hàng ngày)`;
       }
 
-      const prompt = `
+      let prompt = '';
+      if (isTargetVi) {
+        const nativeName = nativeLang === 'ru' ? 'Russian (Tiếng Nga)' : 'English (Tiếng Anh)';
+        prompt = `
+Bạn là một Chuyên gia Từ điển học Tiếng Việt và Ngôn ngữ học Quốc tế.
+Hãy biên soạn phân tích từ vựng tiếng Việt CHUẨN MỰC, DỄ HIỂU NHẤT dành cho người học tiếng Việt (người nước ngoài có ngôn ngữ mẹ đẻ là "${nativeName}") đối với từ/cụm từ tiếng Việt: "${cleanWord}".
+
+YÊU CẦU BIÊN SOẠN CHUẨN XÁC:
+1. "meaning_vi": Giải thích nghĩa bằng tiếng Việt đơn giản, súc tích, tự nhiên, dễ hiểu.
+2. "meaning_en": Bản dịch nghĩa chuẩn xác, dễ hiểu bằng ${nativeLang === 'ru' ? 'tiếng Nga (hoặc kèm tiếng Anh)' : 'tiếng Anh'}.
+3. "phonetic": Hướng dẫn phiên âm hoặc thanh điệu tiếng Việt (ví dụ: [Ngang], [Sắc], [Huyền], [Hỏi], [Ngã], [Nặng] hoặc IPA).
+4. "part_of_speech": Từ loại chuẩn (noun, verb, adjective, adverb, phrase, idiom).
+5. "collocations": 3-4 cụm từ / collocation tự nhiên đi kèm với từ này (MỖI CỤM KÈM NGHĨA DỊCH TRONG NGOẶC).
+6. "examples": Đúng 2 câu ví dụ thực tế tiếng Việt (MỖI CÂU KÈM BẢN DỊCH NGHĨA TRONG NGOẶC).
+7. "level": Đánh giá cấp độ (A1, A2, B1, B2, C1, hoặc C2).
+8. "topic_id": Hãy chọn ĐÚNG 1 mã "id" chủ đề phù hợp nhất:
+${topicListPrompt}
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`json ngoài JSON):
+{
+  "word": "${cleanWord}",
+  "phonetic": "/.../",
+  "part_of_speech": "noun",
+  "meaning_vi": "Giải thích tiếng Việt ngắn gọn, dễ nhớ",
+  "meaning_en": "Accurate definition in learner's language",
+  "collocations": [
+    "cụm 1 (nghĩa)",
+    "cụm 2 (nghĩa)"
+  ],
+  "examples": [
+    "Câu ví dụ tiếng Việt 1. (Bản dịch nghĩa 1.)",
+    "Câu ví dụ tiếng Việt 2. (Bản dịch nghĩa 2.)"
+  ],
+  "level": "A2",
+  "topic_id": "daily"
+}
+`.trim();
+      } else {
+        prompt = `
 Bạn là một Chuyên gia Khảo thí Ngôn ngữ Học thuật Quốc tế và Từ điển học Tiếng Anh cao cấp (theo chuẩn Cambridge & Oxford Advanced Learner's Dictionary).
-Hãy biên soạn phân tích từ vựng CHUẨN MỰC, DỄ HIỂU NHẤT dành cho người học tiếng Anh đối với từ/cụm từ: "${cleanWord}".
+Hãy biên soạn phân tích từ vựng CHUẨN MỰC, DỄ HIỂU NHẤT dành cho người học tiếng Anh đối với từ/cụm từ: "${lowerWord}".
 
 YÊU CẦU BIÊN SOẠN CHUẨN XÁC:
 1. "meaning_vi": Nghĩa tiếng Việt PHẢI chuẩn xác, súc tích, tự nhiên, truyền tải đúng sắc thái cốt lõi của từ (kèm giải thích ngắn trong ngoặc nếu cần làm rõ ngữ cảnh). KHÔNG dịch máy thô sơ.
@@ -511,7 +552,7 @@ ${topicListPrompt}
 
 Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`json ngoài JSON):
 {
-  "word": "${cleanWord}",
+  "word": "${lowerWord}",
   "phonetic": "/.../",
   "part_of_speech": "noun/verb/adjective/adverb/phrasal_verb",
   "meaning_vi": "Nghĩa tiếng Việt chuẩn, tự nhiên và dễ nhớ",
@@ -529,33 +570,38 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
   "topic_id": "work"
 }
 `.trim();
+      }
 
       const aiResponse = await callGemini(prompt, geminiKey);
       const cleaned = aiResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
       const aiData = JSON.parse(cleaned);
 
-      // Fetch native audio URL from Dictionary API if available
+      // Fetch audio URL: TTS proxy for Vietnamese, or Dictionary API for English
       let audioUrl = '';
-      try {
-        const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`);
-        if (dictRes.ok) {
-          const dictData = await dictRes.json();
-          if (Array.isArray(dictData) && dictData[0]?.phonetics) {
-            for (const p of dictData[0].phonetics) {
-              if (p.audio && p.audio.trim()) {
-                audioUrl = p.audio.startsWith('//') ? `https:${p.audio}` : p.audio;
-                if (p.audio.includes('-us.mp3') || p.audio.includes('-uk.mp3')) {
-                  break;
+      if (isTargetVi) {
+        audioUrl = `/api/audio/tts?text=${encodeURIComponent(cleanWord)}&lang=vi-VN`;
+      } else {
+        try {
+          const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lowerWord)}`);
+          if (dictRes.ok) {
+            const dictData = await dictRes.json();
+            if (Array.isArray(dictData) && dictData[0]?.phonetics) {
+              for (const p of dictData[0].phonetics) {
+                if (p.audio && p.audio.trim()) {
+                  audioUrl = p.audio.startsWith('//') ? `https:${p.audio}` : p.audio;
+                  if (p.audio.includes('-us.mp3') || p.audio.includes('-uk.mp3')) {
+                    break;
+                  }
                 }
               }
             }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
 
       return {
         ...aiData,
-        audio_url: audioUrl || '',
+        audio_url: audioUrl || (isTargetVi ? `/api/audio/tts?text=${encodeURIComponent(cleanWord)}&lang=vi-VN` : ''),
         topic_id: aiData.topic_id || inferTopic(aiData.word, aiData.part_of_speech, aiData.meaning_vi)
       };
     } catch (err) {

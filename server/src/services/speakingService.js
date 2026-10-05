@@ -8,9 +8,10 @@ import { getDb } from '../db/database.js';
 
 // Comprehensive Curated Bank of Speaking Prompts
 export const SPEAKING_PROMPTS = [
-  // 1. Shadowing & Read-Aloud Paragraphs
+  // 1. Shadowing & Read-Aloud Paragraphs (English)
   {
     id: 'p1',
+    target_language: 'en',
     category: 'read-aloud',
     topic: 'Technology & AI',
     title: 'The Future of Human-AI Collaboration',
@@ -21,6 +22,7 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'p2',
+    target_language: 'en',
     category: 'read-aloud',
     topic: 'Mindset & Growth',
     title: 'Building Resilience in Tough Times',
@@ -31,6 +33,7 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'p3',
+    target_language: 'en',
     category: 'read-aloud',
     topic: 'Business Communication',
     title: 'Articulating Value to Stakeholders',
@@ -41,6 +44,7 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'p4',
+    target_language: 'en',
     category: 'read-aloud',
     topic: 'Daily Conversation',
     title: 'Work-Life Equilibrium',
@@ -50,9 +54,56 @@ export const SPEAKING_PROMPTS = [
     tips: 'Đọc với nhịp điệu thư thái, chú ý âm /l/ ở cuối "sustainable" và âm /ʃ/ trong "essential" (/ɪˈsen.ʃəl/).'
   },
 
-  // 2. Interactive Q&A Speaking Topics (IELTS & Real Life)
+  // 1b. Shadowing & Read-Aloud Paragraphs (Vietnamese)
+  {
+    id: 'vi_p1',
+    target_language: 'vi',
+    category: 'read-aloud',
+    topic: 'Giao tiếp hàng ngày',
+    title: 'Lời chào và sự khởi đầu một ngày mới',
+    level: 'A1 - Sơ cấp',
+    targetText: 'Xin chào bạn, tôi rất vui được gặp bạn hôm nay. Chúc bạn một ngày làm việc thật hiệu quả và tràn đầy niềm vui!',
+    phoneticKey: '[Thanh ngang, thanh hỏi, thanh huyền]',
+    tips: 'Chú ý phát âm chuẩn thanh hỏi trong "khỏe" và "hiệu quả", thanh huyền trong "tràn đầy", ngắt nhịp tự nhiên sau dấu phẩy.'
+  },
+  {
+    id: 'vi_p2',
+    target_language: 'vi',
+    category: 'read-aloud',
+    topic: 'Ẩm thực & Văn hóa',
+    title: 'Hương vị Phở truyền thống Việt Nam',
+    level: 'A2 - Cơ bản',
+    targetText: 'Phở là món ăn truyền thống nổi tiếng của Việt Nam, với nước dùng ninh từ xương bò đậm đà và mùi thơm dịu nhẹ của hoa hồi, thảo quả.',
+    phoneticKey: '[Thanh ngã, thanh sắc, thanh nặng]',
+    tips: 'Chú ý phân biệt rõ thanh ngã trong "Phở", thanh sắc trong "truyền thống", giữ ngữ điệu mềm mại tự nhiên.'
+  },
+  {
+    id: 'vi_p3',
+    target_language: 'vi',
+    category: 'read-aloud',
+    topic: 'Tư duy & Phát triển',
+    title: 'Sức mạnh của sự kiên trì bền bỉ',
+    level: 'B1 - Trung cấp',
+    targetText: 'Sự kiên trì không có nghĩa là không bao giờ vấp ngã, mà là bản lĩnh tiếp tục đứng dậy và tiến bước sau mỗi thử thách.',
+    phoneticKey: '[Thanh ngã, thanh hỏi, thanh sắc]',
+    tips: 'Luyện tập nguyên âm đôi trong "tiến bước", đọc dứt khoát thanh ngã trong "nghĩa" và "vấp ngã".'
+  },
+  {
+    id: 'vi_p4',
+    target_language: 'vi',
+    category: 'read-aloud',
+    topic: 'Du lịch & Khám phá',
+    title: 'Vẻ đẹp dịu dàng của mùa thu Hà Nội',
+    level: 'B2 - Khá',
+    targetText: 'Mùa thu Hà Nội mang một nét đẹp trầm lắng và lãng mạn, với hương hoa sữa thoang thoảng trong làn gió heo may mát lành.',
+    phoneticKey: '[Thanh huyền, thanh ngã, thanh sắc]',
+    tips: 'Đọc với nhịp điệu thư thái, chú ý thanh ngã trong "lãng mạn", thanh huyền trong "trầm lắng" và "mát lành".'
+  },
+
+  // 2. Interactive Q&A Speaking Topics (English)
   {
     id: 'qa1',
+    target_language: 'en',
     category: 'qa',
     topic: 'Career & Ambition',
     question: 'How do you prioritize your daily tasks when facing tight deadlines at work or study?',
@@ -61,6 +112,7 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'qa2',
+    target_language: 'en',
     category: 'qa',
     topic: 'Technology & Society',
     question: 'Do you believe artificial intelligence will significantly transform how we learn languages in the next decade?',
@@ -69,6 +121,7 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'qa3',
+    target_language: 'en',
     category: 'qa',
     topic: 'Travel & Culture',
     question: 'Describe a memorable place you have visited and explain why it left a profound impression on you.',
@@ -77,11 +130,41 @@ export const SPEAKING_PROMPTS = [
   },
   {
     id: 'qa4',
+    target_language: 'en',
     category: 'qa',
     topic: 'Habits & Productivity',
     question: 'What daily habit has contributed the most to your personal growth and why?',
     sampleAudioHint: 'Discuss reading, morning routines, regular physical exercise, or continuous learning.',
     keyVocabulary: ['consistency', 'compound effect', 'mental clarity', 'discipline', 'transformative']
+  },
+
+  // 2b. Interactive Q&A Speaking Topics (Vietnamese)
+  {
+    id: 'vi_qa1',
+    target_language: 'vi',
+    category: 'qa',
+    topic: 'Đời sống & Sở thích',
+    question: 'Bạn thường thích làm gì nhất vào những ngày cuối tuần rảnh rỗi?',
+    sampleAudioHint: 'Nói về việc đọc sách, đi dạo công viên, thưởng thức cà phê cùng bạn bè hoặc nấu ăn.',
+    keyVocabulary: ['thư giãn', 'cuối tuần', 'thưởng thức', 'bình yên', 'nạp lại năng lượng']
+  },
+  {
+    id: 'vi_qa2',
+    target_language: 'vi',
+    category: 'qa',
+    topic: 'Ẩm thực Việt Nam',
+    question: 'Món ăn Việt Nam nào khiến bạn ấn tượng nhất và bạn thích hương vị của nó như thế nào?',
+    sampleAudioHint: 'Kể về phở, bún chả, bánh mì hoặc gỏi cuốn, mô tả hương vị chua cay mặn ngọt hài hòa.',
+    keyVocabulary: ['đậm đà', 'hương vị truyền thống', 'thanh mát', 'nguyên liệu tươi ngon']
+  },
+  {
+    id: 'vi_qa3',
+    target_language: 'vi',
+    category: 'qa',
+    topic: 'Động lực học tập',
+    question: 'Điều gì đã thôi thúc bạn quyết định học tiếng Việt?',
+    sampleAudioHint: 'Chia sẻ về tình yêu văn hóa, công việc, du lịch hoặc mong muốn giao tiếp với bạn bè người Việt.',
+    keyVocabulary: ['văn hóa đặc sắc', 'giao tiếp lưu loát', 'kết nối con người', 'trải nghiệm thú vị']
   }
 ];
 

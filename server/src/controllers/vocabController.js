@@ -105,8 +105,11 @@ export const vocabController = {
         topic_id = 'daily'
       } = req.body;
 
-      if (!word || !meaning_vi) {
-        return res.status(400).json({ success: false, error: 'Từ tiếng Anh và Nghĩa tiếng Việt là bắt buộc' });
+      const finalMeaningVi = (meaning_vi || '').trim() || (meaning_en || '').trim();
+      const finalMeaningEn = (meaning_en || '').trim() || (meaning_vi || '').trim();
+
+      if (!word || (!finalMeaningVi && !finalMeaningEn)) {
+        return res.status(400).json({ success: false, error: 'Từ vựng và Nghĩa là bắt buộc' });
       }
 
       const id = crypto.randomUUID();
@@ -131,8 +134,8 @@ export const vocabController = {
         phonetic || '',
         audio_url || '',
         part_of_speech || 'noun',
-        meaning_vi.trim(),
-        meaning_en || '',
+        finalMeaningVi,
+        finalMeaningEn,
         JSON.stringify(collocations),
         JSON.stringify(examples),
         JSON.stringify(tags),
@@ -244,12 +247,14 @@ export const vocabController = {
   // 6. Fast Auto-lookup Dictionary API
   autoLookup: async (req, res) => {
     try {
-      const { word } = req.query;
+      const { word, target_language, native_language } = req.query;
+      const targetLang = target_language || req.user?.target_language || 'en';
+      const nativeLang = native_language || req.user?.native_language || 'en';
       if (!word) {
         return res.status(400).json({ success: false, error: 'Thiếu từ cần tra cứu' });
       }
 
-      const result = await lookupDictionary(word);
+      const result = await lookupDictionary(word, targetLang, nativeLang);
       res.json({ success: true, data: result });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });

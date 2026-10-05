@@ -652,6 +652,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
                 element={
                   <SpeakingLab
                     onSaveWord={handleAddWord}
+                    currentUser={currentUser}
                   />
                 } 
               />
@@ -690,6 +691,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
                 element={
                   <AILab
                     initialSentence={aiLabSentence}
+                    currentUser={currentUser}
                     onSaveExtractedWord={(item) => {
                       setEditingWord(item);
                       setIsQuickAddOpen(true);

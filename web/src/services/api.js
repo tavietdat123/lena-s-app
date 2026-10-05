@@ -134,8 +134,11 @@ export const api = {
     return res.json();
   },
 
-  autoLookup: async (word) => {
-    const res = await authFetch(`${API_BASE}/vocab/lookup?word=${encodeURIComponent(word)}`);
+  autoLookup: async (word, targetLang = null, nativeLang = null) => {
+    let url = `${API_BASE}/vocab/lookup?word=${encodeURIComponent(word)}`;
+    if (targetLang) url += `&target_language=${encodeURIComponent(targetLang)}`;
+    if (nativeLang) url += `&native_language=${encodeURIComponent(nativeLang)}`;
+    const res = await authFetch(url);
     return res.json();
   },
 
@@ -765,9 +768,14 @@ export const api = {
   },
 
   // AI Speaking Lab & Pronunciation Assessment
-  getSpeakingPrompts: async (category = null) => {
+  getSpeakingPrompts: async (category = null, targetLang = null) => {
     try {
-      const url = category ? `${API_BASE}/speaking/prompts?category=${category}` : `${API_BASE}/speaking/prompts`;
+      let url = `${API_BASE}/speaking/prompts`;
+      const params = new URLSearchParams();
+      if (category) params.set('category', category);
+      if (targetLang) params.set('target_language', targetLang);
+      const q = params.toString();
+      if (q) url += `?${q}`;
       const res = await authFetch(url);
       return await res.json();
     } catch (e) {

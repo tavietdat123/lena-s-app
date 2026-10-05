@@ -56,7 +56,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
     setLookupSuccess(false);
 
     try {
-      const res = await api.autoLookup(clean);
+      const res = await api.autoLookup(clean, currentUser?.target_language, currentUser?.native_language);
       if (res.success && res.data) {
         const d = res.data;
         if (d.phonetic) setPhonetic(d.phonetic);
@@ -97,7 +97,10 @@ export default function QuickAddModal({ initialData = null, topics = [], current
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!word.trim() || !meaningVi.trim()) {
+    const finalVi = (meaningVi || '').trim() || (meaningEn || '').trim();
+    const finalEn = (meaningEn || '').trim() || (meaningVi || '').trim();
+
+    if (!word.trim() || (!finalVi && !finalEn)) {
       setErrorMsg(t.quickAdd?.errRequired || 'Vui lòng nhập Từ và Nghĩa');
       return;
     }
@@ -110,8 +113,8 @@ export default function QuickAddModal({ initialData = null, topics = [], current
       phonetic: phonetic.trim(),
       audio_url: audioUrl.trim(),
       part_of_speech: partOfSpeech,
-      meaning_vi: meaningVi.trim(),
-      meaning_en: meaningEn.trim(),
+      meaning_vi: finalVi,
+      meaning_en: finalEn,
       collocations: collocations.filter(c => c.trim() !== ''),
       examples: examples.filter(ex => ex.trim() !== ''),
       level,

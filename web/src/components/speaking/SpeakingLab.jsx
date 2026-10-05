@@ -28,8 +28,10 @@ import { api } from '../../services/api';
 import { audioService } from '../../services/audioService';
 import { useLanguage } from '../../context/LanguageContext';
 
-export default function SpeakingLab({ onSaveWord }) {
+export default function SpeakingLab({ onSaveWord, currentUser = null }) {
   const { t } = useLanguage();
+  const isTargetVi = currentUser?.target_language === 'vi';
+
   // Modes: 'read-aloud' (Đọc theo mẫu) | 'qa' (Hỏi đáp đối thoại)
   const [activeMode, setActiveMode] = useState('read-aloud');
   const [prompts, setPrompts] = useState([]);
@@ -69,14 +71,15 @@ export default function SpeakingLab({ onSaveWord }) {
 
   // Load Prompts Bank
   useEffect(() => {
-    api.getSpeakingPrompts().then(res => {
+    const targetLang = currentUser?.target_language || 'en';
+    api.getSpeakingPrompts(null, targetLang).then(res => {
       if (res.success && res.data) {
         setPrompts(res.data);
         const first = res.data.find(p => p.category === activeMode);
         if (first) setSelectedPrompt(first);
       }
     }).catch(err => console.error(err));
-  }, []);
+  }, [currentUser?.target_language]);
 
   // When activeMode changes, select default prompt
   useEffect(() => {
@@ -210,7 +213,7 @@ export default function SpeakingLab({ onSaveWord }) {
           const recognition = new SpeechRecognition();
           recognition.continuous = true;
           recognition.interimResults = true;
-          recognition.lang = audioAccent === 'en-GB' ? 'en-GB' : 'en-US';
+          recognition.lang = isTargetVi ? 'vi-VN' : (audioAccent === 'en-GB' ? 'en-GB' : 'en-US');
 
           let accumulated = '';
           recognition.onresult = (event) => {
@@ -314,7 +317,7 @@ export default function SpeakingLab({ onSaveWord }) {
       setIsPlayingUserAudio(false);
     }
     setIsPlayingReference(true);
-    audioService.speak(textToPlay, audioAccent, audioSpeed);
+    audioService.speak(textToPlay, isTargetVi ? 'vi-VN' : audioAccent, audioSpeed);
     setTimeout(() => setIsPlayingReference(false), 3500);
   };
 

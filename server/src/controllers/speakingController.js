@@ -11,10 +11,11 @@ export const speakingController = {
   // GET /api/speaking/prompts
   getPrompts: async (req, res) => {
     try {
-      const { category } = req.query;
-      let data = SPEAKING_PROMPTS;
+      const { category, target_language } = req.query;
+      const targetLang = target_language || req.user?.target_language || 'en';
+      let data = SPEAKING_PROMPTS.filter(p => (p.target_language || 'en') === targetLang);
       if (category) {
-        data = SPEAKING_PROMPTS.filter(p => p.category === category);
+        data = data.filter(p => p.category === category);
       }
       res.json({ success: true, data });
     } catch (err) {

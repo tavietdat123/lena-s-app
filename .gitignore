@@ -21,3 +21,9 @@ certbot/
 Payload/
 lingua_vault_backup*.json
 
+
+data/
+*.db
+*.db-wal
+*.db-shm
+
