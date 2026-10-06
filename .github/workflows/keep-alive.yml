@@ -1,0 +1,27 @@
+name: Keep Render Awake 24/7
+
+on:
+  schedule:
+    # Runs every 14 minutes (Render free tier sleeps after 15m of inactivity)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-render:
+    name: Ping Render Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keep-alive HTTP ping
+        run: |
+          TARGET_URL="${{ secrets.RENDER_APP_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://lena-s-app.onrender.com"
+          fi
+          echo "Pinging ${TARGET_URL}/api/health..."
+          STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" "${TARGET_URL}/api/health" || echo "000")
+          echo "Render HTTP Status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "✅ Render instance is active and awake!"
+          else
+            echo "⚠️ Health check returned $STATUS. Request was sent to wake up or warm instance."
+          fi

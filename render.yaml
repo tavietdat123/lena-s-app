@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: lena-s-app
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_DEFAULT_PASSWORD
+        value: "123456"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: KEEP_ALIVE_URL
+        sync: false

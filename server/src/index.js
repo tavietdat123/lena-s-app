@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { initializeDatabase } from './db/database.js';
 import { schedulerService } from './services/schedulerService.js';
 import { telegramBotService } from './services/telegramBotService.js';
+import { keepAliveService } from './services/keepAliveService.js';
 
 // 1. Refuse to boot a production instance on development secrets; warn locally.
 for (const problem of auditConfig()) {
@@ -21,6 +22,9 @@ if (config.schedulersEnabled) {
   telegramBotService.start();
 }
 
+// 5. Anti-Sleep Engine (Self-ping on Render/Cloud)
+keepAliveService.start();
+
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`
 🚀 ===================================================
@@ -38,6 +42,7 @@ const server = app.listen(config.port, '0.0.0.0', () => {
 
 const shutdown = (signal) => {
   console.log(`\n${signal} received, shutting down...`);
+  keepAliveService.stop();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
 };
