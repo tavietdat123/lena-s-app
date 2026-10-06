@@ -127,7 +127,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
         setTimeout(() => setTelegramSaveSuccess(false), 3000);
       }
     } catch (err) {
-      alert('Lỗi lưu cấu hình: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     } finally {
       setIsSavingTelegram(false);
     }
@@ -142,10 +142,10 @@ export default function SettingsModal({ onClose, onDataRestored }) {
         setTelegramBackupResult(`✓ Đã gửi file sao lưu (${res.data?.stats?.words || 0} từ) về Telegram!`);
         setTimeout(() => setTelegramBackupResult(''), 6000);
       } else {
-        alert('Lỗi gửi sao lưu: ' + (res.error || 'Thao tác thất bại'));
+        alert(res.error || (t?.common?.error || "Error"));
       }
     } catch (err) {
-      alert('Lỗi gửi sao lưu: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     } finally {
       setIsTriggeringBackup(false);
     }
@@ -156,12 +156,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerTelegramAlarm();
       if (res.success) {
-        alert('🚨 Đã gửi thử nghiệm Báo Động Kỷ Luật Thép tới Telegram! Hãy kiểm tra bot.');
+        alert('🚨 Test alarm notification sent to Telegram!');
       } else {
-        alert('Lỗi gửi báo động: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi báo động: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     } finally {
       setIsTriggeringAlarm(false);
     }
@@ -172,12 +172,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerTelegramDueReminder();
       if (res.success) {
-        alert('🧠 Đã gửi tóm tắt Flashcard từ cũ đến hạn tới Telegram! Hãy kiểm tra bot.');
+        alert('🧠 Flashcard reminder sent to Telegram!');
       } else {
-        alert('Lỗi gửi nhắc nhở: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi nhắc nhở: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     } finally {
       setIsTriggeringDue(false);
     }
@@ -187,12 +187,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerStreakSaver();
       if (res.success) {
-        alert('🔥 Đã gửi Cảnh Báo Cứu Streak Khẩn Cấp tới Telegram!');
+        alert('🔥 Streak alert sent to Telegram!');
       } else {
-        alert('Lỗi gửi: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     }
   };
 
@@ -200,12 +200,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerWordOfDay();
       if (res.success) {
-        alert('☕ Đã gửi Từ Vựng Giờ Nghỉ Trưa tới Telegram!');
+        alert('☕ Lunch review sent to Telegram!');
       } else {
-        alert('Lỗi gửi: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     }
   };
 
@@ -213,12 +213,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerWeeklyDigest();
       if (res.success) {
-        alert('📈 Đã gửi Báo Cáo Tổng Kết Tuần tới Telegram!');
+        alert('📈 Weekly report sent to Telegram!');
       } else {
-        alert('Lỗi gửi: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     }
   };
 
@@ -226,18 +226,18 @@ export default function SettingsModal({ onClose, onDataRestored }) {
     try {
       const res = await api.triggerLeechAlert();
       if (res.success) {
-        alert('💡 Đã gửi Báo Động Từ Hay Quên (AI Mnemonic) tới Telegram!');
+        alert('💡 Mnemonic reminder sent to Telegram!');
       } else {
-        alert('Lỗi gửi: ' + (res.error || res.reason));
+        alert((t?.common?.error || "Error") + (res.error || res.reason));
       }
     } catch (err) {
-      alert('Lỗi gửi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     }
   };
 
   const handleTestTelegram = async () => {
     if (!botToken || !chatId) {
-      alert('Vui lòng nhập đầy đủ Telegram Bot Token và Chat ID trước khi test!');
+      alert('Please enter Telegram Bot Token and Chat ID first!');
       return;
     }
 
@@ -278,7 +278,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
       try {
         window.open(api.exportDataUrl(), '_blank');
       } catch (e2) {
-        alert('Lỗi xuất dữ liệu: ' + err.message);
+        alert((t?.common?.error || "Error") + err.message);
       }
     }
   };
@@ -296,7 +296,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
       try {
         json = JSON.parse(text);
       } catch (parseErr) {
-        throw new Error('Nội dung file không đúng định dạng JSON: ' + parseErr.message);
+        throw new Error('Invalid JSON format: ' + parseErr.message);
       }
 
       const res = await api.importData(json);
@@ -332,7 +332,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Settings size={20} style={{ color: 'var(--accent-primary)' }} />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-              {t.settings?.title || 'Cài Đặt & Thông Báo Học Tập'}
+              {t?.settings?.title || "Settings"}
             </h3>
           </div>
           <button onClick={onClose} className="btn-icon">
@@ -347,7 +347,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Bell size={18} style={{ color: 'var(--accent-primary)' }} />
                 <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
-                  {t.settings?.telegramSectionTitle || 'Mục Tiêu Mỗi Ngày & Bot Telegram Cảnh Báo'}
+                  {t?.settings?.telegramSectionTitle || "Daily Goals & Telegram Bot"}
                 </h4>
               </div>
               <button 
@@ -356,12 +356,12 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
               >
                 <HelpCircle size={14} />
-                <span>{t.common?.options || 'Cách tạo Bot Telegram'}</span>
+                <span>{t?.common?.options || "Options"}</span>
               </button>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              {t.settings?.subtitle || 'Cài đặt số lượng từ tối thiểu phải học mỗi ngày. Bot Telegram sẽ tự động gửi tin nhắn nhắc nhở bảo vệ chuỗi Streak!'}
+              {t?.settings?.subtitle || "Goals, Telegram bot and personal data"}
             </p>
 
             {/* Step-by-step Guide Accordion */}
@@ -374,11 +374,11 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 lineHeight: 1.6,
                 border: '1px solid var(--border-color)'
               }}>
-                <b>{t.settings?.tokenChatIdHelp || '📌 Cách lấy Token & Chat ID:'}</b>
+                <b>{t?.settings?.tokenChatIdHelp || "How to get Token & Chat ID:"}</b>
                 <ol style={{ paddingLeft: '1.2rem', margin: '0.5rem 0' }}>
-                  <li>{t.settings?.botStep1 || 'Mở Telegram, tìm @BotFather ➔ Nhắn /newbot và làm theo hướng dẫn để nhận Bot Token.'}</li>
-                  <li>{t.settings?.botStep2 || 'Tìm @userinfobot ➔ Bấm Start để lấy số Id (Chat ID) của bạn.'}</li>
-                  <li>{t.settings?.botStep3 || 'Nhắn cho con Bot bạn vừa tạo 1 tin nhắn bất kỳ (ví dụ: "Hello") để kích hoạt cuộc trò chuyện!'}</li>
+                  <li>{t?.settings?.botStep1 || "Find @BotFather on Telegram ➔ Send /newbot for Token."}</li>
+                  <li>{t?.settings?.botStep2 || "Find @userinfobot ➔ Tap Start to get your Chat ID."}</li>
+                  <li>{t?.settings?.botStep3 || "Send any message to your bot to activate it."}</li>
                 </ol>
               </div>
             )}
@@ -389,7 +389,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '0.35rem' }}>
                     <Target size={14} color="var(--accent-primary)" />
-                    <span>{t.settings?.dailyGoalLabel || 'Mục tiêu từ/ngày:'}</span>
+                    <span>{t?.settings?.dailyGoalLabel || "Daily word goal:"}</span>
                   </label>
                   <div style={{ display: 'flex', gap: '0.3rem' }}>
                     {[5, 10, 15, 20].map(cnt => (
@@ -417,7 +417,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                    {t.settings?.morningVocabReminder || '🧠 Nhắc từ cũ (Sáng):'}
+                    {t?.settings?.morningVocabReminder || "Morning reminder:"}
                   </label>
                   <input
                     type="time"
@@ -430,7 +430,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
                 <div>
                   <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.35rem' }}>
-                    {t.settings?.eveningAlarmTime || '⏰ Cảnh báo tối (Tối):'}
+                    {t?.settings?.eveningAlarmTime || "Evening alarm:"}
                   </label>
                   <input
                     type="time"
@@ -454,7 +454,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {disciplineMode === 'hardcore' ? (t.settings?.disciplineModeHardcore || '🚨 Chế Độ Kỷ Luật Thép') : (t.settings?.disciplineModeTitle || '🛡️ Chế Độ Nhắc Nhở Tiêu Chuẩn')}
+                    {disciplineMode === 'hardcore' ? (t?.settings?.disciplineModeHardcore || "Hardcore") : (t?.settings?.disciplineModeTitle || "Discipline mode:")}
                   </span>
                   <div style={{ display: 'flex', gap: '0.4rem' }}>
                     <button
@@ -471,7 +471,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                         cursor: 'pointer'
                       }}
                     >
-                      {t.settings?.disciplineModeStandard || 'Tiêu Chuẩn'}
+                      {t?.settings?.disciplineModeStandard || "Standard"}
                     </button>
                     <button
                       type="button"
@@ -487,21 +487,21 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                         cursor: 'pointer'
                       }}
                     >
-                      {t.settings?.disciplineModeHardcore || '🚨 Kỷ Luật Thép'}
+                      {t?.settings?.disciplineModeHardcore || "Hardcore"}
                     </button>
                   </div>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                   {disciplineMode === 'hardcore'
-                    ? (t.settings?.disciplineHardcoreDesc || '⚡ Khi kích hoạt: Sau giờ hẹn nếu chưa học đủ chỉ tiêu, Bot sẽ nhắc nhở dồn dập mỗi 10 phút. Bắt buộc phải giải mã đúng số câu Quiz để tắt chuông!')
-                    : (t.settings?.disciplineStandardDesc || 'Nhẹ nhàng gửi 1 tin nhắn cảnh báo tiến độ và danh sách từ cũ lúc 20:00.')}
+                    ? (t?.settings?.disciplineHardcoreDesc || "Repeated alerts every 10 mins until goal is met!")
+                    : (t?.settings?.disciplineStandardDesc || "One gentle reminder at 20:00.")}
                 </p>
 
                 {disciplineMode === 'hardcore' && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.6rem', borderTop: '1px dashed rgba(239, 68, 68, 0.3)' }}>
                     <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                       <Target size={13} color="#ef4444" />
-                      <span>{t.settings?.requiredQuizCountLabel || 'Số câu Quiz bắt buộc giải đúng:'}</span>
+                      <span>{t?.settings?.requiredQuizCountLabel || "Quizzes required to dismiss:"}</span>
                     </span>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
                       {[3, 5, 10].map(num => (
@@ -520,7 +520,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                             cursor: 'pointer'
                           }}
                         >
-                          {num} {t.common?.quiz || 'câu'}
+                          {num} {t?.common?.quiz || "Quiz"}
                         </button>
                       ))}
                     </div>
@@ -568,7 +568,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onChange={(e) => setTelegramEnabled(e.target.checked)}
                     style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
                   />
-                  <span>{t.settings?.enableTelegramNotifs || 'Bật thông báo tự động qua Telegram'}</span>
+                  <span>{t?.settings?.enableTelegramNotifs || "Enable automatic Telegram alerts"}</span>
                 </label>
 
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
@@ -580,7 +580,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
                   >
                     {isTestingTelegram ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                    <span>{t.settings?.testConnectionBtn || 'Test Kết Nối'}</span>
+                    <span>{t?.settings?.testConnectionBtn || "Test Connection"}</span>
                   </button>
 
                   <button
@@ -590,7 +590,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     style={{ padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
                   >
                     {isSavingTelegram ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                    <span>{t.settings?.saveSettingsBtn || 'Lưu Cài Đặt'}</span>
+                    <span>{t?.settings?.saveSettingsBtn || "Save Settings"}</span>
                   </button>
                 </div>
               </div>
@@ -605,7 +605,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 gap: '0.5rem'
               }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  {t.settings?.smartTelegramNotifsTitle || '⚡ Gửi Thử Các Loại Thông Báo Thông Minh Đến Telegram:'}
+                  {t?.settings?.smartTelegramNotifsTitle || "Send Test Notifications:"}
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   <button
@@ -613,9 +613,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestStreakSaver}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)' }}
-                    title={t.settings?.rescueStreakBtn || "Gửi cảnh báo cứu Streak khẩn cấp lúc 22:30"}
+                    title={t?.settings?.rescueStreakBtn || "Streak Rescue (22:30)"}
                   >
-                    {t.settings?.rescueStreakBtn || '🔥 Cứu Streak (22:30)'}
+                    {t?.settings?.rescueStreakBtn || "Streak Rescue (22:30)"}
                   </button>
 
                   <button
@@ -623,9 +623,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestWordOfDay}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: 'var(--accent-primary)', borderColor: 'rgba(2, 132, 199, 0.4)' }}
-                    title={t.settings?.lunchVocabBtn || "Gửi từ vựng giờ nghỉ trưa lúc 12:00"}
+                    title={t?.settings?.lunchVocabBtn || "Lunch Vocab (12:00)"}
                   >
-                    {t.settings?.lunchVocabBtn || '☕ Từ Giờ Trưa (12:00)'}
+                    {t?.settings?.lunchVocabBtn || "Lunch Vocab (12:00)"}
                   </button>
 
                   <button
@@ -633,9 +633,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestWeeklyDigest}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }}
-                    title={t.settings?.weeklyReportBtn || "Gửi báo cáo tổng kết tuần sáng Chủ Nhật"}
+                    title={t?.settings?.weeklyReportBtn || "Weekly Report (Sun)"}
                   >
-                    {t.settings?.weeklyReportBtn || '📈 Tổng Kết Tuần (CN)'}
+                    {t?.settings?.weeklyReportBtn || "Weekly Report (Sun)"}
                   </button>
 
                   <button
@@ -643,9 +643,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onClick={handleTestLeechAlert}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.4)' }}
-                    title={t.settings?.stubbornVocabBtn || "Gửi báo động từ cứng đầu hay quên kèm mẹo nhớ AI"}
+                    title={t?.settings?.stubbornVocabBtn || "Stubborn Words (AI)"}
                   >
-                    {t.settings?.stubbornVocabBtn || '💡 Từ Hay Quên (AI)'}
+                    {t?.settings?.stubbornVocabBtn || "Stubborn Words (AI)"}
                   </button>
 
                   <button
@@ -654,9 +654,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringDue}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: 'var(--accent-primary)' }}
-                    title={t.settings?.dueVocabBtn || "Gửi tóm tắt từ cũ đến hạn chu kỳ vàng lúc 08:30"}
+                    title={t?.settings?.dueVocabBtn || "Due Words (08:30)"}
                   >
-                    {isTriggeringDue ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.dueVocabBtn || '🧠 Từ Cũ (08:30)')}
+                    {isTriggeringDue ? <Loader2 size={12} className="animate-spin" /> : (t?.settings?.dueVocabBtn || "Due Words (08:30)")}
                   </button>
 
                   <button
@@ -665,9 +665,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringAlarm}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-                    title={t.settings?.alarmBtn || "Gửi báo động Kỷ Luật Thép lúc 20:00"}
+                    title={t?.settings?.alarmBtn || "Hardcore Alarm (20:00)"}
                   >
-                    {isTriggeringAlarm ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.alarmBtn || '🚨 Báo Động (20:00)')}
+                    {isTriggeringAlarm ? <Loader2 size={12} className="animate-spin" /> : (t?.settings?.alarmBtn || "Hardcore Alarm (20:00)")}
                   </button>
 
                   <button
@@ -676,9 +676,9 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     disabled={isTriggeringBackup}
                     className="btn-secondary"
                     style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: '#06b6d4', borderColor: 'rgba(6, 182, 212, 0.4)' }}
-                    title={t.settings?.backupBtn || "Đóng gói và gửi ngay file sao lưu .json về Telegram"}
+                    title={t?.settings?.backupBtn || "Backup (.json)"}
                   >
-                    {isTriggeringBackup ? <Loader2 size={12} className="animate-spin" /> : (t.settings?.backupBtn || '📦 Sao Lưu (.json)')}
+                    {isTriggeringBackup ? <Loader2 size={12} className="animate-spin" /> : (t?.settings?.backupBtn || "Backup (.json)")}
                   </button>
                 </div>
               </div>
@@ -709,7 +709,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Key size={18} style={{ color: 'var(--accent-primary)' }} />
-                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{t.settings?.geminiKeyLabel || 'Google Gemini API Key'}</h4>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{t?.settings?.geminiKeyLabel || "Gemini API Key:"}</h4>
               </div>
               <a
                 href="https://aistudio.google.com/app/apikey"
@@ -723,7 +723,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              {t.settings?.geminiKeyPlaceholder || 'Mở khóa toàn bộ tính năng AI nâng cao. Key được lưu an toàn trên máy của bạn.'}
+              {t?.settings?.geminiKeyPlaceholder || "Enter Google Gemini API Key..."}
             </p>
 
             <form onSubmit={handleSaveApiKey} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -738,14 +738,14 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 />
                 <button type="submit" disabled={isSavingKey} className="btn-primary" style={{ flexShrink: 0 }}>
                   {isSavingKey ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  <span>{t.settings?.saveBtn || 'Lưu Cấu Hình'}</span>
+                  <span>{t?.settings?.saveBtn || "Save Config"}</span>
                 </button>
               </div>
 
               {/* Model Choice Chips */}
               <div>
                 <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
-                  🤖 {t.settings?.geminiModelLabel || 'Chọn Mô Hình AI (Google Model):'}
+                  🤖 {t?.settings?.geminiModelLabel || "Google Model:"}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {[
@@ -782,7 +782,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
 
             {saveSuccess && (
               <span style={{ fontSize: '0.85rem', color: 'var(--accent-success)', fontWeight: 600 }}>
-                ✓ {t.settings?.successMsg || 'Đã lưu API Key và Mô hình AI thành công!'}
+                ✓ {t?.settings?.successMsg || "Settings saved successfully!"}
               </span>
             )}
           </div>
@@ -794,7 +794,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldCheck size={18} style={{ color: 'var(--accent-success)' }} />
               <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
-                {t.settings?.backupSectionTitle || 'Sao Lưu & Khôi Phục Dữ Liệu Cá Nhân'}
+                {t?.settings?.backupSectionTitle || "Backup & Restore"}
               </h4>
             </div>
 
@@ -818,13 +818,13 @@ export default function SettingsModal({ onClose, onDataRestored }) {
               {/* Export Button */}
               <button type="button" onClick={handleExportBackup} className="btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
                 <Download size={18} style={{ color: 'var(--accent-primary)' }} />
-                <span>{t.settings?.exportBtn || 'Tải File .JSON Về Máy'}</span>
+                <span>{t?.settings?.exportBtn || "Download JSON"}</span>
               </button>
 
               {/* Import Button */}
               <label className="btn-secondary" style={{ padding: '0.75rem 1.25rem', cursor: 'pointer' }}>
                 <Upload size={18} style={{ color: 'var(--accent-success)' }} />
-                <span>{isImporting ? (t.common?.loading || 'Đang nhập...') : (t.settings?.importBtn || 'Khôi Phục Dữ Liệu (.JSON)')}</span>
+                <span>{isImporting ? (t?.common?.loading || "Loading...") : (t?.settings?.importBtn || "Restore JSON")}</span>
                 <input
                   type="file"
                   accept=".json"
@@ -852,11 +852,11 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                     onChange={(e) => setTelegramAutoBackup(e.target.checked)}
                     style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
                   />
-                  <span>{t.settings?.autoBackupDaily || '🤖 Tự động sao lưu và gửi file về Telegram mỗi ngày'}</span>
+                  <span>{t?.settings?.autoBackupDaily || "Automatically send daily backup to Telegram"}</span>
                 </label>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t.settings?.runTimeLabel || 'Giờ chạy:'}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t?.settings?.runTimeLabel || "Run time:"}</span>
                   <input
                     type="time"
                     className="input-control"
@@ -867,7 +867,7 @@ export default function SettingsModal({ onClose, onDataRestored }) {
                 </div>
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                {t.settings?.backupSecurityTip || '🛡️ Bot sẽ tự động đóng gói toàn bộ từ vựng & SRS gửi vào chat Telegram của bạn. Nếu Render server restart hoặc deploy phiên bản mới, dữ liệu của bạn vẫn an toàn tuyệt đối 100%!'}
+                {t?.settings?.backupSecurityTip || "Your data is backed up safely to your Telegram chat."}
               </p>
             </div>
 

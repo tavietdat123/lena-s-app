@@ -225,9 +225,32 @@ const playHtmlAudio = (sourceUrl, rate, onFailure = null) => {
   audio.play().catch(fail);
 };
 
+/**
+ * Strips HTML tags, markdown formatting, and entities from speech text
+ * to prevent TTS engines from pronouncing raw tags (e.g. <b>, </b>, **, etc.)
+ */
+export const cleanSpeechText = (text) => {
+  if (!text) return '';
+  return String(text)
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&(?:#39;|apos;|rsquo;|lsquo;)/gi, "'")
+    .replace(/&(?:ldquo;|rdquo;)/gi, '"')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[*_~`#]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const playFreeServerTts = (text, targetLang, targetRate) => {
-  if (!text) return;
-  const ttsUrl = `/api/audio/tts?text=${encodeURIComponent(text.substring(0, 350))}&lang=${encodeURIComponent(targetLang)}`;
+  const clean = cleanSpeechText(text);
+  if (!clean) return;
+  const ttsUrl = `/api/audio/tts?text=${encodeURIComponent(clean.substring(0, 350))}&lang=${encodeURIComponent(targetLang)}`;
   playHtmlAudio(ttsUrl, targetRate);
 };
 
@@ -235,7 +258,7 @@ export const speakText = (text, lang = null, rate = null, onFailure = null) => {
   if (typeof window === 'undefined' || !window.speechSynthesis || !text) return false;
 
   const sessionId = globalPlaybackSessionId;
-  const rawText = String(text || '').trim();
+  const rawText = cleanSpeechText(text);
   if (!rawText) return false;
 
   const isSingleWord = !rawText.includes(' ');
@@ -254,7 +277,8 @@ export const speakText = (text, lang = null, rate = null, onFailure = null) => {
     speechText = /[.!?]$/.test(rawText) ? rawText : `${rawText}.`;
   }
 
-  const targetLang = lang || globalAudioAccent;
+  const defaultLang = globalTargetLanguage === 'vi' ? 'vi-VN' : globalAudioAccent;
+  const targetLang = lang || defaultLang;
   const matchedVoice = getVoiceForAccent(targetLang);
 
   // 2. Chia nhỏ đoạn văn dài (> 180 ký tự) để chống lỗi đứng hình 15s kinh điển của Web Speech API
@@ -326,7 +350,7 @@ export const playAudio = (text, audioUrl = null, lang = null, rate = null) => {
   const targetRate = !isNaN(parsedRate) ? Math.max(0.5, Math.min(1.8, parsedRate)) : 1.0;
   const defaultLang = globalTargetLanguage === 'vi' ? 'vi-VN' : globalAudioAccent;
   const targetLang = lang || defaultLang;
-  const cleanText = (text || '').trim();
+  const cleanText = cleanSpeechText(text);
 
   // Atomically cancel any active sound before starting the new one
   stopCurrentPlayback();
@@ -484,6 +508,7 @@ export const audioService = {
   speak: (text, lang, rate) => playAudio(text, null, lang, rate),
   playAudio,
   speakText,
+  cleanSpeechText,
   stop: stopCurrentPlayback,
   stopPlayback: stopCurrentPlayback,
   playTapSound,

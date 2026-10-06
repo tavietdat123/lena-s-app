@@ -21,7 +21,7 @@ export default function Header({
   onLogout,
   onToggleMobileMenu
 }) {
-  const { uiLang, t } = useLanguage();
+  const { uiLang, t, targetLanguage, setTargetLanguage } = useLanguage();
 
   const current = t.header.titles[currentTab] || { title: 'LinguaVault Pro Max', desc: 'Personal Knowledge Hub' };
 
@@ -110,40 +110,67 @@ export default function Header({
     </button>
   );
 
-  const nativeName = currentUser?.native_language === 'ru' 
-    ? (uiLang === 'ru' ? 'Русский' : uiLang === 'en' ? 'Russian' : 'Tiếng Nga')
-    : currentUser?.native_language === 'en'
-      ? (uiLang === 'ru' ? 'Английский' : uiLang === 'en' ? 'English' : 'Tiếng Anh')
-      : (uiLang === 'ru' ? 'Вьетнамский' : uiLang === 'en' ? 'Vietnamese' : 'Tiếng Việt');
+  const isLocked = Boolean(currentUser?.target_language_locked);
+  const isAdmin = currentUser?.role === 'admin';
+  const canToggle = isAdmin || !isLocked;
 
-  const targetName = currentUser?.target_language === 'vi'
-    ? (uiLang === 'ru' ? 'Вьетнамский' : uiLang === 'en' ? 'Vietnamese' : 'Tiếng Việt')
-    : (uiLang === 'ru' ? 'Английский' : uiLang === 'en' ? 'English' : 'Tiếng Anh');
+  const handleTrackClick = (e) => {
+    e.stopPropagation();
+    if (canToggle) {
+      const nextTrack = targetLanguage === 'vi' ? 'en' : 'vi';
+      setTargetLanguage(nextTrack);
+    } else if (onOpenProfileEdit) {
+      onOpenProfileEdit();
+    }
+  };
 
-  const languageRouteNode = currentUser && (
+  const trackTooltip = !canToggle
+    ? (uiLang === 'ru' 
+        ? `Траектория обучения закреплена за аккаунтом @${currentUser?.username || ''}` 
+        : uiLang === 'vi' 
+          ? `Lộ trình học gắn cố định theo tài khoản @${currentUser?.username || ''}` 
+          : `Learning track bound to account @${currentUser?.username || ''}`)
+    : (isAdmin
+        ? (uiLang === 'ru' 
+            ? `[Admin] Нажмите для переключения между VSL и CEFR` 
+            : uiLang === 'vi' 
+              ? `[Admin] Bấm để chuyển đổi kiểm tra giữa VSL và CEFR` 
+              : `[Admin] Click to switch between VSL and CEFR`)
+        : (uiLang === 'vi' ? 'Bấm để đổi lộ trình' : 'Click to switch track'));
+
+  const languageRouteNode = (
     <div
-      onClick={onOpenProfileEdit}
-      title={t.header.routeTooltip(nativeName, targetName)}
+      onClick={handleTrackClick}
+      title={trackTooltip}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.35rem',
-        padding: '0.35rem 0.65rem',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
+        gap: '0.45rem',
+        padding: '0.35rem 0.75rem',
+        background: targetLanguage === 'vi' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(2, 132, 199, 0.1)',
+        border: targetLanguage === 'vi' ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid rgba(2, 132, 199, 0.35)',
         borderRadius: 'var(--radius-full)',
-        fontSize: '0.8rem',
-        fontWeight: 700,
-        color: 'var(--text-secondary)',
+        fontSize: '0.78rem',
+        fontWeight: 800,
+        color: targetLanguage === 'vi' ? '#ef4444' : 'var(--accent-primary)',
         boxShadow: 'var(--shadow-sm)',
         flexShrink: 0,
-        cursor: 'pointer'
+        cursor: canToggle ? 'pointer' : 'default',
+        transition: 'all 0.2s ease'
       }}
-      className="hover-card"
+      className={`hover-card header-track-toggle ${!canToggle ? 'locked-track' : ''}`}
     >
-      <span>{currentUser.native_language === 'ru' ? '🇷🇺' : currentUser.native_language === 'en' ? '🇬🇧' : '🇻🇳'}</span>
-      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>➔</span>
-      <span>{currentUser.target_language === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+      <span>{targetLanguage === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+      <span>
+        {targetLanguage === 'vi' 
+          ? (uiLang === 'vi' ? 'VSL Bậc 1–6' : uiLang === 'ru' ? 'VSL Уровни 1–6' : 'VSL Level 1–6') 
+          : 'CEFR Track'}
+      </span>
+      {isLocked && !isAdmin ? (
+        <span style={{ fontSize: '0.68rem', opacity: 0.75 }} title="Cố định theo tài khoản">🔒</span>
+      ) : canToggle ? (
+        <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>⇄</span>
+      ) : null}
     </div>
   );
 
@@ -184,23 +211,23 @@ export default function Header({
             <button
               type="button"
               onClick={onToggleMobileMenu}
-              className="header-mobile-toggle"
-              title="Mở menu điều hướng"
-              aria-label="Menu"
+              className="btn-icon mobile-menu-toggle"
+              aria-label={t.header.toggleMenu}
+              title={t.header.toggleMenu}
             >
               <Menu size={20} />
             </button>
           )}
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <h2 className="header-title-text" style={{ fontSize: '1.1rem', margin: 0 }}>
-              {current.title}
-            </h2>
+
+          <div className="header-mobile-title-box">
+            <h2 className="header-title-text mobile-truncate">{current.title}</h2>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
-          {languageRouteNode}
+        <div className="header-mobile-actions">
+          {searchNode}
           {themeBtnNode}
+          {languageRouteNode}
           {userProfileNode}
         </div>
       </div>

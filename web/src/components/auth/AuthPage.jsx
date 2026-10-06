@@ -18,211 +18,25 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 const NATIVE_LANG_OPTIONS = [
-  { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nameRu: 'Вьетнамский', flag: '🇻🇳', descVi: 'Người bản xứ Việt Nam', descEn: 'Native Vietnamese speaker', descRu: 'Носитель вьетнамского языка' },
-  { code: 'en', nameVi: 'English', nameEn: 'English', nameRu: 'Английский', flag: '🇬🇧', descVi: 'Người bản xứ hoặc thành thạo tiếng Anh', descEn: 'Native / Fluent English speaker', descRu: 'Носитель английского языка' },
-  { code: 'ru', nameVi: 'Русский', nameEn: 'Russian', nameRu: 'Русский', flag: '🇷🇺', descVi: 'Người bản xứ tiếng Nga', descEn: 'Native Russian speaker', descRu: 'Носитель русского языка' }
+  { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nameRu: 'Вьетнамский', flag: '🇻🇳', descVi: 'Bản ngữ Việt Nam', descEn: 'Native Vietnamese', descRu: 'Носитель языка' },
+  { code: 'en', nameVi: 'English', nameEn: 'English', nameRu: 'Английский', flag: '🇬🇧', descVi: 'Bản ngữ Tiếng Anh', descEn: 'Native English', descRu: 'Носитель языка' },
+  { code: 'ru', nameVi: 'Русский', nameEn: 'Russian', nameRu: 'Русский', flag: '🇷🇺', descVi: 'Bản ngữ Tiếng Nga', descEn: 'Native Russian', descRu: 'Носитель языка' }
 ];
 
 const TARGET_LANG_OPTIONS = [
-  { code: 'en', nameVi: 'Tiếng Anh (English)', nameEn: 'English (Tiếng Anh)', nameRu: 'Английский (English)', flag: '🇬🇧', descVi: 'Luyện tiếng Anh giao tiếp & học thuật', descEn: 'Master conversational & academic English', descRu: 'Разговорный и академический английский' },
-  { code: 'vi', nameVi: 'Tiếng Việt (Vietnamese)', nameEn: 'Vietnamese (Tiếng Việt)', nameRu: 'Вьетнамский (Tiếng Việt)', flag: '🇻🇳', descVi: 'Học tiếng Việt giao tiếp & đời sống', descEn: 'Learn everyday & communicative Vietnamese', descRu: 'Разговорный и повседневный вьетнамский' }
+  { code: 'en', nameVi: 'Tiếng Anh', nameEn: 'English', nameRu: 'Английский', flag: '🇬🇧', descVi: 'Lộ trình Tiếng Anh', descEn: 'English track', descRu: 'Курс английского' },
+  { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nameRu: 'Вьетнамский', flag: '🇻🇳', descVi: 'Lộ trình Tiếng Việt', descEn: 'Vietnamese track', descRu: 'Курс вьетнамского' }
 ];
 
-const AUTH_I18N = {
-  vi: {
-    heroTitle: 'Học Ngôn Ngữ Cá Nhân Hóa Chuẩn Bản Xứ',
-    heroSubtitle: 'Nền tảng học thông minh hỗ trợ người dùng bản ngữ Tiếng Việt 🇻🇳, Tiếng Anh 🇬🇧, Tiếng Nga 🇷🇺 học Tiếng Anh hoặc Tiếng Việt với thuật toán SuperMemo SM-2 và AI phát âm tự nhiên.',
-    feature1Title: 'Đa Ngôn Ngữ Học Tập',
-    feature1Desc: 'Học Tiếng Việt hoặc Tiếng Anh',
-    feature2Title: 'AI Audio Bản Ngữ',
-    feature2Desc: 'Phát âm chuẩn VN & US/UK',
-    feature3Title: 'Thuật Toán SRS (SM-2)',
-    feature3Desc: 'Ghi nhớ ngắt quãng khoa học',
-    feature4Title: 'Tài Khoản Độc Lập',
-    feature4Desc: 'Kho từ vựng & lịch sử riêng biệt',
-    heroFooter: 'LinguaVault Core v2.1 • Đa ngôn ngữ (VI 🇻🇳 | EN 🇬🇧 | RU 🇷🇺)',
-    tabLogin: 'Đăng Nhập',
-    tabRegister: 'Đăng Ký Tài Khoản',
-    loginTitle: 'Đăng Nhập Hệ Thống',
-    loginSubtitle: 'Nhập tài khoản để tiếp tục quá trình học tập',
-    usernameLabel: 'Tên đăng nhập',
-    usernamePlaceholder: 'Nhập tên đăng nhập...',
-    passwordLabel: 'Mật khẩu',
-    passwordPlaceholder: 'Nhập mật khẩu...',
-    loginBtn: 'Đăng Nhập Vào Hệ Thống',
-    loginLoading: 'Đang xác thực...',
-    noAccountPrompt: 'Chưa có tài khoản? ',
-    registerNow: 'Đăng ký ngay',
-    registerTitle: 'Đăng Ký Tài Khoản',
-    registerSubtitle: 'Bước 1/2: Điền thông tin tài khoản của bạn',
-    usernameRegisterLabel: 'Tên đăng nhập *',
-    usernameRegisterPlaceholder: 'vd: ivan_rus, alex99, an_nguyen...',
-    fullNameLabel: 'Họ và tên *',
-    fullNamePlaceholder: 'vd: Ivan Petrov / Alex Smith / Nguyễn An...',
-    passwordRegisterLabel: 'Mật khẩu *',
-    passwordRegisterPlaceholder: 'Mật khẩu tối thiểu 4 ký tự...',
-    confirmPasswordLabel: 'Xác nhận mật khẩu *',
-    confirmPasswordPlaceholder: 'Nhập lại mật khẩu...',
-    registerBtn: 'Tiếp Tục Chọn Ngôn Ngữ Học',
-    registerLoading: 'Đang đăng ký tài khoản...',
-    hasAccountPrompt: 'Đã có tài khoản? ',
-    loginNow: 'Đăng nhập ngay',
-    step2Badge: 'Bước 2/2: Đăng ký thành công!',
-    step2Welcome: 'Chào Mừng',
-    step2Subtitle: 'Hãy thiết lập ngôn ngữ để cá nhân hóa toàn bộ lộ trình học tập của bạn',
-    nativeSection: '🗣️ 1. Ngôn ngữ bạn thành thạo (Native / Fluent):',
-    targetSection: '🎯 2. Ngôn ngữ bạn muốn học (Learning Target):',
-    roadmapLabel: 'Lộ trình:',
-    roadmapViDesc: 'Kho từ vựng & AI phát âm sẽ được thiết lập chuyên biệt để bạn học Tiếng Việt',
-    roadmapEnDesc: 'Kho từ vựng, tra cứu từ điển & AI phát âm tối ưu hóa cho việc luyện Tiếng Anh bản ngữ',
-    confirmBtn: 'Xác Nhận & Bắt Đầu Học Ngay',
-    confirmLoading: 'Đang khởi tạo lộ trình...',
-    errEmptyLogin: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu',
-    errEmptyRegister: 'Vui lòng điền đầy đủ tên đăng nhập, họ tên và mật khẩu',
-    errUsernameShort: 'Tên đăng nhập phải có ít nhất 3 ký tự',
-    errUsernameFormat: 'Tên đăng nhập chỉ được chứa chữ cái, chữ số, dấu chấm, gạch dưới hoặc gạch ngang',
-    errPasswordShort: 'Mật khẩu phải có ít nhất 4 ký tự',
-    errPasswordMismatch: 'Mật khẩu xác nhận không khớp',
-    errServer: 'Không thể kết nối đến máy chủ API',
-    errLoginFailed: 'Đăng nhập không thành công. Vui lòng kiểm tra lại tài khoản.',
-    errRegisterFailed: 'Đăng ký không thành công. Vui lòng thử lại.'
-  },
-  en: {
-    heroTitle: 'Master Languages with Personalized AI & Spaced Repetition',
-    heroSubtitle: 'Smart learning hub designed for native speakers of Vietnamese 🇻🇳, English 🇬🇧, and Russian 🇷🇺 to master English or Vietnamese with SuperMemo SM-2 & natural AI pronunciation.',
-    feature1Title: 'Multi-Language Paths',
-    feature1Desc: 'Learn Vietnamese or English',
-    feature2Title: 'Native AI Audio',
-    feature2Desc: 'Studio pronunciation (VN & US/UK)',
-    feature3Title: 'SRS Algorithm (SM-2)',
-    feature3Desc: 'Scientifically proven retention',
-    feature4Title: 'Isolated Vaults',
-    feature4Desc: 'Private words & study history',
-    heroFooter: 'LinguaVault Core v2.1 • Multi-Language (VI 🇻🇳 | EN 🇬🇧 | RU 🇷🇺)',
-    tabLogin: 'Sign In',
-    tabRegister: 'Create Account',
-    loginTitle: 'Sign In to System',
-    loginSubtitle: 'Enter your credentials to continue learning',
-    usernameLabel: 'Username',
-    usernamePlaceholder: 'Enter your username...',
-    passwordLabel: 'Password',
-    passwordPlaceholder: 'Enter your password...',
-    loginBtn: 'Sign In to Vault',
-    loginLoading: 'Signing in...',
-    noAccountPrompt: "Don't have an account? ",
-    registerNow: 'Register now',
-    registerTitle: 'Create Account',
-    registerSubtitle: 'Step 1/2: Enter your basic account info',
-    usernameRegisterLabel: 'Username *',
-    usernameRegisterPlaceholder: 'e.g. ivan_rus, alex99, an_nguyen...',
-    fullNameLabel: 'Full Name *',
-    fullNamePlaceholder: 'e.g. Ivan Petrov / Alex Smith / Nguyen An...',
-    passwordRegisterLabel: 'Password *',
-    passwordRegisterPlaceholder: 'At least 4 characters...',
-    confirmPasswordLabel: 'Confirm Password *',
-    confirmPasswordPlaceholder: 'Re-enter your password...',
-    registerBtn: 'Continue to Choose Language',
-    registerLoading: 'Creating account...',
-    hasAccountPrompt: 'Already have an account? ',
-    loginNow: 'Sign in now',
-    step2Badge: 'Step 2/2: Account Created!',
-    step2Welcome: 'Welcome',
-    step2Subtitle: 'Choose your languages to personalize your learning roadmap',
-    nativeSection: '🗣️ 1. Your Fluent / Native Language:',
-    targetSection: '🎯 2. Language You Want to Learn:',
-    roadmapLabel: 'Learning Path:',
-    roadmapViDesc: 'Vocabulary vault & AI audio will be customized for learning Vietnamese',
-    roadmapEnDesc: 'Vocabulary vault, dictionary lookup & AI audio will be optimized for mastering English',
-    confirmBtn: 'Confirm & Start Learning Now',
-    confirmLoading: 'Setting up roadmap...',
-    errEmptyLogin: 'Please enter both username and password',
-    errEmptyRegister: 'Please fill in username, full name, and password',
-    errUsernameShort: 'Username must be at least 3 characters',
-    errUsernameFormat: 'Username can only contain letters, numbers, dots, underscores, or dashes',
-    errPasswordShort: 'Password must be at least 4 characters',
-    errPasswordMismatch: 'Passwords do not match',
-    errServer: 'Unable to connect to API server',
-    errLoginFailed: 'Sign in failed. Please check your credentials.',
-    errRegisterFailed: 'Registration failed. Please try again.'
-  },
-  ru: {
-    heroTitle: 'Освойте языки с персонализированным AI и интервальным повторением',
-    heroSubtitle: 'Умная учебная платформа для носителей вьетнамского 🇻🇳, английского 🇬🇧 и русского 🇷🇺 языков для изучения английского или вьетнамского по методу SuperMemo SM-2 и естественной AI-озвучке.',
-    feature1Title: 'Мультиязычные маршруты',
-    feature1Desc: 'Изучайте вьетнамский или английский',
-    feature2Title: 'Нативное AI произношение',
-    feature2Desc: 'Студийный звук (VN и US/UK)',
-    feature3Title: 'Алгоритм SRS (SM-2)',
-    feature3Desc: 'Научно доказанное запоминание',
-    feature4Title: 'Изолированные хранилища',
-    feature4Desc: 'Личные слова и история обучения',
-    heroFooter: 'LinguaVault Core v2.1 • Мультиязычность (VI 🇻🇳 | EN 🇬🇧 | RU 🇷🇺)',
-    tabLogin: 'Вход в систему',
-    tabRegister: 'Регистрация',
-    loginTitle: 'Вход в аккаунт',
-    loginSubtitle: 'Введите учётные данные для продолжения обучения',
-    usernameLabel: 'Имя пользователя (Логин)',
-    usernamePlaceholder: 'Введите имя пользователя...',
-    passwordLabel: 'Пароль',
-    passwordPlaceholder: 'Введите пароль...',
-    loginBtn: 'Войти в систему',
-    loginLoading: 'Вход...',
-    noAccountPrompt: 'Ещё нет аккаунта? ',
-    registerNow: 'Зарегистрироваться',
-    registerTitle: 'Создать аккаунт',
-    registerSubtitle: 'Шаг 1/2: Заполните основные данные аккаунта',
-    usernameRegisterLabel: 'Имя пользователя *',
-    usernameRegisterPlaceholder: 'напр.: ivan_rus, alex99, an_nguyen...',
-    fullNameLabel: 'Имя и фамилия *',
-    fullNamePlaceholder: 'напр.: Иван Петров / Alex Smith...',
-    passwordRegisterLabel: 'Пароль *',
-    passwordRegisterPlaceholder: 'Минимум 4 символа...',
-    confirmPasswordLabel: 'Подтверждение пароля *',
-    confirmPasswordPlaceholder: 'Повторите пароль...',
-    registerBtn: 'Перейти к выбору языков',
-    registerLoading: 'Создание аккаунта...',
-    hasAccountPrompt: 'Уже есть аккаунт? ',
-    loginNow: 'Войти',
-    step2Badge: 'Шаг 2/2: Аккаунт создан!',
-    step2Welcome: 'Добро пожаловать',
-    step2Subtitle: 'Выберите языки для персонализации вашего учебного маршрута',
-    nativeSection: '🗣️ 1. Язык, которым вы владеете (Родной язык):',
-    targetSection: '🎯 2. Язык, который вы хотите изучать:',
-    roadmapLabel: 'Маршрут:',
-    roadmapViDesc: 'Словарь и AI-произношение будут настроены для изучения вьетнамского языка',
-    roadmapEnDesc: 'Словарь, поиск и AI-произношение будут оптимизированы для изучения английского языка',
-    confirmBtn: 'Подтвердить и начать обучение',
-    confirmLoading: 'Инициализация маршрута...',
-    errEmptyLogin: 'Пожалуйста, введите имя пользователя и пароль',
-    errEmptyRegister: 'Пожалуйста, заполните имя пользователя, полное имя и пароль',
-    errUsernameShort: 'Имя пользователя должно содержать не менее 3 символов',
-    errUsernameFormat: 'Имя пользователя может содержать только буквы, цифры, точки, подчёркивания или дефисы',
-    errPasswordShort: 'Пароль должен содержать не менее 4 символов',
-    errPasswordMismatch: 'Пароли не совпадают',
-    errServer: 'Не удалось подключиться к серверу API',
-    errLoginFailed: 'Ошибка входа. Проверьте правильность введённых данных.',
-    errRegisterFailed: 'Ошибка регистрации. Попробуйте снова.'
-  }
-};
-
 export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
-  // UI Language Switcher: 'vi' | 'en' | 'ru' (Persisted in localStorage)
-  const [uiLang, setUiLang] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('linguavault_ui_lang') || 'en';
-    }
-    return 'en';
-  });
-
-  const t = AUTH_I18N[uiLang] || AUTH_I18N.en;
+  const { uiLang, setUiLang, t: rootT } = useLanguage();
+  const t = rootT.auth || {};
 
   const handleToggleUiLang = (lang) => {
     setUiLang(lang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('linguavault_ui_lang', lang);
-    }
   };
 
   // Mode: 'login' | 'register' | 'language_setup'
@@ -468,7 +282,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
         <button
           onClick={toggleTheme}
           className="btn-icon"
-          title={isDark ? (uiLang === 'vi' ? 'Chuyển sang Giao diện Sáng' : 'Switch to Light Mode') : (uiLang === 'vi' ? 'Chuyển sang Giao diện Tối' : 'Switch to Dark Mode')}
+          title={isDark ? (t?.header?.themeLight || "Light Theme") : (t?.header?.themeDark || "Dark Theme")}
           style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
@@ -641,7 +455,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                   transition: 'all 0.2s ease'
                 }}
               >
-                {t.tabLogin}
+                {t.tabLogin || t.loginTab || (uiLang === 'vi' ? 'Đăng Nhập' : uiLang === 'ru' ? 'Вход' : 'Sign In')}
               </button>
               <button
                 type="button"
@@ -660,7 +474,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                   transition: 'all 0.2s ease'
                 }}
               >
-                {t.tabRegister}
+                {t.tabRegister || t.registerTab || (uiLang === 'vi' ? 'Đăng Ký' : uiLang === 'ru' ? 'Регистрация' : 'Sign Up')}
               </button>
             </div>
           )}
@@ -810,10 +624,10 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                   className="hover-card"
                 >
                   {loading ? (
-                    <span>{t.loginLoading}</span>
+                    <span>{t.loginLoading || t.loggingIn || (uiLang === 'vi' ? 'Đang đăng nhập...' : uiLang === 'ru' ? 'Вход...' : 'Signing in...')}</span>
                   ) : (
                     <>
-                      <span>{t.loginBtn}</span>
+                      <span>{t.loginBtn || (uiLang === 'vi' ? 'Đăng Nhập Ngay' : uiLang === 'ru' ? 'Войти' : 'Sign In Now')}</span>
                       <ArrowRight size={18} />
                     </>
                   )}
@@ -821,7 +635,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
 
                 <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
                   <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    {t.noAccountPrompt}
+                    {t.noAccountPrompt || t.noAccount || (uiLang === 'vi' ? 'Chưa có tài khoản? ' : uiLang === 'ru' ? 'Нет аккаунта? ' : "Don't have an account? ")}
                     <button
                       type="button"
                       onClick={() => { setMode('register'); setError(''); }}
@@ -835,7 +649,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                         textDecoration: 'underline'
                       }}
                     >
-                      {t.registerNow}
+                      {t.registerNow || (uiLang === 'vi' ? 'Đăng ký ngay' : uiLang === 'ru' ? 'Создать сейчас' : 'Sign up now')}
                     </button>
                   </span>
                 </div>
@@ -1020,10 +834,10 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                   className="hover-card"
                 >
                   {loading ? (
-                    <span>{t.registerLoading}</span>
+                    <span>{t.registerLoading || t.registering || (uiLang === 'vi' ? 'Đang tạo tài khoản...' : uiLang === 'ru' ? 'Регистрация...' : 'Creating account...')}</span>
                   ) : (
                     <>
-                      <span>{t.registerBtn}</span>
+                      <span>{t.registerBtn || (uiLang === 'vi' ? 'Tạo Tài Khoản' : uiLang === 'ru' ? 'Зарегистрироваться' : 'Create Account')}</span>
                       <ArrowRight size={18} />
                     </>
                   )}
@@ -1031,7 +845,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
 
                 <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
                   <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                    {t.hasAccountPrompt}
+                    {t.hasAccountPrompt || t.haveAccount || (uiLang === 'vi' ? 'Đã có tài khoản? ' : uiLang === 'ru' ? 'Уже есть аккаунт? ' : "Already have an account? ")}
                     <button
                       type="button"
                       onClick={() => { setMode('login'); setError(''); }}
@@ -1045,7 +859,7 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                         textDecoration: 'underline'
                       }}
                     >
-                      {t.loginNow}
+                      {t.loginNow || (uiLang === 'vi' ? 'Đăng nhập ngay' : uiLang === 'ru' ? 'Войти' : 'Sign in now')}
                     </button>
                   </span>
                 </div>
@@ -1238,10 +1052,10 @@ export default function AuthPage({ onAuthSuccess, isDark, toggleTheme }) {
                 className="hover-card"
               >
                 {loading ? (
-                  <span>{t.confirmLoading}</span>
+                  <span>{t.confirmLoading || (uiLang === 'vi' ? 'Đang khởi tạo lộ trình...' : uiLang === 'ru' ? 'Настройка курса...' : 'Setting up your track...')}</span>
                 ) : (
                   <>
-                    <span>{t.confirmBtn}</span>
+                    <span>{t.confirmBtn || t.continueBtn || (uiLang === 'vi' ? 'Bắt Đầu Học Ngay 🚀' : uiLang === 'ru' ? 'Начать обучение 🚀' : 'Start Learning Now 🚀')}</span>
                     <ArrowRight size={20} />
                   </>
                 )}

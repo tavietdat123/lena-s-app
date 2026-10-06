@@ -3,10 +3,14 @@ import { X, Sparkles, Volume2, Plus, Trash2, Loader2, Check, Eye, RotateCw } fro
 import { api } from '../../services/api';
 import { playAudio } from '../../services/audioService';
 import { useLanguage } from '../../context/LanguageContext';
+import { getTopicDisplayName } from '../../constants/topicMeta';
+import { getDisplayLevel } from '../../constants/levelAdapter';
+import { getDisplayPos, getPosOptions } from '../../constants/posAdapter';
 
 export default function QuickAddModal({ initialData = null, topics = [], currentUser = null, onClose, onSaved }) {
-  const { uiLang, t } = useLanguage();
-  const isLearningVi = currentUser?.target_language === 'vi';
+  const { uiLang, t, targetLanguage, isVietnameseTrack, fluentLanguage } = useLanguage();
+  const fluentLang = currentUser?.native_language || fluentLanguage || (isVietnameseTrack ? 'en' : 'vi');
+  const isLearningVi = isVietnameseTrack || currentUser?.target_language === 'vi';
   const [word, setWord] = useState('');
   const [phonetic, setPhonetic] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
@@ -47,7 +51,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
   const handleAutoLookup = async (targetWord = word) => {
     const clean = (targetWord || '').trim();
     if (!clean) {
-      setErrorMsg(t.quickAdd?.errInputWord || 'Vui lòng gõ từ vào ô trên rồi bấm Auto-Fill nhé!');
+      setErrorMsg(t?.quickAdd?.errInputWord || "Please enter a word");
       return;
     }
 
@@ -56,10 +60,12 @@ export default function QuickAddModal({ initialData = null, topics = [], current
     setLookupSuccess(false);
 
     try {
-      const res = await api.autoLookup(clean, currentUser?.target_language, currentUser?.native_language);
+      const lookupTargetLang = isLearningVi ? 'vi' : 'en';
+      const res = await api.autoLookup(clean, lookupTargetLang, fluentLang);
       if (res.success && res.data) {
         const d = res.data;
-        if (d.phonetic) setPhonetic(d.phonetic);
+        if (d.phonetic && !isLearningVi) setPhonetic(d.phonetic);
+        else if (isLearningVi) setPhonetic('');
         if (d.audio_url) setAudioUrl(d.audio_url);
         if (d.part_of_speech) setPartOfSpeech(d.part_of_speech);
         if (d.topic_id) setTopicId(d.topic_id);
@@ -79,11 +85,11 @@ export default function QuickAddModal({ initialData = null, topics = [], current
         // Auto play sound preview
         playAudio(d.word || clean, d.audio_url);
       } else {
-        setErrorMsg(t.quickAdd?.errNotFound || 'Không tìm thấy từ trong từ điển. Bạn vẫn có thể tự điền nghĩa bên dưới.');
+        setErrorMsg(t?.quickAdd?.errNotFound || "Not found");
       }
     } catch (err) {
       console.error('Auto lookup error:', err);
-      setErrorMsg((t.common?.error || 'Lỗi: ') + err.message);
+      setErrorMsg((t?.common?.error || "Error") + err.message);
     } finally {
       setIsLookingUp(false);
     }
@@ -101,7 +107,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
     const finalEn = (meaningEn || '').trim() || (meaningVi || '').trim();
 
     if (!word.trim() || (!finalVi && !finalEn)) {
-      setErrorMsg(t.quickAdd?.errRequired || 'Vui lòng nhập Từ và Nghĩa');
+      setErrorMsg(t?.quickAdd?.errRequired || "Required");
       return;
     }
 
@@ -110,7 +116,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
 
     const payload = {
       word: word.trim(),
-      phonetic: phonetic.trim(),
+      phonetic: isLearningVi ? null : phonetic.trim(),
       audio_url: audioUrl.trim(),
       part_of_speech: partOfSpeech,
       meaning_vi: finalVi,
@@ -118,7 +124,8 @@ export default function QuickAddModal({ initialData = null, topics = [], current
       collocations: collocations.filter(c => c.trim() !== ''),
       examples: examples.filter(ex => ex.trim() !== ''),
       level,
-      topic_id: topicId || 'daily'
+      topic_id: topicId || 'daily',
+      target_language: initialData?.target_language || targetLanguage || 'en'
     };
 
     try {
@@ -133,10 +140,10 @@ export default function QuickAddModal({ initialData = null, topics = [], current
         onSaved();
         onClose();
       } else {
-        setErrorMsg(res.error || 'Có lỗi xảy ra khi lưu từ vựng');
+        setErrorMsg(res.error || (t?.common?.error || "Error"));
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Lỗi kết nối tới máy chủ');
+      setErrorMsg(err.message || (t?.common?.error || "Error"));
     } finally {
       setIsSaving(false);
     }
@@ -230,6 +237,22 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                 />
                 <button
                   type="button"
+                  onClick={() => playAudio(word, audioUrl)}
+                  className="btn-icon"
+                  style={{
+                    flexShrink: 0,
+                    padding: '0.65rem 0.85rem',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--accent-primary)'
+                  }}
+                  title={t?.speaking?.listenReference || "Listen reference audio"}
+                >
+                  <Volume2 size={18} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleAutoLookup(word)}
                   disabled={isLookingUp}
                   className="btn-primary"
@@ -268,36 +291,39 @@ export default function QuickAddModal({ initialData = null, topics = [], current
               </div>
             </div>
 
-            {/* 2. Phonetic, Part of Speech, Level, Topic */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1.3fr', gap: '0.65rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-                  {t.quickAdd?.phoneticLabel || 'Phiên âm (IPA)'}
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <input
-                    type="text"
-                    className="input-control"
-                    placeholder="/.../"
-                    value={phonetic}
-                    onChange={(e) => setPhonetic(e.target.value)}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => playAudio(word, audioUrl)}
-                    className="btn-icon"
-                    style={{ color: 'var(--accent-primary)', padding: '0.4rem' }}
-                    title={t.speaking?.listenReference || 'Nghe thử âm thanh'}
-                  >
-                    <Volume2 size={18} />
-                  </button>
+            {/* 2. Main Metadata Row: Phonetic for EN, Part of Speech, Level, Topic */}
+            <div style={{ display: 'grid', gridTemplateColumns: isLearningVi ? '1fr 1.25fr 1.25fr' : '1.2fr 1fr 1fr 1.3fr', gap: '0.65rem' }}>
+              {!isLearningVi && (
+                /* English Track: Phonetic (IPA) */
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
+                    {t?.quickAdd?.phoneticLabel || "Phonetic (IPA):"}
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <input
+                      type="text"
+                      className="input-control"
+                      placeholder="/.../"
+                      value={phonetic}
+                      onChange={(e) => setPhonetic(e.target.value)}
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => playAudio(word, audioUrl)}
+                      className="btn-icon"
+                      style={{ color: 'var(--accent-primary)', padding: '0.4rem' }}
+                      title={t?.speaking?.listenReference || "Listen reference audio"}
+                    >
+                      <Volume2 size={18} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-                  {t.quickAdd?.partOfSpeech || 'Từ loại'}
+                  {t?.quickAdd?.partOfSpeech || "Part of Speech:"}
                 </label>
                 <select
                   className="input-control"
@@ -305,19 +331,15 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                   onChange={(e) => setPartOfSpeech(e.target.value)}
                   style={{ fontSize: '0.85rem' }}
                 >
-                  <option value="noun">{t.quickAdd?.posNoun || 'Noun (Danh từ)'}</option>
-                  <option value="verb">{t.quickAdd?.posVerb || 'Verb (Động từ)'}</option>
-                  <option value="adjective">{t.quickAdd?.posAdj || 'Adjective (Tính từ)'}</option>
-                  <option value="adverb">{t.quickAdd?.posAdv || 'Adverb (Trạng từ)'}</option>
-                  <option value="phrase">Phrase / Collocation</option>
-                  <option value="phrasal_verb">Phrasal Verb</option>
-                  <option value="idiom">Idiom</option>
+                  {getPosOptions(isLearningVi ? 'vi' : 'en', uiLang).map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-                  {t.quickAdd?.levelLabel || 'Trình độ'}
+                  {t?.quickAdd?.levelLabel || "Level:"}
                 </label>
                 <select
                   className="input-control"
@@ -325,18 +347,31 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                   onChange={(e) => setLevel(e.target.value)}
                   style={{ fontSize: '0.85rem' }}
                 >
-                  <option value="A1">A1 ({t.vocab?.levelA1 || 'Sơ cấp'})</option>
-                  <option value="A2">A2 ({t.vocab?.levelA2 || 'Cơ bản'})</option>
-                  <option value="B1">B1 ({t.vocab?.levelB1 || 'Trung cấp'})</option>
-                  <option value="B2">B2 ({t.vocab?.levelB2 || 'Khá'})</option>
-                  <option value="C1">C1 ({t.vocab?.levelC1 || 'Nâng cao'})</option>
-                  <option value="C2">C2 ({t.vocab?.levelC2 || 'Bản ngữ'})</option>
+                  {isLearningVi ? (
+                    <>
+                      <option value="A1">{getDisplayLevel('A1', 'vi', uiLang, false)}</option>
+                      <option value="A2">{getDisplayLevel('A2', 'vi', uiLang, false)}</option>
+                      <option value="B1">{getDisplayLevel('B1', 'vi', uiLang, false)}</option>
+                      <option value="B2">{getDisplayLevel('B2', 'vi', uiLang, false)}</option>
+                      <option value="C1">{getDisplayLevel('C1', 'vi', uiLang, false)}</option>
+                      <option value="C2">{getDisplayLevel('C2', 'vi', uiLang, false)}</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="A1">A1 ({t?.vocab?.levelA1 || "Beginner"})</option>
+                      <option value="A2">A2 ({t?.vocab?.levelA2 || "Elementary"})</option>
+                      <option value="B1">B1 ({t?.vocab?.levelB1 || "Intermediate"})</option>
+                      <option value="B2">B2 ({t?.vocab?.levelB2 || "Upper Intermediate"})</option>
+                      <option value="C1">C1 ({t?.vocab?.levelC1 || "Advanced"})</option>
+                      <option value="C2">C2 ({t?.vocab?.levelC2 || "Mastery"})</option>
+                    </>
+                  )}
                 </select>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-                  {t.quickAdd?.topicLabel || 'Chủ đề (Topic)'}
+                  {t?.quickAdd?.topicLabel || "Topic:"}
                 </label>
                 <select
                   className="input-control"
@@ -346,33 +381,43 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                 >
                   {topics.length > 0 ? (
                     topics.map(tItem => (
-                      <option key={tItem.id} value={tItem.id}>{tItem.emoji || '📁'} {tItem.name}</option>
+                      <option key={tItem.id} value={tItem.id}>{tItem.emoji || '📁'} {getTopicDisplayName(tItem, fluentLang)}</option>
                     ))
                   ) : (
                     <>
-                      <option value="work">{t.quickAdd?.topicWork || '💼 Công việc & Sự nghiệp'}</option>
-                      <option value="tech">{t.quickAdd?.topicTech || '💻 Công nghệ & Kỹ thuật'}</option>
-                      <option value="ielts">{t.quickAdd?.topicIelts || '🎓 Học thuật & IELTS'}</option>
-                      <option value="daily">{t.quickAdd?.topicDaily || '☕ Giao tiếp Hàng ngày'}</option>
-                      <option value="travel">{t.quickAdd?.topicTravel || '✈️ Du lịch & Văn hóa'}</option>
-                      <option value="mindset">{t.quickAdd?.topicMindset || '🧠 Tâm lý & Tư duy'}</option>
+                      <option value="daily">☕ {getTopicDisplayName('daily', fluentLang)}</option>
+                      <option value="social">🤝 {getTopicDisplayName('social', fluentLang)}</option>
+                      <option value="food">🍽️ {getTopicDisplayName('food', fluentLang)}</option>
+                      <option value="travel">✈️ {getTopicDisplayName('travel', fluentLang)}</option>
+                      <option value="work">💼 {getTopicDisplayName('work', fluentLang)}</option>
+                      <option value="education">📚 {getTopicDisplayName('education', fluentLang)}</option>
+                      <option value="health">🩺 {getTopicDisplayName('health', fluentLang)}</option>
+                      <option value="tech">💻 {getTopicDisplayName('tech', fluentLang)}</option>
+                      <option value="mindset">🧠 {getTopicDisplayName('mindset', fluentLang)}</option>
                     </>
                   )}
                 </select>
               </div>
             </div>
 
-            {/* 3. Meaning & Explanations */}
+            {/* 3. Meaning & Explanations (Strictly ordered by Fluent Language) */}
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                {t.quickAdd.meaningLabel}
+                {fluentLang === 'en'
+                  ? (uiLang === 'vi' ? 'Nghĩa tiếng Anh (Ngôn ngữ thành thạo):' : 'Meaning in English (Fluent Language):')
+                  : fluentLang === 'ru'
+                  ? (uiLang === 'vi' ? 'Nghĩa tiếng Nga / Anh (Ngôn ngữ thành thạo):' : uiLang === 'ru' ? 'Значение (Свободный язык):' : 'Russian/English Meaning (Fluent):')
+                  : (uiLang === 'en' ? 'Meaning in Vietnamese (Fluent Language):' : 'Nghĩa tiếng Việt (Ngôn ngữ thành thạo):')}
               </label>
               <input
                 type="text"
                 className="input-control"
-                placeholder={t.quickAdd.meaningPlaceholder}
-                value={meaningVi}
-                onChange={(e) => setMeaningVi(e.target.value)}
+                placeholder={fluentLang === 'en' ? 'e.g. persistent, persevering...' : 'VD: kiên trì, không bỏ cuộc...'}
+                value={fluentLang === 'en' ? meaningEn : meaningVi}
+                onChange={(e) => {
+                  if (fluentLang === 'en') setMeaningEn(e.target.value);
+                  else setMeaningVi(e.target.value);
+                }}
                 required
                 style={{ fontWeight: 600 }}
               />
@@ -380,18 +425,19 @@ export default function QuickAddModal({ initialData = null, topics = [], current
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.3rem' }}>
-                {isLearningVi 
-                  ? (t.quickAdd?.contextDefinitionLabel || 'Ghi chú ngữ cảnh / Định nghĩa mở rộng') 
-                  : (t.quickAdd?.englishDefinitionLabel || 'Định nghĩa tiếng Anh (English Definition)')}
+                {fluentLang === 'en'
+                  ? (uiLang === 'vi' ? 'Ngữ cảnh / Giải thích tiếng Việt (Context):' : 'Vietnamese Context / Extended Definition:')
+                  : (uiLang === 'vi' ? 'Định nghĩa tiếng Anh / Ngữ cảnh:' : 'English Context / Extended Definition:')}
               </label>
               <textarea
                 className="input-control"
                 rows={2}
-                placeholder={isLearningVi 
-                  ? (t.quickAdd?.contextPlaceholder || "Ví dụ cách dùng, tình huống giao tiếp phù hợp...") 
-                  : (t.quickAdd?.englishDefinitionPlaceholder || "Định nghĩa bằng tiếng Anh...")}
-                value={meaningEn}
-                onChange={(e) => setMeaningEn(e.target.value)}
+                placeholder={fluentLang === 'en' ? 'Giải thích nghĩa trong ngữ cảnh tiếng Việt...' : 'Usage in context or English definition...'}
+                value={fluentLang === 'en' ? meaningVi : meaningEn}
+                onChange={(e) => {
+                  if (fluentLang === 'en') setMeaningVi(e.target.value);
+                  else setMeaningEn(e.target.value);
+                }}
                 style={{ resize: 'vertical', fontSize: '0.85rem' }}
               />
             </div>
@@ -399,13 +445,13 @@ export default function QuickAddModal({ initialData = null, topics = [], current
             {/* 4. Collocations */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t.quickAdd?.collocationsLabel || 'Collocations / Cụm từ hay'}</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t?.quickAdd?.collocationsLabel || "Collocations & Phrases:"}</label>
                 <button
                   type="button"
                   onClick={() => setCollocations([...collocations, ''])}
                   style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}
                 >
-                  {t.quickAdd?.addCollocation || '+ Thêm cụm từ'}
+                  {t?.quickAdd?.addCollocation || "+ Add Collocation"}
                 </button>
               </div>
               {collocations.map((col, idx) => (
@@ -413,7 +459,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                   <input
                     type="text"
                     className="input-control"
-                    placeholder={t.quickAdd?.collocationPlaceholder || 'Ví dụ: articulate speaker, stay resilient...'}
+                    placeholder={t?.quickAdd?.collocationPlaceholder || "e.g. stay resilient..."}
                     value={col}
                     onChange={(e) => {
                       const updated = [...collocations];
@@ -439,13 +485,13 @@ export default function QuickAddModal({ initialData = null, topics = [], current
             {/* 5. Examples */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t.quickAdd?.examplesLabel || 'Câu ví dụ thực tế'}</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t?.quickAdd?.examplesLabel || "Example Sentences:"}</label>
                 <button
                   type="button"
                   onClick={() => setExamples([...examples, ''])}
                   style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}
                 >
-                  {t.quickAdd?.addExample || '+ Thêm câu ví dụ'}
+                  {t?.quickAdd?.addExample || "+ Add Example"}
                 </button>
               </div>
               {examples.map((ex, idx) => (
@@ -453,7 +499,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                   <input
                     type="text"
                     className="input-control"
-                    placeholder={t.quickAdd?.examplePlaceholder || 'Nhập câu ví dụ thực tế...'}
+                    placeholder={t?.quickAdd?.examplePlaceholder || "Enter example sentence..."}
                     value={ex}
                     onChange={(e) => {
                       const updated = [...examples];
@@ -499,7 +545,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                {t.quickAdd?.livePreview || 'Xem Trước Thẻ (Live Preview)'}
+                {t?.quickAdd?.livePreview || "Card Preview"}
               </span>
               <button
                 type="button"
@@ -508,7 +554,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                 style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
               >
                 <Eye size={13} />
-                <span>{previewFlipped ? (t.quickAdd?.viewFront || 'Xem Mặt Trước') : (t.quickAdd?.viewBack || 'Xem Mặt Sau')}</span>
+                <span>{previewFlipped ? (t?.quickAdd?.viewFront || "Front Side") : (t?.quickAdd?.viewBack || "Back Side")}</span>
               </button>
             </div>
 
@@ -529,17 +575,36 @@ export default function QuickAddModal({ initialData = null, topics = [], current
                 /* Card Front Preview */
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <span className="badge badge-blue">{level || 'B2'}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{partOfSpeech}</span>
+                    <span className="badge badge-blue">
+                      {getDisplayLevel(level || (isLearningVi ? 'A1' : 'B2'), isLearningVi ? 'vi' : 'en', uiLang, true)}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {getDisplayPos(partOfSpeech, isLearningVi ? 'vi' : 'en', uiLang)}
+                    </span>
                   </div>
 
                   <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-                    <h3 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {word || (t.vocab?.addNewWordBtn || 'Từ vựng')}
-                    </h3>
-                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                      {phonetic || '/.../'}
-                    </p>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+                      <h3 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {word || (t?.vocab?.addNewWordBtn || "Add Word")}
+                      </h3>
+                      {word && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); playAudio(word, audioUrl); }}
+                          className="btn-icon"
+                          style={{ color: 'var(--accent-primary)', padding: '0.25rem' }}
+                          title={t?.speaking?.listenReference || "Listen"}
+                        >
+                          <Volume2 size={20} />
+                        </button>
+                      )}
+                    </div>
+                    {!isLearningVi && (
+                      <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                        {phonetic || '/.../'}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -552,15 +617,15 @@ export default function QuickAddModal({ initialData = null, topics = [], current
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.review?.meaningLabel || 'Nghĩa:'}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t?.review?.meaningLabel || "Meaning:"}</span>
                       <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                        {meaningVi || (t.quickAdd?.meaningFrontPreview || 'Nghĩa sẽ hiển thị ở đây')}
+                        {(fluentLang === 'en' ? (meaningEn || meaningVi) : (meaningVi || meaningEn)) || (t?.quickAdd?.meaningFrontPreview || "Meaning will appear here")}
                       </p>
                     </div>
 
-                    {meaningEn && (
+                    {(fluentLang === 'en' ? meaningVi : meaningEn) && (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        {meaningEn}
+                        {fluentLang === 'en' ? meaningVi : meaningEn}
                       </p>
                     )}
 
@@ -582,7 +647,7 @@ export default function QuickAddModal({ initialData = null, topics = [], current
 
               <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
                 <RotateCw size={12} />
-                <span>{t.quickAdd?.previewHint || 'Thẻ sẽ xuất hiện như thế này khi bạn ôn tập SRS'}</span>
+                <span>{t?.quickAdd?.previewHint || "How this card looks in SRS review"}</span>
               </div>
             </div>
           </div>

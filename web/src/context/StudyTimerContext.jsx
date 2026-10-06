@@ -1,3 +1,4 @@
+import { getTranslation } from '../i18n/translations';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 
@@ -20,44 +21,40 @@ export function formatDurationHuman(seconds, lang = 'en') {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  if (lang === 'en') {
-    if (h > 0) return `${h}h ${m}m`;
-    if (m > 0) return `${m}m ${s > 0 ? `${s}s` : ''}`;
-    return `${s}s`;
-  }
   if (lang === 'ru') {
     if (h > 0) return `${h} ч ${m} мин`;
-    if (m > 0) return `${m} мин ${s > 0 ? `${s}с` : ''}`;
+    if (m > 0) return `${m} мин ${s > 0 ? `${s}с` : ''}`.trim();
     return `${s} сек`;
   }
-  if (h > 0) {
-    return `${h} giờ ${m} phút`;
+  if (lang === 'vi') {
+    if (h > 0) return `${h}h ${m}p`;
+    if (m > 0) return `${m}p ${s > 0 ? `${s}s` : ''}`.trim();
+    return `${s}s`;
   }
-  if (m > 0) {
-    return `${m} phút ${s > 0 ? `${s}s` : ''}`;
-  }
-  return `${s} giây`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s > 0 ? `${s}s` : ''}`.trim();
+  return `${s}s`;
 }
 
 export const SOUND_OPTIONS = [
-  { id: 'melodic', label: 'Chuông Ngân Vang', emoji: '🔔', desc: 'Giai điệu 5 nốt tươi vui, thanh lịch' },
-  { id: 'alarm', label: 'Báo Thức Dứt Khoát', emoji: '⏰', desc: 'Tiếng beep-beep đôi 3 lần rõ ràng, dễ nghe từ xa' },
-  { id: 'zen', label: 'Chuông Thiền Zen', emoji: '🧘', desc: 'Âm thanh bát xoay Tây Tạng ngân dài, tĩnh tâm' },
-  { id: 'fanfare', label: 'Kèn Khải Hoàn', emoji: '🎺', desc: 'Hợp âm chiến thắng mừng hoàn thành phiên' }
+  { id: 'melodic', label: 'Melodic Chime', emoji: '🔔', desc: '5-note chime' },
+  { id: 'alarm', label: 'Classic Alarm', emoji: '⏰', desc: 'Double beep' },
+  { id: 'zen', label: 'Zen Bowl', emoji: '🧘', desc: 'Calming bowl' },
+  { id: 'fanfare', label: 'Victory Fanfare', emoji: '🎺', desc: 'Celebration horn' }
 ];
 
 export const ACTIVITIES = [
-  { id: 'coding', label: 'Lập Trình & Học Code', emoji: '💻', color: '#6366f1' },
-  { id: 'work', label: 'Công Việc & Dự Án', emoji: '💼', color: '#059669' },
-  { id: 'vocab', label: 'Học Từ Vựng Mới', emoji: '📚', color: '#0284c7' },
-  { id: 'flashcard', label: 'Ôn Flashcards (SRS)', emoji: '🎴', color: '#8b5cf6' },
-  { id: 'reader', label: 'Đọc Hiểu & Ghi Chú', emoji: '📖', color: '#10b981' },
-  { id: 'quiz', label: 'Luyện Đề Quiz Trắc Nghiệm', emoji: '🎯', color: '#f59e0b' },
-  { id: 'speaking', label: 'Luyện Phát Âm & Nói', emoji: '🎙️', color: '#ec4899' },
-  { id: 'deepwork', label: 'Deep Work Tập Trung', emoji: '🧠', color: '#d97706' },
-  { id: 'writing', label: 'Viết Lách & Dịch Thuật', emoji: '✍️', color: '#0ea5e9' },
-  { id: 'general', label: 'Tự Học & Khác', emoji: '💡', color: '#06b6d4' },
-  { id: 'custom', label: 'Tự Đặt Tên...', emoji: '⚡', color: '#8b5cf6' }
+  { id: 'coding', label: 'Coding', emoji: '💻', color: '#6366f1' },
+  { id: 'work', label: 'Work', emoji: '💼', color: '#059669' },
+  { id: 'vocab', label: 'Vocabulary', emoji: '📚', color: '#0284c7' },
+  { id: 'flashcard', label: 'Flashcards', emoji: '🎴', color: '#8b5cf6' },
+  { id: 'reader', label: 'Reading', emoji: '📖', color: '#10b981' },
+  { id: 'quiz', label: 'Quiz', emoji: '🎯', color: '#f59e0b' },
+  { id: 'speaking', label: 'Speaking', emoji: '🎙️', color: '#ec4899' },
+  { id: 'deepwork', label: 'Deep Work', emoji: '🧠', color: '#d97706' },
+  { id: 'writing', label: 'Writing', emoji: '✍️', color: '#0ea5e9' },
+  { id: 'general', label: 'Self-study', emoji: '💡', color: '#06b6d4' },
+  { id: 'custom', label: 'Custom', emoji: '⚡', color: '#8b5cf6' }
 ];
 
 export function getActivityMeta(activityId, customTitle = '', t = null) {
@@ -247,7 +244,7 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
       duration_seconds: durSec,
       mode: 'pomodoro',
       target_seconds: targetSeconds || pomodoroTarget,
-      notes: notes || (scheduleTitle ? `Ca học: "${scheduleTitle}"` : 'Tự động hoàn thành đếm ngược Pomodoro'),
+      notes: notes || (scheduleTitle ? `Shift: "${scheduleTitle}"` : 'Pomodoro completed'),
       started_at: startIso,
       ended_at: endIso
     };
@@ -266,8 +263,10 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
         setLastSavedSession(savedInfo);
         setIsCompletedAutoSaved(true);
 
+        const userUiLang = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+        const curT = getTranslation(userUiLang);
         if (onAddToast) {
-          onAddToast(`🎉 Đã tự động lưu ${resolvedTitle} (${formatDurationHuman(durSec)})! (+${xpEarned} XP)`);
+          onAddToast(`🎉 ${curT.timer?.sessionSavedToast || 'Saved'}: ${resolvedTitle} (${formatDurationHuman(durSec, userUiLang)}) (+${xpEarned} XP)`);
         }
 
         if (onSessionSaved) {
@@ -277,8 +276,8 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
         // Desktop Notification if browser permits
         try {
           if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('🍅 Hoàn thành Pomodoro!', {
-              body: `Đã tự động lưu "${resolvedTitle}" (${formatDurationHuman(durSec)}). Bạn được cộng +${xpEarned} XP!`,
+            new Notification('🍅 Pomodoro Complete!', {
+              body: `${resolvedTitle} (${formatDurationHuman(durSec, userUiLang)}) (+${xpEarned} XP)`,
               icon: '/favicon.ico'
             });
           }
@@ -294,7 +293,7 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
         pending.push(sessionPayload);
         localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
         if (onAddToast) {
-          onAddToast(`⚠️ Phiên học ${resolvedTitle} (${formatDurationHuman(durSec)}) đã được lưu tạm offline và sẽ đồng bộ khi có mạng.`);
+          onAddToast(`⚠️ ${resolvedTitle} (${formatDurationHuman(durSec)}) saved offline.`);
         }
       } catch (pe) {}
     }
@@ -374,7 +373,7 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
                 customTitle: parsed.customActivityTitle || '',
                 durationSeconds: target,
                 targetSeconds: target,
-                notes: 'Tự động hoàn thành Pomodoro khi khôi phục ứng dụng',
+                notes: 'Pomodoro auto-completed on restore',
                 startedAt: parsed.sessionStartedAt
               });
             } else {
@@ -449,8 +448,8 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
                 durationSeconds: durationToSave,
                 targetSeconds: pomodoroTarget,
                 notes: currentScheduleCycle 
-                  ? `Ca học: "${currentScheduleCycle.title}" (Hiệp ${currentScheduleCycle.currentCycle}/${currentScheduleCycle.totalCycles})`
-                  : 'Tự động hoàn thành đếm ngược Pomodoro',
+                  ? `Shift: "${currentScheduleCycle.title}" (${currentScheduleCycle.currentCycle}/${currentScheduleCycle.totalCycles})`
+                  : 'Pomodoro auto-complete',
                 startedAt: currentStartedAt,
                 scheduleTitle: currentScheduleCycle?.title
               }).finally(() => {
@@ -470,15 +469,18 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
               setSessionStartedAt(null);
               setPomodoroTargetState(breakSec);
 
+              const curL = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
               if (scheduleCycle.autoStartBreaks) {
                 const now = Date.now();
                 setRunStartTime(now);
                 setIsRunning(true);
-                if (onAddToast) onAddToast(`☕ Hoàn thành hiệp ${scheduleCycle.currentCycle}! Bắt đầu nghỉ giải lao ${breakMins} phút.`);
+                const msg = curL === 'ru' ? `☕ Раунд ${scheduleCycle.currentCycle} завершён! Перерыв ${breakMins} мин.` : curL === 'vi' ? `☕ Xong hiệp ${scheduleCycle.currentCycle}! Nghỉ ${breakMins}p.` : `☕ Cycle ${scheduleCycle.currentCycle} done! Break ${breakMins}m.`;
+                if (onAddToast) onAddToast(msg);
               } else {
                 setIsRunning(false);
                 setRunStartTime(null);
-                if (onAddToast) onAddToast(`☕ Hoàn thành hiệp ${scheduleCycle.currentCycle}! Hãy bấm bắt đầu ${breakMins} phút nghỉ giải lao.`);
+                const msg = curL === 'ru' ? `☕ Раунд ${scheduleCycle.currentCycle} завершён! Начните перерыв ${breakMins} мин.` : curL === 'vi' ? `☕ Xong hiệp ${scheduleCycle.currentCycle}! Bấm bắt đầu nghỉ ${breakMins}p.` : `☕ Cycle ${scheduleCycle.currentCycle} done! Start ${breakMins}m break.`;
+                if (onAddToast) onAddToast(msg);
               }
             } else {
               // Standard Pomodoro completed
@@ -500,17 +502,20 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
                 setLiveSeconds(0);
                 setPomodoroTargetState(scheduleCycle.studyDurationMinutes * 60);
 
+                const curL2 = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
                 if (scheduleCycle.autoStartNextSession) {
                   const now = Date.now();
                   setRunStartTime(now);
                   setSessionStartedAt(new Date(now).toISOString());
                   setIsRunning(true);
-                  if (onAddToast) onAddToast(`🔔 Hết giờ nghỉ giữa giờ! Tự động bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}.`);
+                  const msg = curL2 === 'ru' ? `🔔 Перерыв окончен! Начало раунда ${nextCycle}/${scheduleCycle.totalCycles}.` : curL2 === 'vi' ? `🔔 Hết giờ nghỉ! Bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}.` : `🔔 Break over! Starting cycle ${nextCycle}/${scheduleCycle.totalCycles}.`;
+                  if (onAddToast) onAddToast(msg);
                 } else {
                   setIsRunning(false);
                   setRunStartTime(null);
                   setSessionStartedAt(null);
-                  if (onAddToast) onAddToast(`🔔 Hết giờ nghỉ giữa giờ! Bấm Bắt Đầu để vào hiệp ${nextCycle}/${scheduleCycle.totalCycles}.`);
+                  const msg = curL2 === 'ru' ? `🔔 Перерыв окончен! Начните раунд ${nextCycle}/${scheduleCycle.totalCycles}.` : curL2 === 'vi' ? `🔔 Hết giờ nghỉ! Bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}.` : `🔔 Break over! Start cycle ${nextCycle}/${scheduleCycle.totalCycles}.`;
+                  if (onAddToast) onAddToast(msg);
                 }
               } else {
                 // Completed whole schedule
@@ -521,7 +526,9 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
                 setScheduleCycle(null);
                 setTimerPhase('study');
                 setSessionStartedAt(null);
-                if (onAddToast) onAddToast(`🎉 Chúc mừng bạn đã hoàn thành xuất sắc toàn bộ ca học (${scheduleCycle.totalCycles} hiệp)!`);
+                const curL3 = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+                const msg = curL3 === 'ru' ? `🎉 Расписание завершено (${scheduleCycle.totalCycles} раундов)!` : curL3 === 'vi' ? `🎉 Đã hoàn thành ca học (${scheduleCycle.totalCycles} hiệp)!` : `🎉 Schedule complete (${scheduleCycle.totalCycles} cycles)!`;
+                if (onAddToast) onAddToast(msg);
               }
             } else {
               setTimerPhase('study');
@@ -530,7 +537,9 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
               setAccumulatedSeconds(0);
               setLiveSeconds(0);
               setSessionStartedAt(null);
-              if (onAddToast) onAddToast('🔔 Hết giờ nghỉ giải lao!');
+              const curLang3 = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+          const curT3 = getTranslation(curLang3);
+          if (onAddToast) onAddToast('🔔 ' + (curT3.timer?.breakStatus || 'Break') + ' end!');
             }
           }
         }
@@ -547,10 +556,10 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
   // 4. Dynamic document.title updater across browser tabs
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const defaultTitle = 'LinguaVault - Nền Tảng Học & Ghi Nhớ Ngôn Ngữ Chuyên Sâu';
+    const defaultTitle = 'LinguaVault';
 
     if (timerMode === 'pomodoro' && isCompletedAutoSaved) {
-      document.title = '🎉 Đã lưu Pomodoro! - LinguaVault';
+      document.title = '🎉 Pomodoro - LinguaVault';
       return;
     }
 
@@ -596,7 +605,9 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
   const changeTimerMode = (newMode) => {
     if (newMode === timerMode) return;
     if (isRunning) {
-      if (!window.confirm('Đang bấm giờ. Chuyển chế độ sẽ đặt lại thời gian, bạn có muốn đổi không?')) return;
+      const curLang = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+    const curT = getTranslation(curLang);
+    if (!window.confirm(curT.timer?.switchModeConfirm || 'Timer is running. Switch mode and reset?')) return;
       pauseTimer();
     }
     setTimerMode(newMode);
@@ -734,7 +745,9 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
     setIsRunning(true);
 
     if (onAddToast) {
-      onAddToast(`🚀 Bắt đầu ca học "${schedule.title}": Hiệp 1/${totalCycles} (${studyMins}p học, nghỉ giữa giờ ${breakMins}p)`);
+      const curL = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+      const msg = curL === 'ru' ? `🚀 Расписание "${schedule.title}": Раунд 1/${totalCycles} (${studyMins}м учеба, ${breakMins}м перерыв)` : curL === 'vi' ? `🚀 Bắt đầu ca "${schedule.title}": Hiệp 1/${totalCycles} (${studyMins}p học, ${breakMins}p nghỉ)` : `🚀 Started "${schedule.title}": Cycle 1/${totalCycles} (${studyMins}m study, ${breakMins}m break)`;
+      onAddToast(msg);
     }
   };
 
@@ -758,11 +771,15 @@ export function StudyTimerProvider({ children, onAddToast, onSessionSaved }) {
       setRunStartTime(now);
       setSessionStartedAt(new Date(now).toISOString());
       setIsRunning(true);
-      if (onAddToast) onAddToast(`⏩ Đã bỏ qua nghỉ giữa giờ, bắt đầu hiệp ${nextCycle}/${scheduleCycle.totalCycles}!`);
+      const curL = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+      const msg = curL === 'ru' ? `⏩ Перерыв пропущен, раунд ${nextCycle}/${scheduleCycle.totalCycles}!` : curL === 'vi' ? `⏩ Bỏ qua nghỉ, vào hiệp ${nextCycle}/${scheduleCycle.totalCycles}!` : `⏩ Break skipped, starting cycle ${nextCycle}/${scheduleCycle.totalCycles}!`;
+      if (onAddToast) onAddToast(msg);
     } else {
       stopScheduleCycle();
       resetTimer();
-      if (onAddToast) onAddToast('🎉 Đã hoàn thành toàn bộ ca học!');
+      const curLang4 = typeof window !== 'undefined' ? (localStorage.getItem('linguavault_ui_lang') || 'en') : 'en';
+      const curT4 = getTranslation(curLang4);
+      if (onAddToast) onAddToast('🎉 ' + (curT4.timer?.sessionSavedToast || 'Schedule complete!'));
     }
   };
 

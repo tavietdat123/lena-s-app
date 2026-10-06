@@ -164,7 +164,7 @@ export default function Sidebar({
                 color: 'var(--text-muted)',
                 cursor: 'pointer'
               }}
-              title="Đóng menu"
+              title={t.common?.close || "Close"}
             >
               <X size={18} />
             </button>
@@ -461,7 +461,7 @@ export default function Sidebar({
             borderColor: 'rgba(2, 132, 199, 0.35)',
             background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, rgba(56, 189, 248, 0.08) 100%)'
           }}
-          title="Mở Cổng Giám Sát Học Tập để xem trực tiếp giao diện người ngoài nhìn thấy"
+          title={t.nav?.supervisorLink || "Supervisor"}
         >
           <ShieldCheck size={15} style={{ color: 'var(--accent-primary)' }} />
           <span style={{ fontWeight: 700 }}>{t.nav.supervisorPortal}</span>

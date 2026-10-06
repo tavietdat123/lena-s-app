@@ -5,7 +5,7 @@ import { api } from '../../services/api.js';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, words = [], questionCount = 3 }) {
-  const { t } = useLanguage();
+  const { t, uiLang } = useLanguage();
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -24,33 +24,42 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
     if (isOpen) {
       // Get target question count (default 3, max 10)
       const count = parseInt(localStorage.getItem('linguavault_alarm_q_count') || questionCount, 10) || 3;
+      const getWordMeaning = (w) => {
+        if (!w) return '';
+        if (uiLang === 'ru') return w.meaning_ru || w.meaning_en || w.meaning_vi || w.meaning || 'Определение';
+        if (uiLang === 'en') return w.meaning_en || w.meaning_vi || w.meaning || 'Definition';
+        return w.meaning_vi || w.meaning_en || w.meaning || 'Định nghĩa';
+      };
+
       const currentWords = wordsRef.current && wordsRef.current.length >= count ? wordsRef.current : [
-        { word: 'deliverable', meaning_vi: 'Sản phẩm / kết quả bàn giao của dự án' },
-        { word: 'bottleneck', meaning_vi: 'Điểm nghẽn, nút thắt cổ chai gây đình trệ tiến độ' },
-        { word: 'stakeholder', meaning_vi: 'Các bên liên quan (khách hàng, ban điều hành, đối tác)' },
-        { word: 'resilient', meaning_vi: 'Kiên cường, có khả năng phục hồi nhanh sau khó khăn' },
-        { word: 'articulate', meaning_vi: 'Ăn nói lưu loát, diễn đạt mạch lạc rõ ràng' },
-        { word: 'meticulous', meaning_vi: 'Tỉ mỉ, cẩn thận từng chi tiết nhỏ' },
-        { word: 'leverage', meaning_vi: 'Tận dụng, phát huy tối đa đòn bẩy / thế mạnh' },
-        { word: 'pragmatic', meaning_vi: 'Thực tế, thực dụng và hiệu quả' }
+        { word: 'deliverable', meaning_vi: 'Sản phẩm bàn giao', meaning_en: 'Deliverable output', meaning_ru: 'Результат проекта' },
+        { word: 'bottleneck', meaning_vi: 'Điểm nghẽn tiến độ', meaning_en: 'Process bottleneck', meaning_ru: 'Узкое место' },
+        { word: 'stakeholder', meaning_vi: 'Bên liên quan', meaning_en: 'Project stakeholder', meaning_ru: 'Заинтересованное лицо' },
+        { word: 'resilient', meaning_vi: 'Kiên cường, bền bỉ', meaning_en: 'Resilient, adaptive', meaning_ru: 'Стойкий, адаптивный' },
+        { word: 'articulate', meaning_vi: 'Diễn đạt lưu loát', meaning_en: 'Fluent, articulate', meaning_ru: 'Четко выражающий' },
+        { word: 'meticulous', meaning_vi: 'Tỉ mỉ, cẩn thận', meaning_en: 'Meticulous, detailed', meaning_ru: 'Педантичный, точный' },
+        { word: 'leverage', meaning_vi: 'Tận dụng thế mạnh', meaning_en: 'Leverage advantage', meaning_ru: 'Использовать ресурс' },
+        { word: 'pragmatic', meaning_vi: 'Thực tế, thực dụng', meaning_en: 'Pragmatic, practical', meaning_ru: 'Прагматичный' }
       ];
 
       // Shuffle & pick required count
       const shuffled = [...currentWords].sort(() => 0.5 - Math.random()).slice(0, count);
       const generated = shuffled.map((w, idx) => {
+        const correctMeaning = getWordMeaning(w);
         const otherMeanings = currentWords
           .filter(item => item.word !== w.word)
-          .map(item => item.meaning_vi)
+          .map(item => getWordMeaning(item))
+          .filter(Boolean)
           .slice(0, 3);
 
-        const options = [...otherMeanings, w.meaning_vi].sort(() => 0.5 - Math.random());
-
+        const options = [...otherMeanings, correctMeaning].sort(() => 0.5 - Math.random());
+        const qTitle = uiLang === 'ru' ? `Значение "${w.word.toUpperCase()}":` : uiLang === 'en' ? `Meaning of "${w.word.toUpperCase()}":` : `Nghĩa của "${w.word.toUpperCase()}":`;
         return {
           id: idx,
           word: w.word,
           phonetic: w.phonetic || '',
-          questionText: `Nghĩa tiếng Việt chuẩn xác của từ "${w.word.toUpperCase()}" là gì?`,
-          correctAnswer: w.meaning_vi,
+          questionText: qTitle,
+          correctAnswer: correctMeaning,
           options
         };
       });
@@ -186,10 +195,10 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
             </div>
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '0.5px' }}>
-                🚨 BÁO THỨC KỶ LUẬT THÉP
+                🚨 {t?.alarmChallenge?.title || "Discipline Alarm"}
               </h3>
               <p style={{ fontSize: '0.78rem', margin: 0, opacity: 0.9 }}>
-                Bắt buộc giải đúng {questions.length} câu trắc nghiệm để tắt chuông!
+                {t?.alarmChallenge?.subtitle || "Solve quiz to dismiss alarm!"}
               </p>
             </div>
           </div>
@@ -206,7 +215,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
           }}>
             <Lock size={13} color="#fef08a" />
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fef08a', letterSpacing: '0.5px' }}>
-              {t.alarmChallenge?.noSnooze || 'KHÔNG CHO HOÃN'}
+              {t?.alarmChallenge?.noSnooze || "NO SNOOZE"}
             </span>
           </div>
         </div>
@@ -219,7 +228,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <ShieldAlert size={16} />
-                  <span>{t.alarmChallenge?.challenge || 'THỬ THÁCH GIẢI MÃ: CÂU'} {currentIndex + 1} / {questions.length}</span>
+                  <span>{t?.alarmChallenge?.challenge || "Challenge Question:"} {currentIndex + 1} / {questions.length}</span>
                 </span>
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
                   {questions.map((_, i) => (
@@ -251,7 +260,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   letterSpacing: '1px',
                   textTransform: 'uppercase'
                 }}>
-                  {t.alarmChallenge?.wordToSolve || 'TỪ VỰNG CẦN GIẢI MÃ'}
+                  {t?.alarmChallenge?.wordToSolve || "Word to Solve:"}
                 </span>
                 <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '0.5rem 0 0.2rem 0', color: 'var(--text-primary)' }}>
                   {currentQ.word.toUpperCase()}
@@ -329,7 +338,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   fontWeight: 600
                 }}>
                   <AlertCircle size={16} />
-                  <span>{t.alarmChallenge?.incorrectHint || 'Chưa chính xác! Hãy chọn đáp án khác cho đến khi đúng.'}</span>
+                  <span>{t?.alarmChallenge?.incorrectHint || "Incorrect! Pick another answer until correct."}</span>
                 </div>
               )}
             </>
@@ -351,10 +360,10 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
 
               <div>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.4rem 0' }}>
-                  {t.alarmChallenge?.successTitle || '🎉 CHÚC MỪNG BẠN ĐÃ GIẢI MÃ THÀNH CÔNG!'}
+                  {t?.alarmChallenge?.successTitle || "Challenge Solved!"}
                 </h3>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                  {t.alarmChallenge?.successDesc || 'Chuông báo thức đã được TẮT hoàn toàn. Chuỗi ngày học Streak 🔥 của bạn đã được bảo vệ an toàn!'}
+                  {t?.alarmChallenge?.successDesc || "Alarm dismissed. Your streak is protected!"}
                 </p>
               </div>
 
@@ -366,9 +375,9 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                 borderRadius: '12px',
                 border: '1px solid var(--border-color)'
               }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981' }}>{t.alarmChallenge?.bonusXp || '+30 XP Thưởng'}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#10b981' }}>{t?.alarmChallenge?.bonusXp || "+30 Bonus XP"}</span>
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>•</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{questions.length}/{questions.length} {t.alarmChallenge?.wordsReviewed || 'Từ Vựng Đã Ôn'}</span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{questions.length}/{questions.length} {t?.alarmChallenge?.wordsReviewed || "Words Reviewed"}</span>
               </div>
 
               <button
@@ -385,7 +394,7 @@ export default function AlarmModal({ isOpen, onClose, onChallengeCompleted, word
                   cursor: 'pointer'
                 }}
               >
-                {t.alarmChallenge?.startStudyingBtn || 'Vào Học Ngay Bây Giờ 🚀'}
+                {t?.alarmChallenge?.startStudyingBtn || "Start Studying Now 🚀"}
               </button>
             </div>
           )}

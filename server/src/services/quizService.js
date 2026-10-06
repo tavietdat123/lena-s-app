@@ -1535,17 +1535,33 @@ export function buildPedagogicalExplanation({
 
 export const quizService = {
   // 1. Get all available topics / tags with counts from master data topics table for specific user
-  getTopics: (userId = 'admin_master_user_id') => {
+  getTopics: (userId = 'admin_master_user_id', targetLanguage = null) => {
     const db = getDb();
-    const allWords = db.prepare(`
+    let wordSql = `
       SELECT id, word, topic_id, tags, level FROM words 
       WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId);
+    `;
+    const wordParams = [userId, userId, userId];
+    if (targetLanguage === 'vi') {
+      wordSql += ' AND target_language = ?';
+      wordParams.push('vi');
+    } else if (targetLanguage === 'en') {
+      wordSql += ' AND (target_language = ? OR target_language IS NULL)';
+      wordParams.push('en');
+    }
+
+    const allWords = db.prepare(wordSql).all(...wordParams);
     const totalWords = allWords.length;
 
     let masterTopics = [];
     try {
-      masterTopics = db.prepare('SELECT * FROM topics ORDER BY created_at ASC').all();
+      if (targetLanguage === 'vi') {
+        masterTopics = db.prepare("SELECT * FROM topics WHERE target_language IN ('vi', 'all') OR target_language IS NULL ORDER BY created_at ASC").all();
+      } else if (targetLanguage === 'en') {
+        masterTopics = db.prepare("SELECT * FROM topics WHERE target_language IN ('en', 'all') OR target_language IS NULL ORDER BY created_at ASC").all();
+      } else {
+        masterTopics = db.prepare('SELECT * FROM topics ORDER BY created_at ASC').all();
+      }
     } catch (e) {
       masterTopics = [];
     }
@@ -1579,25 +1595,41 @@ export const quizService = {
   },
 
   // 1b. Get all available dates with counts of words and patterns created on each day
-  getDates: (userId = 'admin_master_user_id') => {
+  getDates: (userId = 'admin_master_user_id', targetLanguage = null) => {
     const db = getDb();
-    const wordDates = db.prepare(`
+    let wordSql = `
       SELECT substr(created_at, 1, 10) as date, count(*) as count
       FROM words
       WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
         AND created_at IS NOT NULL
-      GROUP BY substr(created_at, 1, 10)
-      ORDER BY date DESC
-    `).all(userId, userId, userId);
+    `;
+    const wordParams = [userId, userId, userId];
+    if (targetLanguage === 'vi') {
+      wordSql += ' AND target_language = ?';
+      wordParams.push('vi');
+    } else if (targetLanguage === 'en') {
+      wordSql += ' AND (target_language = ? OR target_language IS NULL)';
+      wordParams.push('en');
+    }
+    wordSql += ' GROUP BY substr(created_at, 1, 10) ORDER BY date DESC';
+    const wordDates = db.prepare(wordSql).all(...wordParams);
 
-    const patternDates = db.prepare(`
+    let patSql = `
       SELECT substr(created_at, 1, 10) as date, count(*) as count
       FROM patterns
       WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
         AND created_at IS NOT NULL
-      GROUP BY substr(created_at, 1, 10)
-      ORDER BY date DESC
-    `).all(userId, userId, userId);
+    `;
+    const patParams = [userId, userId, userId];
+    if (targetLanguage === 'vi') {
+      patSql += ' AND target_language = ?';
+      patParams.push('vi');
+    } else if (targetLanguage === 'en') {
+      patSql += ' AND (target_language = ? OR target_language IS NULL)';
+      patParams.push('en');
+    }
+    patSql += ' GROUP BY substr(created_at, 1, 10) ORDER BY date DESC';
+    const patternDates = db.prepare(patSql).all(...patParams);
 
     const dateMap = new Map();
     const now = new Date();
@@ -1645,12 +1677,23 @@ export const quizService = {
   },
 
   // 2. Generate a Quiz based on Topics, Date Scope, Count and IELTS Level
-  generateQuiz: ({ topic = 'All', count = 5, mode = 'mixed', level = 'all', context_levels = null, date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id' }) => {
+  generateQuiz: ({ topic = 'All', count = 5, mode = 'mixed', level = 'all', context_levels = null, date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id', target_language = null }) => {
     const db = getDb();
-    let words = db.prepare(`
+    let wordsQuery = `
       SELECT * FROM words 
       WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId);
+    `;
+    const wordsParams = [userId, userId, userId];
+    if (target_language && target_language !== 'all') {
+      if (target_language === 'vi') {
+        wordsQuery += ' AND target_language = ?';
+        wordsParams.push('vi');
+      } else if (target_language === 'en') {
+        wordsQuery += ' AND (target_language = ? OR target_language IS NULL)';
+        wordsParams.push('en');
+      }
+    }
+    let words = db.prepare(wordsQuery).all(...wordsParams);
 
     if (words.length === 0) {
       throw new Error('Kho từ vựng đang trống. Vui lòng thêm từ vựng trước khi tạo bài Quiz!');
@@ -2108,12 +2151,23 @@ export const quizService = {
   },
 
   // 4. Generate Sentence Pattern Quiz
-  generatePatternQuiz: ({ category = 'all', tone = 'all', count = 5, mode = 'mixed', level = 'all', date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id' }) => {
+  generatePatternQuiz: ({ category = 'all', tone = 'all', count = 5, mode = 'mixed', level = 'all', date_scope = 'all', date = null, start_date = null, end_date = null, userId = 'admin_master_user_id', target_language = null }) => {
     const db = getDb();
-    let patterns = db.prepare(`
+    let patternsQuery = `
       SELECT * FROM patterns 
       WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-    `).all(userId, userId, userId);
+    `;
+    const patternsParams = [userId, userId, userId];
+    if (target_language && target_language !== 'all') {
+      if (target_language === 'vi') {
+        patternsQuery += ' AND target_language = ?';
+        patternsParams.push('vi');
+      } else if (target_language === 'en') {
+        patternsQuery += ' AND (target_language = ? OR target_language IS NULL)';
+        patternsParams.push('en');
+      }
+    }
+    let patterns = db.prepare(patternsQuery).all(...patternsParams);
 
     if (patterns.length === 0) {
       throw new Error('Kho mẫu câu & cấu trúc đang trống. Vui lòng thêm mẫu câu trước khi tạo Quiz!');

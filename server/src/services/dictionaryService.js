@@ -6,6 +6,18 @@
 import { db } from '../db/database.js';
 import { callGemini, getEffectiveApiKey } from './aiService.js';
 
+// Helper: Detect Vietnamese Tone
+export function detectVietnameseTone(word) {
+  if (!word) return 'Ngang';
+  const w = word.toLowerCase();
+  if (/[áắấéếíóốớúứý]/.test(w)) return 'Sắc';
+  if (/[àằầèềìòồờùừỳ]/.test(w)) return 'Huyền';
+  if (/[ảẳẩẻểỉỏổởủửỷ]/.test(w)) return 'Hỏi';
+  if (/[ãẵẫẽễĩõỗỡũữỹ]/.test(w)) return 'Ngã';
+  if (/[ạặậẹệịọộợụựỵ]/.test(w)) return 'Nặng';
+  return 'Ngang';
+}
+
 // Topic Identifier Mapping Helper
 export function inferTopic(word, partOfSpeech = '', meaningVi = '') {
   const w = (word || '').toLowerCase();
@@ -487,39 +499,43 @@ export async function lookupDictionary(word, targetLang = 'en', nativeLang = 'en
     try {
       let topicListPrompt = '';
       try {
-        const activeTopics = db.prepare('SELECT id, name, description FROM topics').all();
+        const langFilter = isTargetVi ? "WHERE target_language IN ('vi', 'all') OR target_language IS NULL" : "WHERE target_language IN ('en', 'all') OR target_language IS NULL";
+        const activeTopics = db.prepare(`SELECT id, name, description FROM topics ${langFilter} ORDER BY created_at ASC`).all();
         if (activeTopics.length > 0) {
           topicListPrompt = activeTopics.map(t => `   - "${t.id}" (${t.name}: ${t.description || ''})`).join('\n');
         }
       } catch (e) {}
 
       if (!topicListPrompt) {
-        topicListPrompt = `   - "work" (Công việc)\n   - "tech" (Công nghệ)\n   - "ai" (Trí tuệ nhân tạo)\n   - "daily" (Đời sống hàng ngày)`;
+        topicListPrompt = `   - "daily" (Đời sống & Giao tiếp)\n   - "social" (Gia đình & Quan hệ)\n   - "food" (Ẩm thực & Ăn uống)\n   - "travel" (Du lịch & Văn hóa)\n   - "work" (Công việc & Sự nghiệp)\n   - "education" (Giáo dục & Học vấn)\n   - "health" (Sức khỏe & Thể chất)\n   - "tech" (Công nghệ & Đời sống Số)`;
       }
 
       let prompt = '';
       if (isTargetVi) {
         const nativeName = nativeLang === 'ru' ? 'Russian (Tiếng Nga)' : 'English (Tiếng Anh)';
         prompt = `
-Bạn là một Chuyên gia Từ điển học Tiếng Việt và Ngôn ngữ học Quốc tế.
-Hãy biên soạn phân tích từ vựng tiếng Việt CHUẨN MỰC, DỄ HIỂU NHẤT dành cho người học tiếng Việt (người nước ngoài có ngôn ngữ mẹ đẻ là "${nativeName}") đối với từ/cụm từ tiếng Việt: "${cleanWord}".
+Bạn là một Chuyên gia Ngôn ngữ học Tiếng Việt và Sư phạm Ngôn ngữ Quốc tế (chuẩn Khung 6 Bậc VSL).
+Hãy biên soạn phân tích từ vựng tiếng Việt CHUẨN XÁC, DỄ HIỂU NHẤT dành cho người học tiếng Việt (người nước ngoài có ngôn ngữ mẹ đẻ là "${nativeName}") đối với từ/cụm từ: "${cleanWord}".
+
+LƯU Ý QUAN TRỌNG VỀ ĐẶC THÙ TIẾNG VIỆT:
+- Tiếng Việt KHÔNG CÓ PHIÊN ÂM IPA như tiếng Anh. Tuyệt đối để "phonetic": null.
 
 YÊU CẦU BIÊN SOẠN CHUẨN XÁC:
-1. "meaning_vi": Giải thích nghĩa bằng tiếng Việt đơn giản, súc tích, tự nhiên, dễ hiểu.
-2. "meaning_en": Bản dịch nghĩa chuẩn xác, dễ hiểu bằng ${nativeLang === 'ru' ? 'tiếng Nga (hoặc kèm tiếng Anh)' : 'tiếng Anh'}.
-3. "phonetic": Hướng dẫn phiên âm hoặc thanh điệu tiếng Việt (ví dụ: [Ngang], [Sắc], [Huyền], [Hỏi], [Ngã], [Nặng] hoặc IPA).
-4. "part_of_speech": Từ loại chuẩn (noun, verb, adjective, adverb, phrase, idiom).
+1. "phonetic": null (Tuyệt đối không điền IPA).
+2. "meaning_vi": Giải thích nghĩa bằng tiếng Việt đơn giản, súc tích, tự nhiên, dễ hiểu.
+3. "meaning_en": Bản dịch nghĩa chuẩn xác, dễ hiểu bằng ${nativeLang === 'ru' ? 'tiếng Nga (kèm tiếng Anh)' : 'tiếng Anh'}.
+4. "part_of_speech": Từ loại chuẩn tiếng Việt (chọn 1 trong: noun, verb, adjective, adverb, classifier, phrase, idiom). Với các từ chỉ loại như "con, cái, chiếc, bức, ngôi, quyển...", hãy chọn "classifier".
 5. "collocations": 3-4 cụm từ / collocation tự nhiên đi kèm với từ này (MỖI CỤM KÈM NGHĨA DỊCH TRONG NGOẶC).
 6. "examples": Đúng 2 câu ví dụ thực tế tiếng Việt (MỖI CÂU KÈM BẢN DỊCH NGHĨA TRONG NGOẶC).
-7. "level": Đánh giá cấp độ (A1, A2, B1, B2, C1, hoặc C2).
+7. "level": Đánh giá cấp độ chuẩn Khung VSL (A1: Bậc 1, A2: Bậc 2, B1: Bậc 3, B2: Bậc 4, C1: Bậc 5, C2: Bậc 6).
 8. "topic_id": Hãy chọn ĐÚNG 1 mã "id" chủ đề phù hợp nhất:
 ${topicListPrompt}
 
 Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`json ngoài JSON):
 {
   "word": "${cleanWord}",
-  "phonetic": "/.../",
-  "part_of_speech": "noun",
+  "phonetic": null,
+  "part_of_speech": "verb",
   "meaning_vi": "Giải thích tiếng Việt ngắn gọn, dễ nhớ",
   "meaning_en": "Accurate definition in learner's language",
   "collocations": [
@@ -530,7 +546,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
     "Câu ví dụ tiếng Việt 1. (Bản dịch nghĩa 1.)",
     "Câu ví dụ tiếng Việt 2. (Bản dịch nghĩa 2.)"
   ],
-  "level": "A2",
+  "level": "A1",
   "topic_id": "daily"
 }
 `.trim();
@@ -766,7 +782,9 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`
 
   return {
     word: cleanWord,
-    phonetic: phonetic || `/${cleanWord}/`,
+    phonetic: isTargetVi ? null : (phonetic || `/${cleanWord}/`),
+    tone: null,
+    sino_vietnamese: null,
     audio_url: audioUrl,
     part_of_speech: partOfSpeech,
     meaning_vi: finalMeaningVi,

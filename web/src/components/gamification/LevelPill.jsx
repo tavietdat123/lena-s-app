@@ -37,7 +37,7 @@ export default function LevelPill({ profile, onOpenReport }) {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
         }}
         className="hover-card"
-        title={t.levelPill?.ladderTitle || "Nhấn để xem Bảng Bậc Thang Cấp Độ & EXP"}
+        title={t?.levelPill?.ladderTitle || "Rank Ladder"}
       >
         {/* Level Badge */}
         <div style={{
@@ -145,10 +145,10 @@ export default function LevelPill({ profile, onOpenReport }) {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {t.levelPill?.ladderTitle || 'Bậc Thang Cấp Độ Học Thuật'}
+                    {t?.levelPill?.ladderTitle || "Rank Ladder"}
                   </h3>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    {t.levelPill?.ladderSubtitle || 'Tích lũy EXP để mở khóa các danh hiệu ngôn ngữ cao cấp'}
+                    {t?.levelPill?.ladderSubtitle || "Earn XP to unlock new ranks"}
                   </p>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default function LevelPill({ profile, onOpenReport }) {
             }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                  {t.levelPill?.currentRank || 'CẤP ĐỘ HIỆN TẠI'}
+                  {t?.levelPill?.currentRank || "CURRENT RANK"}
                 </span>
                 <h4 style={{ margin: '0.2rem 0 0 0', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                   Level {level}: {title}
@@ -261,7 +261,7 @@ export default function LevelPill({ profile, onOpenReport }) {
                   style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
                 >
                   <Sparkles size={15} color="var(--accent-primary)" />
-                  <span>{t.nav?.aiReportBtn || 'Xem Đánh Giá Năng Lực AI'}</span>
+                  <span>{t?.nav?.aiReportBtn || "AI Report"}</span>
                 </button>
               )}
               <button
@@ -269,7 +269,7 @@ export default function LevelPill({ profile, onOpenReport }) {
                 className="btn-primary"
                 style={{ fontSize: '0.85rem', padding: '0.5rem 1.25rem', marginLeft: 'auto' }}
               >
-                {t.common?.close || 'Đóng'}
+                {t?.common?.close || "Close"}
               </button>
             </div>
           </div>

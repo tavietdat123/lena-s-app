@@ -118,7 +118,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
   };
 
   const formatDateVi = (dateStr) => {
-    if (!dateStr || dateStr === 'all') return 'Toàn bộ thời gian';
+    if (!dateStr || dateStr === 'all') return t?.common?.all || "All";
     try {
       const parts = dateStr.split('-');
       if (parts.length === 3) {
@@ -177,11 +177,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             });
           }
         } else {
-          setError(res.error || 'Không tìm thấy hồ sơ học tập công khai này.');
+          setError(res.error || 'Public learning profile not found.');
         }
       })
       .catch(err => {
-        setError(err.message || 'Lỗi kết nối máy chủ.');
+        setError(err.message || (t?.common?.error || "Error"));
       })
       .finally(() => {
         setLoading(false);
@@ -250,13 +250,13 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
     try {
       const res = await api.postSupervisorFeedback({
         username: target || statsData?.user?.username || 'admin',
-        supervisor_name: supervisorName.trim() || 'Người Giám Sát',
+        supervisor_name: supervisorName.trim() || (t?.nav?.supervisorLink || "Supervisor"),
         type: feedbackType,
         message: feedbackMessage.trim()
       });
 
       if (res.success) {
-        setFeedbackSuccessNotice('Đã gửi lời nhắc/động viên tới học viên thành công! 🎉');
+        setFeedbackSuccessNotice('Encouragement sent successfully! 🎉');
         setFeedbackMessage('');
         // Reload data to show updated feedback
         api.getPublicStats(target).then(r => {
@@ -264,20 +264,20 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
         });
         setTimeout(() => setFeedbackSuccessNotice(''), 4000);
       } else {
-        alert(res.error || 'Lỗi gửi phản hồi');
+        alert(res.error || (t?.common?.error || "Error"));
       }
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     } finally {
       setIsSendingFeedback(false);
     }
   };
 
   const quickNudgeTemplates = [
-    { type: 'cheer', text: '👏 Hôm nay học rất chăm chỉ và đúng giờ, tiếp tục phát huy nhé!' },
-    { type: 'nudge', text: '⚠️ Nhắc nhở: Hôm nay bạn chưa hoàn thành đủ thời gian học, vào học ngay nhé!' },
-    { type: 'cheer', text: '🔥 Chuỗi ngày học liên tục rất ấn tượng, đừng để bị đứt streak!' },
-    { type: 'warning', text: '⏱️ Đã gần hết ngày rồi, hãy dành ra 15 phút ôn tập thẻ flashcards nhé!' }
+    { type: 'cheer', text: uiLang === 'ru' ? '👏 Отличная работа сегодня, продолжайте!' : uiLang === 'vi' ? '👏 Hôm nay học rất chăm chỉ, phát huy nhé!' : '👏 Great work today, keep it up!' },
+    { type: 'nudge', text: uiLang === 'ru' ? '⚠️ Напоминание: цель по времени еще не закрыта!' : uiLang === 'vi' ? '⚠️ Nhắc nhở: Chưa hoàn thành thời gian học!' : '⚠️ Reminder: Today’s study time goal not met!' },
+    { type: 'cheer', text: uiLang === 'ru' ? '🔥 Отличная серия дней, держите темп!' : uiLang === 'vi' ? '🔥 Chuỗi học rất tốt, đừng để đứt streak!' : '🔥 Impressive streak, keep the momentum!' },
+    { type: 'warning', text: uiLang === 'ru' ? '⏱️ Скоро конец дня, повторите карточки!' : uiLang === 'vi' ? '⏱️ Sắp hết ngày rồi, vào ôn thẻ nhé!' : '⏱️ Day ending soon, review cards now!' }
   ];
 
   if (loading) {
@@ -300,7 +300,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
           }} />
-          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>Đang tải Cổng Giám Sát Học Tập...</p>
+          <p style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{t?.common?.loading || "Loading..."}</p>
         </div>
       </div>
     );
@@ -318,16 +318,16 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
       }}>
         <div className="card" style={{ maxWidth: '500px', textAlign: 'center', padding: '2.5rem' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🛡️</div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>Không Tìm Thấy Hồ Sơ Giám Sát</h2>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem' }}>{t?.supervisor?.profileNotFound || "User profile not found"}</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            {error || 'Không thể tìm thấy thông tin giám sát người dùng này.'}
+            {error || (t?.supervisor?.profileNotFound || "User profile not found")}
           </p>
           <button
             onClick={() => navigate(hasAuth ? '/dashboard' : '/login')}
             className="btn-primary"
             style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}
           >
-            {hasAuth ? 'Quay Về Không Gian Học' : 'Quay Về Trang Chủ'}
+            {hasAuth ? (t?.supervisor?.backToApp || "Go to Study App") : (t?.supervisor?.backHome || "Back to Home")}
           </button>
         </div>
       </div>
@@ -388,7 +388,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           <div
             onClick={() => navigate(hasAuth ? '/dashboard' : '/login')}
             style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-            title={hasAuth ? 'Quay về không gian học tập' : 'Về trang chủ'}
+            title={hasAuth ? (t?.supervisor?.backToApp || "Go to Study App") : (t?.supervisor?.backHome || "Back to Home")}
           >
             <div style={{
               width: '38px',
@@ -420,11 +420,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   gap: '0.25rem'
                 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }} />
-                  <span>TRỰC TIẾP</span>
+                  <span>LIVE</span>
                 </span>
               </div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.3px' }}>
-                {t.supervisor?.portalTitle || 'CỔNG GIÁM SÁT HỌC TẬP & BÁO CÁO KỶ LUẬT'}
+                {t?.supervisor?.portalTitle || "Supervisor Portal"}
               </div>
             </div>
           </div>
@@ -448,10 +448,10 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              title="Sao chép link trang giám sát này"
+              title={t?.common?.copy || "Copy"}
             >
               {copied ? <Check size={15} /> : <Share2 size={15} />}
-              <span>{copied ? 'Đã sao chép link!' : 'Chia sẻ link giám sát'}</span>
+              <span>{copied ? (t?.common?.copied || "Copied") : (t?.common?.copy || "Copy")}</span>
             </button>
 
             {toggleTheme && (
@@ -492,7 +492,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   cursor: 'pointer'
                 }}
               >
-                <span>← Quay Về Không Gian Học</span>
+                <span>← {t?.common?.back || "Back"}</span>
               </button>
             ) : (
               <button
@@ -509,7 +509,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   cursor: 'pointer'
                 }}
               >
-                <span>Vào App Học</span>
+                <span>{t?.supervisor?.backToApp || "Go to Study App"}</span>
                 <ArrowRight size={14} />
               </button>
             )}
@@ -581,14 +581,14 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   letterSpacing: '0.5px'
                 }}>
                   <Eye size={13} />
-                  <span>HỒ SƠ ĐANG GIÁM SÁT</span>
+                  <span>{t?.supervisor?.portalTitle || "Supervisor Portal"}</span>
                 </span>
               </div>
 
               <div style={{ fontSize: '1.05rem', fontWeight: 700, opacity: 0.95, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span>{user.title}</span>
                 <span>•</span>
-                <span style={{ opacity: 0.85, fontSize: '0.9rem' }}>Tham gia từ {user.memberSince}</span>
+                <span style={{ opacity: 0.85, fontSize: '0.9rem' }}>{t?.supervisor?.memberSince || "Member since:"} {user.memberSince}</span>
               </div>
             </div>
           </div>
@@ -606,10 +606,10 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: '#fef08a', fontWeight: 900, fontSize: '1.3rem' }}>
                 <Flame size={22} fill="currentColor" />
-                <span>{user.currentStreak} Ngày</span>
+                <span>{user.currentStreak} {t?.common?.days || "days"}</span>
               </div>
               <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px', fontWeight: 600 }}>
-                {user.maxStreak > user.currentStreak ? `Kỷ lục: ${user.maxStreak} ngày` : 'Chuỗi học liên tục 🔥'}
+                {user.maxStreak > user.currentStreak ? `${t?.supervisor?.streakRecord || "Streak record"} ${user.maxStreak} ${t?.common?.days || "days"}` : `${t?.supervisor?.currentStreak || "Current streak"} 🔥`}
               </div>
             </div>
 
@@ -627,7 +627,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 <span>Lv.{user.level}</span>
               </div>
               <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: '2px', fontWeight: 600 }}>
-                {user.totalXp} XP tích lũy
+                {user.totalXp} {t?.supervisor?.xpAccumulated || "Total XP"}
               </div>
             </div>
           </div>
@@ -658,7 +658,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   {todayAccountability.overallStatus === 'not_started' && <AlertTriangle size={26} style={{ color: '#ef4444' }} />}
                   
                   <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: todayAccountability.statusColor, margin: 0 }}>
-                    HÔM NAY: {todayAccountability.statusLabel.toUpperCase()}
+                    {t?.supervisor?.todayAccountability || "TODAY’S ACCOUNTABILITY"}: {todayAccountability.statusLabel.toUpperCase()}
                   </h3>
 
                   {todayAccountability.disciplineGrade && (
@@ -675,7 +675,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                       alignItems: 'center',
                       gap: '0.3rem'
                     }}>
-                      🏆 Hạng {todayAccountability.disciplineGrade} • {todayAccountability.disciplineScore || 0}/100 Điểm
+                      🏆 {t?.supervisor?.disciplineGrade || "Grade"} {todayAccountability.disciplineGrade} • {todayAccountability.disciplineScore || 0}/100 {t?.supervisor?.disciplineScore || "Discipline Score"}
                     </span>
                   )}
                 </div>
@@ -700,7 +700,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     gap: '0.35rem'
                   }}>
                     <Flame size={15} fill="currentColor" />
-                    <span>Chuỗi {user.currentStreak} ngày an toàn</span>
+                    <span>{user.currentStreak} {t?.common?.days || "days"}</span>
                   </div>
                 )}
 
@@ -713,7 +713,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     fontSize: '0.8rem',
                     color: 'var(--text-secondary)'
                   }}>
-                    Hoạt động gần nhất: <b style={{ color: 'var(--text-primary)' }}>{formatSessionTime(todayAccountability.lastActiveAt)}</b>
+                    {t.common?.time || 'Recent:'} <b style={{ color: 'var(--text-primary)' }}>{formatSessionTime(todayAccountability.lastActiveAt)}</b>
                   </div>
                 )}
               </div>
@@ -737,9 +737,9 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.3rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ Thời Lượng Học Tập</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>⏱️ {t?.timer?.statTodayTimeTitle || "Today’s Time"}</span>
                     <b style={{ color: todayAccountability.isTimeGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
-                      {Math.floor(todayAccountability.todayMinutes / 60)}h {todayAccountability.todayMinutes % 60}m / {todayAccountability.targetGoalHours || 6} tiếng ({todayAccountability.todayMinutes}/{todayAccountability.targetGoalMinutes}p)
+                      {Math.floor(todayAccountability.todayMinutes / 60)}h {todayAccountability.todayMinutes % 60}m / {todayAccountability.targetGoalHours || 6}h ({todayAccountability.todayMinutes}/{todayAccountability.targetGoalMinutes}m)
                     </b>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -754,8 +754,16 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 </div>
                 <div style={{ fontSize: '0.74rem', color: todayAccountability.isTimeGoalMet ? '#16a34a' : 'var(--text-muted)', marginTop: '0.5rem', fontWeight: 600 }}>
                   {todayAccountability.isTimeGoalMet 
-                    ? `⚡ Đạt ${todayAccountability.completionRatePercent}% chỉ tiêu 6 tiếng (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} phút)`
-                    : `Cần học thêm ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} phút để cán mốc 6 tiếng`}
+                    ? (uiLang === 'ru' 
+                        ? `⚡ Достигнуто ${todayAccountability.completionRatePercent}% цели (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} мин)`
+                        : uiLang === 'vi' 
+                        ? `⚡ Đạt ${todayAccountability.completionRatePercent}% chỉ tiêu (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes} phút)`
+                        : `⚡ Achieved ${todayAccountability.completionRatePercent}% goal (+${todayAccountability.todayMinutes - todayAccountability.targetGoalMinutes}m)`)
+                    : (uiLang === 'ru'
+                        ? `Нужно ещё ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} мин до цели ${todayAccountability.targetGoalHours || 6}ч`
+                        : uiLang === 'vi'
+                        ? `Cần thêm ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes} phút để đạt ${todayAccountability.targetGoalHours || 6}h`
+                        : `Need ${todayAccountability.targetGoalMinutes - todayAccountability.todayMinutes}m more to reach ${todayAccountability.targetGoalHours || 6}h`)}
                 </div>
               </div>
 
@@ -771,9 +779,9 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎯 Số Phiên Tập Trung</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎯 {t?.supervisor?.focusSessions || "Focus Sessions"}</span>
                     <b style={{ color: 'var(--accent-primary)' }}>
-                      {todayAccountability.todaySessionsCount} phiên
+                      {todayAccountability.todaySessionsCount} {t?.timer?.sessionsUnit || "sessions"}
                     </b>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -787,7 +795,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   </div>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>⏱️ {todayAccountability.stopwatchCount || 0} Bấm giờ • 🍅 {todayAccountability.pomodoroCount || 0} Pomodoro</span>
+                  <span>⏱️ {todayAccountability.stopwatchCount || 0} {t?.timer?.stopwatchMode || "Stopwatch"} • 🍅 {todayAccountability.pomodoroCount || 0} {t?.timer?.pomodoroMode || "Pomodoro Countdown"}</span>
                   {todayAccountability.longestSessionMinutes > 0 && (
                     <b style={{ color: 'var(--text-secondary)' }}>Max: {todayAccountability.longestSessionMinutes}'</b>
                   )}
@@ -806,9 +814,9 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎴 Thẻ Flashcards Đã Ôn</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🎴 {t?.supervisor?.cardsReviewed || "Cards Reviewed"}</span>
                     <b style={{ color: todayAccountability.isReviewsGoalMet ? '#22c55e' : 'var(--text-primary)' }}>
-                      {todayAccountability.todayReviews} / {todayAccountability.targetGoalReviews} thẻ
+                      {todayAccountability.todayReviews} / {todayAccountability.targetGoalReviews} {t?.review?.card || "Card"}
                     </b>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -822,7 +830,9 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   </div>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                  {todayAccountability.todayReviews > 0 ? `Đã ôn ${todayAccountability.todayReviews} thẻ lặp ngắt quãng` : 'Hôm nay chưa thực hiện phiên ôn thẻ nào'}
+                  {todayAccountability.todayReviews > 0 
+                    ? (uiLang === 'ru' ? `Повторено ${todayAccountability.todayReviews} карточек` : uiLang === 'vi' ? `Đã ôn ${todayAccountability.todayReviews} thẻ` : `Reviewed ${todayAccountability.todayReviews} cards`)
+                    : (uiLang === 'ru' ? 'Сегодня нет повторений' : uiLang === 'vi' ? 'Hôm nay chưa ôn thẻ nào' : 'No card reviews today')}
                 </div>
               </div>
 
@@ -838,7 +848,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.4rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🏅 Điểm Kỷ Luật Ngày</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>🏅 {t?.supervisor?.disciplineScore || "Discipline Score"}</span>
                     <b style={{ color: '#f59e0b' }}>
                       {todayAccountability.disciplineScore || 0} / 100
                     </b>
@@ -854,7 +864,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   </div>
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Hạng đánh giá: <b style={{ color: '#f59e0b' }}>{todayAccountability.disciplineGrade}</b></span>
+                  <span>{t?.supervisor?.disciplineGrade || "Grade"} <b style={{ color: '#f59e0b' }}>{todayAccountability.disciplineGrade}</b></span>
                   <span>Deep Work cao</span>
                 </div>
               </div>
@@ -870,10 +880,10 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span>📊 Cơ Cấu Hoạt Động Đã Rèn Luyện Hôm Nay:</span>
+                    <span>{t?.supervisor?.activityBreakdown || "Today’s Activity Breakdown"}</span>
                   </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    {todayAccountability.todayActivities.length} nội dung rèn luyện
+                    {todayAccountability.todayActivities.length} {t?.timer?.allActivities || "All Activities"}
                   </span>
                 </div>
 
@@ -900,7 +910,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                           background: act.color,
                           transition: 'width 0.5s ease'
                         }}
-                        title={`${act.label}: ${act.minutes} phút (${pct}%)`}
+                        title={`${act.label}: ${act.minutes}m (${pct}%)`}
                       />
                     );
                   })}
@@ -924,8 +934,8 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     >
                       <span style={{ fontSize: '1rem' }}>{act.emoji}</span>
                       <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{act.label}:</span>
-                      <b style={{ color: act.color }}>{act.minutes} phút</b>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({act.sessions} phiên)</span>
+                      <b style={{ color: act.color }}>{act.minutes} {t?.timer?.minutesUnit || "min"}</b>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>({act.sessions} {t?.timer?.sessionsUnit || "sessions"})</span>
                     </div>
                   ))}
                 </div>
@@ -952,7 +962,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     <span style={{ fontSize: '1.4rem' }}>📋</span>
                     <div>
                       <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                        Đánh Giá Kỷ Luật & Cường Độ
+                        {t?.supervisor?.disciplineScore || "Discipline Score"}
                       </div>
                       <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         {todayAccountability.auditVerdict}
@@ -974,7 +984,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     <span style={{ fontSize: '1.4rem' }}>💡</span>
                     <div>
                       <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f59e0b', marginBottom: '0.25rem' }}>
-                        Khuyến Nghị Của Giám Sát
+                        {t?.supervisor?.sendNudgeTitle || "Send Encouragement & Reminders"}
                       </div>
                       <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         {todayAccountability.recommendation}
@@ -1009,11 +1019,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               <MessageSquare size={18} />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-              {t.supervisor?.sendNudgeTitle || 'Gửi Lời Động Viên & Nhắc Nhở Học Viên (Dành Cho Người Giám Sát)'}
+              {t?.supervisor?.sendNudgeTitle || "Send Encouragement & Reminders"}
             </h3>
           </div>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-            {t.supervisor?.portalDesc || `Bạn đang giám sát học viên ${user.displayName}. Hãy gửi lời khen hoặc nhắc nhở kỷ luật; lời nhắn sẽ hiển thị trực tiếp trên Dashboard của người học!`}
+            {t?.supervisor?.portalDesc || "Parents or mentors can monitor progress and send encouragement."}
           </p>
 
           {feedbackSuccessNotice && (
@@ -1063,7 +1073,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <input
                 type="text"
-                placeholder={t.supervisor?.supervisorNamePlaceholder || 'Tên người giám sát (VD: Bố/Mẹ, Thầy Hoàng, Bạn học...)'}
+                placeholder={t?.supervisor?.supervisorNamePlaceholder || "Supervisor name (Parent, Teacher, Friend)..."}
                 value={supervisorName}
                 onChange={e => setSupervisorName(e.target.value)}
                 style={{
@@ -1093,7 +1103,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     cursor: 'pointer'
                   }}
                 >
-                  👏 Khen Ngợi
+                  👏 {t?.supervisor?.cheerBtn || "Praise"}
                 </button>
                 <button
                   type="button"
@@ -1109,7 +1119,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     cursor: 'pointer'
                   }}
                 >
-                  ⚠️ Nhắc Nhở
+                  ⚠️ {t?.supervisor?.nudgeBtn || "Reminder"}
                 </button>
                 <button
                   type="button"
@@ -1125,14 +1135,14 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     cursor: 'pointer'
                   }}
                 >
-                  🚨 Cảnh Báo
+                  🚨 {t?.supervisor?.warningBtn || "Warning"}
                 </button>
               </div>
             </div>
 
             <textarea
               rows={2}
-              placeholder={t.supervisor?.messagePlaceholder || 'Nhập nội dung lời nhắn hoặc bấm các mẫu gợi ý phía trên...'}
+              placeholder={t?.supervisor?.messagePlaceholder || "Type your message..."}
               value={feedbackMessage}
               onChange={e => setFeedbackMessage(e.target.value)}
               style={{
@@ -1167,7 +1177,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 }}
               >
                 <Send size={16} />
-                <span>{isSendingFeedback ? 'Đang gửi...' : (t.supervisor?.sendBtn || 'Gửi Lời Nhắn Ngay')}</span>
+                <span>{isSendingFeedback ? (t?.common?.loading || "Loading...") : (t?.supervisor?.sendBtn || "Send Message")}</span>
               </button>
             </div>
           </form>
@@ -1176,7 +1186,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           {supervisorFeedbacks && supervisorFeedbacks.length > 0 && (
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                {t.supervisor?.historyTitle || 'LỜI NHẮN ĐÃ GỬI GẦN ĐÂY'} ({supervisorFeedbacks.length}):
+                {t?.supervisor?.historyTitle || "Sent Messages"} ({supervisorFeedbacks.length}):
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {supervisorFeedbacks.slice(0, 4).map(fb => (
@@ -1217,7 +1227,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
           <ActivityHistoryChart 
             periodsData={periodsData} 
             defaultPeriod="week"
-            title="Biểu Đồ Tiến Trình Học Tập & Lịch Sử Toàn Diện"
+            title={t?.activityChart?.title || (uiLang === 'ru' ? 'График активности' : uiLang === 'vi' ? 'Biểu Đồ Hoạt Động' : 'Activity Chart')}
             onFetchPeriod={handleFetchChartPeriod}
           />
         )}
@@ -1234,17 +1244,17 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <History size={20} style={{ color: 'var(--accent-primary)' }} />
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
-                Nhật Ký Các Phiên Học Gần Nhất (Audit Trail)
+                {t?.supervisor?.auditLogTitle || "Recent Study Sessions Audit Trail"}
               </h3>
             </div>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Ghi nhận từ đồng hồ bấm giờ Pomodoro & Stopwatch
+              {t?.supervisor?.auditLogSub || "Recorded directly from Pomodoro and Stopwatch timers"}
             </span>
           </div>
 
           {sessions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              Chưa có phiên học nào được ghi lại trong hệ thống.
+              {t?.supervisor?.emptyAudit || "No study sessions recorded yet."}
             </div>
           ) : (
             <>
@@ -1258,11 +1268,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '0.75rem 1rem' }}>Thời Gian</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Nội Dung Hoạt Động</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Thời Lượng</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Chế Độ</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Ghi Chú Phiên Học</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>{t?.supervisor?.colTime || "Time"}</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>{t?.supervisor?.colActivity || "Activity"}</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>{t?.supervisor?.colDuration || "Duration"}</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>{t?.supervisor?.colMode || "Mode"}</th>
+                      <th style={{ padding: '0.75rem 1rem' }}>{t?.supervisor?.colNotes || "Notes"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1275,7 +1285,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                           {session.activity_title}
                         </td>
                         <td style={{ padding: '0.85rem 1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                          {session.duration_minutes} phút
+                          {session.duration_minutes} {t?.timer?.minutesUnit || "min"}
                         </td>
                         <td style={{ padding: '0.85rem 1rem' }}>
                           <span style={{
@@ -1286,11 +1296,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                             background: session.mode === 'pomodoro' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(2, 132, 199, 0.12)',
                             color: session.mode === 'pomodoro' ? '#ef4444' : 'var(--accent-primary)'
                           }}>
-                            {session.mode === 'pomodoro' ? '🍅 Pomodoro' : '⏱️ Bấm giờ'}
+                            {session.mode === 'pomodoro' ? '🍅 Pomodoro' : (t?.timer?.modeFree || "Free")}
                           </span>
                         </td>
                         <td style={{ padding: '0.85rem 1rem', color: 'var(--text-secondary)', fontStyle: session.notes ? 'normal' : 'italic' }}>
-                          {session.notes || 'Không có ghi chú'}
+                          {session.notes || (t?.supervisor?.noNotes || "None")}
                         </td>
                       </tr>
                     ))}
@@ -1313,13 +1323,17 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   {/* Left: Summary text & Limit selector */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-                      Hiển thị <strong style={{ color: 'var(--text-primary)' }}>
+                      {(uiLang === 'ru' ? 'Показано ' : uiLang === 'vi' ? 'Hiển thị ' : 'Showing ')}
+                      <strong style={{ color: 'var(--text-primary)' }}>
                         {(sessionsPagination.page - 1) * sessionsPagination.limit + 1} - {Math.min(sessionsPagination.page * sessionsPagination.limit, sessionsPagination.total)}
-                      </strong> trên <strong style={{ color: 'var(--text-primary)' }}>{sessionsPagination.total}</strong> phiên học
+                      </strong>
+                      {(uiLang === 'ru' ? ' из ' : uiLang === 'vi' ? ' / ' : ' of ')}
+                      <strong style={{ color: 'var(--text-primary)' }}>{sessionsPagination.total}</strong>
+                      {(uiLang === 'ru' ? ' сессий' : uiLang === 'vi' ? ' phiên' : ' sessions')}
                     </span>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      <span>Mỗi trang:</span>
+                      <span>{t?.common?.filter || "Filter"}</span>
                       {[5, 10, 20].map(lim => (
                         <button
                           key={lim}
@@ -1364,7 +1378,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                       }}
                     >
                       <ChevronLeft size={16} />
-                      <span>Trước</span>
+                      <span>{t?.common?.back || "Back"}</span>
                     </button>
 
                     {/* Page numbers */}
@@ -1422,7 +1436,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                         opacity: sessionsPagination.page >= sessionsPagination.totalPages ? 0.5 : 1
                       }}
                     >
-                      <span>Sau</span>
+                      <span>{t?.common?.next || "Next"}</span>
                       <ChevronRight size={16} />
                     </button>
                   </div>
@@ -1450,12 +1464,12 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
                 <Calendar size={18} style={{ color: 'var(--accent-primary)' }} />
-                <span>Bộ Lọc Ngày: Phân Bổ CEFR & Hoạt Động Rèn Luyện</span>
+                <span>{t?.supervisor?.filterDate || "Filter by date:"}</span>
               </div>
               <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                 {selectedDatePreset === 'all'
-                  ? 'Đang hiển thị toàn bộ dữ liệu tích lũy từ trước đến nay'
-                  : `Đang lọc dữ liệu ngày: ${selectedBreakdownDate === todayStr ? 'Hôm nay (' + formatDateVi(selectedBreakdownDate) + ')' : formatDateVi(selectedBreakdownDate)}`}
+                  ? (uiLang === 'ru' ? 'Все накопленные данные' : uiLang === 'vi' ? 'Toàn bộ dữ liệu tích lũy' : 'Showing all accumulated data')
+                  : `${uiLang === 'ru' ? 'Фильтр по дате: ' : uiLang === 'vi' ? 'Lọc theo ngày: ' : 'Filtered date: '}${selectedBreakdownDate === todayStr ? (t?.supervisor?.today || 'Today') + ' (' + formatDateVi(selectedBreakdownDate) + ')' : formatDateVi(selectedBreakdownDate)}`}
               </div>
             </div>
 
@@ -1477,7 +1491,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                Hôm nay
+                {t?.supervisor?.today || "Today"}
               </button>
 
               <button
@@ -1496,7 +1510,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                Hôm qua
+                {t?.supervisor?.yesterday || "Yesterday"}
               </button>
 
               {/* Date Input */}
@@ -1542,7 +1556,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                Tất cả thời gian
+                {t?.supervisor?.allTime || "All Time"}
               </button>
             </div>
           </div>
@@ -1561,7 +1575,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>Trình Độ Chuẩn CEFR Phân Bổ</span>
+                    <span>CEFR Proficiency</span>
                   </h4>
                   <span style={{
                     fontSize: '0.78rem',
@@ -1573,8 +1587,10 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     border: '1px solid var(--border-color)'
                   }}>
                     {breakdownData.isAll 
-                      ? `${breakdownData.totalWords} từ vựng`
-                      : (breakdownData.totalWords > 0 ? `${breakdownData.totalWords} từ tương tác` : '0 từ tương tác')}
+                      ? `${breakdownData.totalWords} ${t?.dashboard?.cardCount || 'words'}`
+                      : (breakdownData.totalWords > 0 
+                          ? `${breakdownData.totalWords} ${uiLang === 'ru' ? 'активных слов' : uiLang === 'vi' ? 'từ tương tác' : 'active words'}` 
+                          : `0 ${t?.dashboard?.cardCount || 'words'}`)}
                   </span>
                 </div>
 
@@ -1595,7 +1611,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                       >
                         <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)' }}>{lvl}</div>
                         <div style={{ fontSize: '1.35rem', fontWeight: 900, marginTop: '2px' }}>{count}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>từ vựng</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{t?.dashboard?.cardCount || 'words'}</div>
                       </div>
                     );
                   })}
@@ -1614,11 +1630,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <span>
                   {breakdownData.isAll
-                    ? '📊 Toàn bộ từ vựng đã lưu trong kho'
-                    : `📅 Từ vựng nạp mới hoặc ôn tập ngày ${formatDateVi(breakdownData.date)}`}
+                    ? (uiLang === 'ru' ? '📊 Все слова в словаре' : uiLang === 'vi' ? '📊 Toàn bộ từ vựng trong kho' : '📊 All words in vault')
+                    : (uiLang === 'ru' ? `📅 Слова за ${formatDateVi(breakdownData.date)}` : uiLang === 'vi' ? `📅 Từ vựng ngày ${formatDateVi(breakdownData.date)}` : `📅 Words on ${formatDateVi(breakdownData.date)}`)}
                 </span>
                 <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  Tổng: {breakdownData.totalWords} từ
+                  {(uiLang === 'ru' ? 'Всего: ' : uiLang === 'vi' ? 'Tổng: ' : 'Total: ') + breakdownData.totalWords + ' ' + (t?.dashboard?.cardCount || 'words')}
                 </span>
               </div>
             </div>
@@ -1628,7 +1644,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
-                    Cơ Cấu Hoạt Động Rèn Luyện
+                    {t?.supervisor?.activityBreakdown || "Today’s Activity Breakdown"}
                   </h4>
                   <span style={{
                     fontSize: '0.78rem',
@@ -1639,7 +1655,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     color: 'var(--accent-primary)',
                     border: '1px solid var(--border-color)'
                   }}>
-                    {breakdownData.totalSessions} phiên • {breakdownData.totalMinutes} phút
+                    {breakdownData.totalSessions} {uiLang === 'ru' ? 'сессий' : uiLang === 'vi' ? 'phiên' : 'sessions'} • {breakdownData.totalMinutes} {uiLang === 'ru' ? 'мин' : uiLang === 'vi' ? 'phút' : 'mins'}
                   </span>
                 </div>
 
@@ -1652,7 +1668,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                     color: 'var(--text-muted)',
                     fontSize: '0.86rem'
                   }}>
-                    Chưa có phiên học nào được ghi nhận trong ngày này.
+                    {uiLang === 'ru' ? 'Нет записей занятий за этот день.' : uiLang === 'vi' ? 'Chưa có phiên học nào trong ngày này.' : 'No sessions recorded for this day.'}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1673,7 +1689,7 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
                           <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{act.label}</span>
                         </div>
                         <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          {act.sessions} phiên ({Math.round((act.seconds || 0) / 60)} phút)
+                          {act.sessions} {uiLang === 'ru' ? 'сессий' : uiLang === 'vi' ? 'phiên' : 'sessions'} ({Math.round((act.seconds || 0) / 60)} {uiLang === 'ru' ? 'мин' : uiLang === 'vi' ? 'phút' : 'mins'})
                         </span>
                       </div>
                     ))}
@@ -1693,11 +1709,11 @@ export default function PublicStatsPage({ isDark, toggleTheme, currentUser }) {
               }}>
                 <span>
                   {breakdownData.isAll
-                    ? '⏱️ Toàn bộ thời lượng rèn luyện tích lũy'
-                    : `⏱️ Phiên học ghi nhận ngày ${formatDateVi(breakdownData.date)}`}
+                    ? (uiLang === 'ru' ? '⏱️ Общее накопленное время' : uiLang === 'vi' ? '⏱️ Toàn bộ thời lượng tích lũy' : '⏱️ Total accumulated time')
+                    : (uiLang === 'ru' ? `⏱️ Сессии за ${formatDateVi(breakdownData.date)}` : uiLang === 'vi' ? `⏱️ Phiên học ngày ${formatDateVi(breakdownData.date)}` : `⏱️ Sessions on ${formatDateVi(breakdownData.date)}`)}
                 </span>
                 <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>
-                  Tổng: {breakdownData.totalMinutes} phút
+                  {(uiLang === 'ru' ? 'Всего: ' : uiLang === 'vi' ? 'Tổng: ' : 'Total: ') + breakdownData.totalMinutes + ' ' + (uiLang === 'ru' ? 'мин' : uiLang === 'vi' ? 'phút' : 'mins')}
                 </span>
               </div>
             </div>

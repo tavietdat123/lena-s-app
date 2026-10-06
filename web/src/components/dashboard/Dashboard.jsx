@@ -19,6 +19,7 @@ import {
 import { playAudio } from '../../services/audioService';
 import ActivityHistoryChart from '../common/ActivityHistoryChart';
 import { useLanguage } from '../../context/LanguageContext';
+import { getDisplayLevel } from '../../constants/levelAdapter';
 
 export default function Dashboard({ 
   stats, 
@@ -31,7 +32,7 @@ export default function Dashboard({
   onSharePublicStats,
   onOpenSupervisorPortal
 }) {
-  const { uiLang, t } = useLanguage();
+  const { uiLang, t, targetLanguage, isVietnameseTrack, fluentLanguage, getWordMeaning } = useLanguage();
   const [playingWordId, setPlayingWordId] = useState(null);
 
   const totalDue = stats?.total_due_today || 0;
@@ -107,8 +108,8 @@ export default function Dashboard({
 
           <p style={{ opacity: 0.92, fontSize: '1rem', lineHeight: 1.5 }}>
             {totalDue > 0
-              ? (uiLang === 'ru' ? 'Повторите карточки вовремя, чтобы защитить память от кривой забывания.' : uiLang === 'en' ? 'Spend 3-5 minutes reviewing at the golden moment to fight the forgetting curve.' : 'Dành 3-5 phút ôn lại đúng thời điểm vàng để chống lại đường cong lãng quên (Forgetting Curve).')
-              : (uiLang === 'ru' ? 'Все слова и грамматические структуры находятся в безопасном цикле долговременной памяти.' : uiLang === 'en' ? 'All words and structures are safely retained in long-term memory.' : 'Mọi từ vựng và cấu trúc đều đang nằm trong chu kỳ ghi nhớ dài hạn an toàn.')}
+              ? (typeof t.dashboard?.dueSub === 'function' ? t.dashboard.dueSub(totalDue) : (t.dashboard?.dueSub || `${totalDue} cards due today`))
+              : (t?.dashboard?.noDueSub || "All cards reviewed!")}
           </p>
         </div>
 
@@ -173,7 +174,7 @@ export default function Dashboard({
             className="glow-hover"
           >
             <Target size={18} />
-            <span>{uiLang === 'ru' ? 'Викторина' : uiLang === 'en' ? 'Topic Quiz' : 'Làm Quiz'}</span>
+            <span>{t?.dashboard?.quickQuiz || "Take Quiz"}</span>
           </button>
 
           <button
@@ -194,7 +195,7 @@ export default function Dashboard({
             className="glow-hover"
           >
             <Sparkles size={18} />
-            <span>{uiLang === 'ru' ? 'Тренировка речи' : uiLang === 'en' ? 'Speaking Lab' : 'Luyện Speaking AI'}</span>
+            <span>{t?.nav?.speaking || "Speaking"}</span>
           </button>
 
           {onOpenAIMasteryReport && (
@@ -242,10 +243,10 @@ export default function Dashboard({
               cursor: 'pointer'
             }}
             className="glow-hover"
-            title={t.dashboard.supervisorPortalBtn || "Mở giao diện Cổng Giám Sát"}
+            title={t?.dashboard?.supervisorPortalBtn || "Supervisor Portal"}
           >
             <Eye size={18} />
-            <span>{t.dashboard.supervisorPortalBtn || 'Xem Cổng Giám Sát'}</span>
+            <span>{t?.dashboard?.supervisorPortalBtn || "Supervisor Portal"}</span>
           </button>
 
           {/* Button 2: Copy Supervisor Link */}
@@ -274,10 +275,10 @@ export default function Dashboard({
               cursor: 'pointer'
             }}
             className="glow-hover"
-            title={t.dashboard.supervisorLinkBtn || "Sao chép link Cổng Giám Sát"}
+            title={t?.dashboard?.supervisorLinkBtn || "Supervisor Link"}
           >
             <Share2 size={17} />
-            <span>{t.dashboard.supervisorLinkBtn || 'Link Người Giám Sát'}</span>
+            <span>{t?.dashboard?.supervisorLinkBtn || "Supervisor Link"}</span>
           </button>
         </div>
       </div>
@@ -299,7 +300,7 @@ export default function Dashboard({
             <span style={{ fontSize: '1.5rem' }}>📢</span>
             <div>
               <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {t.dashboard.supervisorMessageTitle || 'Lời Nhắn Mới Từ Người Giám Sát'} ({stats.supervisorFeedbacks[0].supervisor_name}):
+                {t?.dashboard?.supervisorMessageTitle || "Supervisor Note"} ({stats.supervisorFeedbacks[0].supervisor_name}):
               </div>
               <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
                 "{stats.supervisorFeedbacks[0].message}"
@@ -314,7 +315,7 @@ export default function Dashboard({
             className="btn-secondary"
             style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', borderRadius: '10px' }}
           >
-            <span>{t.dashboard.openSupervisorBtn || 'Mở Cổng Giám Sát'}</span>
+            <span>{t?.dashboard?.openSupervisorBtn || "Open Portal"}</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -341,7 +342,7 @@ export default function Dashboard({
           {/* XP Progress Bar */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <span>{t.dashboard.levelProgress ? t.dashboard.levelProgress(nextLevel) : `Tiến độ lên Lv.${nextLevel}`}</span>
+              <span>{typeof t.dashboard?.levelProgress === 'function' ? t.dashboard.levelProgress(nextLevel) : `Lv.${nextLevel}`}</span>
               <b>{progressPercent}%</b>
             </div>
             <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -356,14 +357,14 @@ export default function Dashboard({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t.dashboard.dailyStreak || 'Daily Streak:'}</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t?.dashboard?.dailyStreak || "Streak"}</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
               <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-warning)' }}>
-                🔥 {t.dashboard.daysInRow ? t.dashboard.daysInRow(streak) : `${streak} ngày liên tục`}
+                🔥 {typeof t.dashboard?.daysInRow === 'function' ? t.dashboard.daysInRow(streak) : `${streak}d`}
               </span>
               {stats?.max_streak > 0 && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                  {t.dashboard.recordStreak ? t.dashboard.recordStreak(stats.max_streak) : `(Kỷ lục: ${stats.max_streak})`}
+                  {typeof t.dashboard?.recordStreak === 'function' ? t.dashboard.recordStreak(stats.max_streak) : `(Max: ${stats.max_streak})`}
                 </span>
               )}
             </div>
@@ -415,10 +416,10 @@ export default function Dashboard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <TrendingUp size={20} style={{ color: 'var(--accent-primary)' }} />
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>{t.dashboard.retentionStagesTitle || 'Chỉ Số Phân Bổ Trí Nhớ (Memory Retention Stages)'}</h4>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800 }}>{t?.dashboard?.retentionStagesTitle || "Memory Retention (SM-2)"}</h4>
           </div>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            {t.dashboard.totalItems ? t.dashboard.totalItems(wordStats.total || 0) : `Tổng cộng: ${wordStats.total || 0} mục`}
+            {typeof t.dashboard?.totalItems === 'function' ? t.dashboard.totalItems(wordStats.total || 0) : `Total: ${wordStats.total || 0}`}
           </span>
         </div>
 
@@ -473,19 +474,19 @@ export default function Dashboard({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.75rem', fontSize: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-success)' }} />
-            <span>{t.dashboard.stageMastered || 'Mastered'}: <b>{wordStats.mastered || 0}</b></span>
+            <span>{t?.dashboard?.stageMastered || "Mastered"}: <b>{wordStats.mastered || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
-            <span>{t.dashboard.stageReviewing || 'Reviewing'}: <b>{wordStats.reviewing || 0}</b></span>
+            <span>{t?.dashboard?.stageReviewing || "Reviewing"}: <b>{wordStats.reviewing || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-warning)' }} />
-            <span>{t.dashboard.stageLearning || 'Learning'}: <b>{wordStats.learning || 0}</b></span>
+            <span>{t?.dashboard?.stageLearning || "Learning"}: <b>{wordStats.learning || 0}</b></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-            <span>{t.dashboard.stageNew || 'New'}: <b>{wordStats.new || 0}</b></span>
+            <span>{t?.dashboard?.stageNew || "New"}: <b>{wordStats.new || 0}</b></span>
           </div>
         </div>
       </div>
@@ -503,7 +504,7 @@ export default function Dashboard({
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div>
-            <h4 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.dashboard.recentWordsTitle || 'Từ Vựng & Cụm Từ Nổi Bật Gần Đây'}</h4>
+            <h4 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t?.dashboard?.recentWordsTitle || "Recent Words"}</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{uiLang === 'ru' ? 'Нажмите на динамик для прослушивания' : uiLang === 'en' ? 'Tap audio icon to hear native pronunciation' : 'Chạm biểu tượng loa để nghe phát âm tự nhiên'}</p>
           </div>
           <button 
@@ -511,7 +512,7 @@ export default function Dashboard({
             className="btn-secondary"
             style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
           >
-            <span>{t.dashboard.viewAll || 'Xem tất cả'}</span>
+            <span>{t?.dashboard?.viewAll || "View all"}</span>
             <ArrowRight size={15} />
           </button>
         </div>
@@ -530,7 +531,7 @@ export default function Dashboard({
                         onClick={() => handlePlayAudio(w)}
                         className="btn-icon"
                         style={{ padding: '0.3rem', color: 'var(--accent-primary)' }}
-                        title="Nghe phát âm chuẩn"
+                        title={t?.common?.playAudio || "Play audio"}
                       >
                         {isPlaying ? (
                           <div className="sound-wave">
@@ -541,19 +542,28 @@ export default function Dashboard({
                         )}
                       </button>
                     </div>
-                    {w.phonetic && (
+                    {!isVietnameseTrack && w.phonetic && (
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         {w.phonetic}
                       </span>
                     )}
                   </div>
 
-                  <span className="badge badge-blue">{w.level || 'B2'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span className="badge badge-blue">{getDisplayLevel(w.level || 'B2', targetLanguage, uiLang, true)}</span>
+                  </div>
                 </div>
 
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {w.meaning_vi}
+                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0.4rem 0 0.2rem 0' }}>
+                  {getWordMeaning(w)}
                 </p>
+
+                {((fluentLanguage === 'en' && w.meaning_vi && w.meaning_vi !== w.meaning_en) ||
+                  (fluentLanguage === 'vi' && w.meaning_en && w.meaning_en !== w.meaning_vi)) && (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0', lineHeight: 1.35 }}>
+                    {fluentLanguage === 'en' ? w.meaning_vi : w.meaning_en}
+                  </p>
+                )}
 
                 {w.examples && w.examples.length > 0 && (
                   <div style={{ 

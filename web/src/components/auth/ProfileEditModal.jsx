@@ -49,7 +49,7 @@ export default function ProfileEditModal({ isOpen, onClose, user, onProfileUpdat
     setSuccessMsg('');
 
     if (!fullName.trim()) {
-      setError(uiLang === 'ru' ? 'Имя не может быть пустым' : uiLang === 'en' ? 'Full name cannot be empty' : 'Họ và tên không được để trống');
+      setError(t?.profileModal?.errFullName || "Full name is required");
       return;
     }
 
@@ -62,9 +62,7 @@ export default function ProfileEditModal({ isOpen, onClose, user, onProfileUpdat
     try {
       const payload = {
         full_name: fullName.trim(),
-        avatar_url: selectedAvatar,
-        native_language: appLanguage,
-        target_language: targetLanguage
+        avatar_url: selectedAvatar
       };
 
       if (newPassword) {
@@ -87,7 +85,7 @@ export default function ProfileEditModal({ isOpen, onClose, user, onProfileUpdat
         setError(res.error || (uiLang === 'ru' ? 'Ошибка обновления' : uiLang === 'en' ? 'Update failed' : 'Cập nhật không thành công'));
       }
     } catch (err) {
-      setError(err.message || 'Lỗi kết nối máy chủ');
+      setError(err.message || (t?.common?.error || "Error"));
     } finally {
       setLoading(false);
     }
@@ -328,7 +326,61 @@ export default function ProfileEditModal({ isOpen, onClose, user, onProfileUpdat
               </div>
             </div>
 
-            {/* 2. Target Learning Language (Đã đăng ký rồi thì CỐ ĐỊNH, không cho chọn lại) */}
+            {/* 2. Fluent / Native Language (Ngôn ngữ thành thạo - Gắn cố định theo tài khoản, không cho sửa) */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  {uiLang === 'ru' ? 'Свободный / Родной язык:' : uiLang === 'vi' ? 'Ngôn ngữ thành thạo (Fluent):' : 'Fluent / Native Language:'}
+                </label>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: 'var(--accent-warning)',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  padding: '0.12rem 0.45rem',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)'
+                }}>
+                  🔒 {uiLang === 'ru' ? 'Закреплено' : uiLang === 'en' ? 'Locked' : 'Cố định'}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, fontSize: '0.84rem' }}>
+                  <span>{user.native_language === 'vi' ? '🇻🇳' : user.native_language === 'ru' ? '🇷🇺' : '🇬🇧'}</span>
+                  <span>{user.native_language === 'vi' 
+                    ? (uiLang === 'ru' ? 'Вьетнамский (Tiếng Việt)' : uiLang === 'en' ? 'Vietnamese (Tiếng Việt)' : 'Tiếng Việt') 
+                    : user.native_language === 'ru'
+                    ? (uiLang === 'ru' ? 'Русский' : uiLang === 'en' ? 'Russian (Русский)' : 'Tiếng Nga (Русский)')
+                    : (uiLang === 'ru' ? 'Английский (English)' : uiLang === 'en' ? 'English' : 'Tiếng Anh (English)')}</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--accent-primary)', letterSpacing: '0.4px' }}>
+                  FLUENT BASE
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.35, marginBottom: 0 }}>
+                {uiLang === 'ru' 
+                  ? 'Словарь и перевод карточек строго ориентированы на ваш свободный язык.'
+                  : uiLang === 'vi'
+                  ? 'Nghĩa từ vựng và giải thích luôn được hiển thị theo ngôn ngữ thành thạo này.'
+                  : 'Word definitions and card translations are strictly aligned with your fluent language.'}
+              </p>
+            </div>
+
+            {/* 3. Target Learning Language (Đã đăng ký rồi thì CỐ ĐỊNH, không cho chọn lại) */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                 <label style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>

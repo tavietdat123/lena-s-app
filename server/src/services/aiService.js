@@ -284,11 +284,29 @@ export async function callGemini(prompt, apiKey = null, audioData = null, custom
   throw lastError || new Error('Không thể kết nối đến máy chủ Gemini API.');
 }
 
+export function getLanguageName(code) {
+  const map = {
+    vi: 'Tiếng Việt (Vietnamese)',
+    en: 'Tiếng Anh (English)',
+    ja: 'Tiếng Nhật (Japanese)',
+    ko: 'Tiếng Hàn (Korean)',
+    zh: 'Tiếng Trung (Chinese)',
+    fr: 'Tiếng Pháp (French)',
+    de: 'Tiếng Đức (German)',
+    es: 'Tiếng Tây Ban Nha (Spanish)',
+    ru: 'Tiếng Nga (Russian)'
+  };
+  return map[code] || code || 'Tiếng Anh (English)';
+}
+
 /**
  * 1. Smart Sentence Parser & Vocab Extractor
  */
-export async function parseSentenceAI(sentence, apiKey = null) {
+export async function parseSentenceAI(sentence, apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
   const effectiveKey = getEffectiveApiKey(apiKey);
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+
   if (!effectiveKey) {
     // Smart Offline Rule-based Parser Fallback
     const words = sentence
@@ -299,127 +317,160 @@ export async function parseSentenceAI(sentence, apiKey = null) {
 
     const offlinePatterns = [];
     const lower = sentence.toLowerCase();
-    if (lower.includes('although') || lower.includes('despite') || lower.includes('in spite') || lower.includes('whereas')) {
+    if (lower.includes('although') || lower.includes('despite') || lower.includes('tuy') || lower.includes('mặc dù')) {
       offlinePatterns.push({
-        name: 'Although / Despite (Concession & Contrast)',
-        formula: 'Although + Clause, Main Clause',
-        explanation: 'Diễn tả sự nhượng bộ, tương phản giữa hai mệnh đề',
+        name: targetLang === 'vi' ? 'Tuy / Mặc dù (Nhượng bộ & Đối lập)' : 'Although / Despite (Concession & Contrast)',
+        formula: targetLang === 'vi' ? 'Tuy / Mặc dù + Mệnh đề, nhưng + Mệnh đề chính' : 'Although + Clause, Main Clause',
+        explanation: fluentLang === 'en' ? 'Expresses concession and contrast between two clauses.' : 'Diễn tả sự nhượng bộ, tương phản giữa hai mệnh đề.',
         category: 'concession',
         tone: 'Formal'
       });
-    } else if (lower.includes('because') || lower.includes('due to') || lower.includes('as a result') || lower.includes('lead to')) {
+    } else if (lower.includes('because') || lower.includes('due to') || lower.includes('vì') || lower.includes('do')) {
       offlinePatterns.push({
-        name: 'Due to / Cause & Effect',
-        formula: 'Due to / As a result of + Noun Phrase, S + V',
-        explanation: 'Chỉ mối quan hệ nguyên nhân - hệ quả trực tiếp',
+        name: targetLang === 'vi' ? 'Vì / Do... nên... (Nguyên nhân & Hệ quả)' : 'Due to / Cause & Effect',
+        formula: targetLang === 'vi' ? 'Vì / Do + Nguyên nhân, nên + Kết quả' : 'Due to / As a result of + Noun Phrase, S + V',
+        explanation: fluentLang === 'en' ? 'Indicates a direct cause-and-effect relationship.' : 'Chỉ mối quan hệ nguyên nhân - hệ quả trực tiếp.',
         category: 'cause_effect',
-        tone: 'Business'
-      });
-    } else if (lower.includes('not only') || lower.includes('hardly') || lower.includes('it is')) {
-      offlinePatterns.push({
-        name: 'Inversion / Cleft Sentence (Emphasis)',
-        formula: 'Not only + Aux + S + V, but S also + V',
-        explanation: 'Nhấn mạnh đặc điểm hoặc hành động nổi bật',
-        category: 'emphasis',
-        tone: 'Academic'
-      });
-    } else if (lower.includes('if') || lower.includes('unless') || lower.includes('provided')) {
-      offlinePatterns.push({
-        name: 'Conditional / Hypothesis',
-        formula: 'If / Unless + S + V, S + Modal + V',
-        explanation: 'Đặt điều kiện, giả định tình huống',
-        category: 'condition',
-        tone: 'Neutral'
+        tone: 'Daily'
       });
     }
 
     return {
-      translation: `(Bản dịch mẫu) ${sentence}`,
+      translation: `[${fluentLangName}] ${sentence}`,
       extracted_words: words.map(w => ({
         word: w.toLowerCase(),
-        meaning_vi: 'Tra cứu thêm để cập nhật nghĩa',
+        meaning: fluentLang === 'en' ? 'Look up dictionary for details' : 'Tra cứu thêm để cập nhật nghĩa',
+        meaning_vi: fluentLang === 'en' ? 'Look up dictionary for details' : 'Tra cứu thêm để cập nhật nghĩa',
         part_of_speech: 'word',
-        context_usage: `Xuất hiện trong: "${sentence}"`
+        context_usage: `Context: "${sentence}"`
       })),
       patterns: offlinePatterns,
-      grammar_notes: 'Hãy thêm Gemini API Key trong Cài đặt để AI bóc tách sâu hơn và tự động gợi ý ngữ pháp chuẩn bản xứ.'
+      grammar_notes: fluentLang === 'en'
+        ? 'Add your Gemini API Key in Settings for deep AI pedagogical analysis.'
+        : 'Hãy thêm Gemini API Key trong Cài đặt để AI bóc tách sâu hơn và tự động gợi ý ngữ pháp chuẩn bản xứ.'
     };
   }
 
   const prompt = `
-Bạn là một chuyên gia ngôn ngữ học tiếng Anh. Hãy phân tích súc tích, chuẩn xác câu tiếng Anh sau:
+Bạn là một chuyên gia ngôn ngữ học và sư phạm giảng dạy ngôn ngữ quốc tế.
+Học viên đang theo học NGÔN NGỮ MỤC TIÊU: ${targetLangName} (Target Language).
+Ngôn ngữ mẹ đẻ / thông thạo của học viên để giải nghĩa là: ${fluentLangName} (Native / Fluent Language).
+
+Nhiệm vụ: Phân tích súc tích, chuẩn xác câu sau cho người học:
 "${sentence}"
 
-Hãy trả về JSON chính xác theo định dạng:
+QUY TẮC BẮT BUỘC (TUÂN THỦ 100%):
+1. ĐỊNH HƯỚNG BẢN DỊCH (translation):
+   - Cung cấp bản dịch câu văn tự nhiên nhất sang ${fluentLangName}.
+2. CẤU TRÚC CÂU (sentence_structure):
+   - Tóm tắt cấu trúc ngữ pháp chính của câu, diễn giải bằng ${fluentLangName} (ví dụ: [S (ẩn)] + [V] + [O] + [Mệnh đề phụ...]).
+3. MẪU CÂU TRỌNG TÂM (patterns):
+   - "name": Tên mẫu câu / cấu trúc.
+   - "formula": CÔNG THỨC MẪU CÂU BẮT BUỘC PHẢI DỰA TRÊN NGÔN NGỮ MỤC TIÊU (${targetLangName})!
+     + Nếu đang học tiếng Việt: công thức phải là tiếng Việt (ví dụ: "Cảm ơn + [Người nhận] + vì đã + [Hành động]"), TUYỆT ĐỐI KHÔNG dùng công thức tiếng Anh như "Thank + for"!
+     + Nếu đang học tiếng Anh: công thức là tiếng Anh (ví dụ: "Thank + [Object] + for + [V-ing / Noun]").
+   - "explanation": Giải thích ngắn gọn cách dùng và ý nghĩa BẰNG ${fluentLangName}.
+   - "category": Mã chức năng câu (chọn 1 trong các mã chuẩn hệ thống sau): cause_effect, concession, comparison, emphasis, purpose, condition, opinion, example, addition, conclusion, sequence, advice, clarification, exception, speculation, definition, request, transition.
+   - "tone": Văn phong (Formal / Academic / Business / Daily / Neutral).
+4. TỪ VỰNG TIÊU BIỂU (extracted_words):
+   - "word": Từ vựng BẰNG NGÔN NGỮ MỤC TIÊU (${targetLangName}) lấy từ chính câu trên. Nếu học tiếng Việt, từ vựng phải là tiếng Việt (như "cảm ơn", "giúp đỡ"), KHÔNG ĐƯỢC đảo thành từ tiếng Anh ("thank", "help")!
+   - "meaning": Nghĩa chuẩn xác của từ đó BẰNG ${fluentLangName}.
+   - "part_of_speech": Từ loại (noun / verb / adjective / adverb / phrase...).
+   - "context_usage": Cách dùng ngắn gọn trong câu bằng ${fluentLangName}.
+5. LƯU Ý NGỮ PHÁP (grammar_notes):
+   - Tóm tắt 1-2 điểm lưu ý ngữ pháp đặc trưng quan trọng nhất của câu BẰNG ${fluentLangName}.
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
 {
-  "translation": "Bản dịch tiếng Việt tự nhiên, đúng ngữ cảnh",
-  "sentence_structure": "Tóm tắt cấu trúc ngữ pháp chính: [S] + [V] + [O/C] + [Mệnh đề phụ nếu có]",
+  "translation": "Bản dịch tự nhiên sang ${fluentLangName}",
+  "sentence_structure": "Tóm tắt cấu trúc ngữ pháp",
   "patterns": [
     {
-      "name": "Tên cấu trúc / mẫu câu trọng tâm",
-      "formula": "Công thức tổng quát",
-      "explanation": "Giải thích ngắn gọn cách dùng và ý nghĩa",
-      "category": "Mã chức năng câu (chọn 1 trong các mã sau): cause_effect, concession, comparison, emphasis, purpose, condition, opinion, example, addition, conclusion, sequence, advice, clarification, exception, speculation, definition, request, transition",
-      "tone": "Văn phong (Formal / Academic / Business / Daily / Neutral)"
+      "name": "Tên cấu trúc",
+      "formula": "Công thức chuẩn của ${targetLangName}",
+      "explanation": "Giải thích cách dùng bằng ${fluentLangName}",
+      "category": "cause_effect",
+      "tone": "Daily"
     }
   ],
   "extracted_words": [
     {
-      "word": "từ vựng nổi bật",
-      "meaning_vi": "nghĩa tiếng Việt chuẩn",
-      "part_of_speech": "noun/verb/adj/adv",
-      "context_usage": "cách dùng ngắn gọn trong câu"
+      "word": "từ vựng ${targetLangName}",
+      "meaning": "nghĩa bằng ${fluentLangName}",
+      "part_of_speech": "verb",
+      "context_usage": "cách dùng trong câu"
     }
   ],
-  "grammar_notes": "Tóm tắt 1-2 điểm lưu ý ngữ pháp quan trọng nhất của câu"
+  "grammar_notes": "Điểm lưu ý ngữ pháp bằng ${fluentLangName}"
 }
 `;
 
   try {
     const rawResponse = await callGemini(prompt, effectiveKey, null, null, true);
-    return safeParseJson(rawResponse);
+    const parsed = safeParseJson(rawResponse);
+    if (parsed && Array.isArray(parsed.extracted_words)) {
+      parsed.extracted_words = parsed.extracted_words.map(w => ({
+        ...w,
+        meaning_vi: w.meaning || w.meaning_vi || '',
+        meaning_en: w.meaning || w.meaning_en || ''
+      }));
+    }
+    return parsed;
   } catch (err) {
     console.error('AI parse error:', err.message);
     throw err;
   }
 }
 
+
 /**
  * 2. Check and Correct User's Custom Sentence
  */
-export async function checkSentenceAI({ targetItem, userSentence }, apiKey = null) {
+export async function checkSentenceAI({ targetItem, userSentence }, apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
   const effectiveKey = getEffectiveApiKey(apiKey);
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+
   if (!effectiveKey) {
     return {
       is_correct: true,
       score: 85,
-      feedback: 'Câu của bạn nghe khá ổn. Hãy thêm Gemini API Key để nhận nhận xét ngữ pháp và cách dùng từ bản xứ chuyên sâu.',
+      feedback: fluentLang === 'en'
+        ? 'Your sentence looks quite solid. Add your Gemini API Key in Settings for deep native nuance feedback.'
+        : 'Câu của bạn nghe khá ổn. Hãy thêm Gemini API Key để nhận nhận xét ngữ pháp và cách dùng từ bản xứ chuyên sâu.',
       corrections: [],
       native_alternatives: [
-        `Cách diễn đạt tự nhiên hơn: ${userSentence}`
+        userSentence
       ]
     };
   }
 
   const prompt = `
-Người học tiếng Anh đang thực hành đặt câu với từ/cấu trúc: "${targetItem}".
-Câu do người học tự viết: "${userSentence}"
+Bạn là chuyên gia khảo thí và biên tập viên ngôn ngữ ${targetLangName}.
+Học viên đang thực hành viết câu bằng ${targetLangName} với từ/cấu trúc: "${targetItem}".
+Ngôn ngữ mẹ đẻ / giải thích cho học viên là: ${fluentLangName}.
 
-Hãy đánh giá và sửa bài chi tiết. Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`json):
+Câu do học viên tự viết: "${userSentence}"
+
+Nhiệm vụ: Đánh giá độ chính xác ngữ pháp, ngữ nghĩa, mức độ tự nhiên của câu đối với ${targetLangName}.
+MỌI nhận xét, giải thích lý do lỗi sai phải được viết bằng ${fluentLangName} để học viên hiểu rõ.
+Các câu gợi ý tự nhiên hơn (native_alternatives) PHẢI được viết bằng ${targetLangName}.
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm markdown \`\`\`json):
 {
   "is_correct": true hoặc false,
   "score": 0-100 (điểm độ chính xác và độ tự nhiên),
-  "feedback": "Nhận xét súc tích bằng tiếng Việt về ngữ pháp, sắc thái từ",
+  "feedback": "Nhận xét súc tích bằng ${fluentLangName} về ngữ pháp, sắc thái từ",
   "corrections": [
     {
       "error": "phần sai (nếu có)",
-      "correction": "phần sửa",
-      "reason": "giải thích lý do"
+      "correction": "cách sửa chuẩn bằng ${targetLangName}",
+      "reason": "giải thích lý do bằng ${fluentLangName}"
     }
   ],
   "native_alternatives": [
-    "Cách viết 1 chuẩn bản xứ hơn",
-    "Cách viết 2 trang trọng / chuyên nghiệp hơn"
+    "Cách viết 1 tự nhiên chuẩn bản xứ bằng ${targetLangName}",
+    "Cách viết 2 trang trọng / tinh tế hơn bằng ${targetLangName}"
   ]
 }
 `;
@@ -436,10 +487,15 @@ Hãy đánh giá và sửa bài chi tiết. Trả về DUY NHẤT một chuỗi 
 /**
  * 3. Daily Story Weaver (SRS Retention Story)
  */
-export async function generateStoryAI(wordsList = [], apiKey = null) {
+export async function generateStoryAI(wordsList = [], apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+
   if (wordsList.length === 0) {
     return {
-      title: 'Hôm nay chưa có từ nào cần ôn tập',
+      title: fluentLang === 'en' ? 'No words due for review right now' : 'Hôm nay chưa có từ nào cần ôn tập',
+      story_target: fluentLang === 'en' ? 'You have no words due for review right now. Keep up the good work!' : 'Bạn không có từ nào cần ôn lúc này. Tiếp tục phát huy nhé!',
+      story_fluent: fluentLang === 'en' ? 'You have no words due for review right now. Keep up the good work!' : 'Bạn không có từ nào cần ôn lúc này. Tiếp tục phát huy nhé!',
       story_en: 'You have no words due for review right now. Keep up the good work!',
       story_vi: 'Bạn không có từ nào cần ôn lúc này. Tiếp tục phát huy nhé!',
       highlighted_words: []
@@ -451,30 +507,41 @@ export async function generateStoryAI(wordsList = [], apiKey = null) {
 
   if (!effectiveKey) {
     return {
-      title: 'Câu chuyện ôn tập hàng ngày (Bản demo)',
-      story_en: `Today, let's review these important words: ${wordsStr}. Using them regularly in real conversations will help you master them quickly.`,
-      story_vi: `Hôm nay, hãy cùng ôn lại các từ: ${wordsStr}. Sử dụng chúng thường xuyên sẽ giúp bạn nhớ lâu. (Thêm Gemini API Key trong Cài đặt để AI tự động sáng tác truyện cực hay).`,
+      title: fluentLang === 'en' ? 'Spaced Memory Daily Story (Demo)' : 'Câu chuyện ôn tập hàng ngày (Bản demo)',
+      story_target: `[${targetLangName}] Today let's review: ${wordsStr}.`,
+      story_fluent: `[${fluentLangName}] Practice makes perfect with: ${wordsStr}.`,
+      story_en: `Today, let's review these important words: ${wordsStr}.`,
+      story_vi: `Hôm nay, hãy cùng ôn lại các từ: ${wordsStr}. (Thêm Gemini API Key trong Cài đặt để AI tự động sáng tác truyện cực hay).`,
       highlighted_words: wordsList.map(w => w.word || w)
     };
   }
 
   const prompt = `
-Hãy viết một đoạn văn / câu chuyện ngắn (khoảng 80-120 từ) cực kỳ tự nhiên, hấp dẫn bằng tiếng Anh lồng ghép khéo léo các từ vựng sau:
+Bạn là nhà văn và chuyên gia ghi nhớ ngắt quãng (Spaced Repetition).
+Hãy sáng tác một câu chuyện ngắn hoặc đoạn văn lôi cuốn (khoảng 80-120 từ) BẰNG NGÔN NGỮ MỤC TIÊU: ${targetLangName}.
+Đoạn văn PHẢI khéo léo lồng ghép các từ vựng sau đây của người học:
 [${wordsStr}]
 
-Hãy bọc các từ vựng này trong thẻ <b>từ_vựng</b> trong đoạn văn tiếng Anh.
+Hãy bọc các từ vựng này trong thẻ <b>từ_vựng</b> trong câu chuyện ${targetLangName}.
+Cung cấp bản dịch đầy đủ sang ${fluentLangName} cho người học.
+
 Trả về JSON với cấu trúc:
 {
-  "title": "Tiêu đề ngắn gọn của câu chuyện (tiếng Việt)",
-  "story_en": "Nội dung câu chuyện bằng tiếng Anh có chứa các từ được bọc trong <b>...</b>",
-  "story_vi": "Bản dịch tiếng Việt mượt mà của câu chuyện",
+  "title": "Tiêu đề ngắn gọn của câu chuyện bằng ${fluentLangName}",
+  "story_target": "Nội dung câu chuyện bằng ${targetLangName} có chứa các từ được bọc trong <b>...</b>",
+  "story_fluent": "Bản dịch tự nhiên sang ${fluentLangName}",
   "highlighted_words": ["danh sách các từ đã dùng"]
 }
 `;
 
   try {
     const rawResponse = await callGemini(prompt, effectiveKey, null, null, true);
-    return safeParseJson(rawResponse);
+    const parsed = safeParseJson(rawResponse);
+    if (parsed) {
+      parsed.story_en = targetLang === 'en' ? (parsed.story_target || parsed.story_en) : (parsed.story_fluent || parsed.story_en);
+      parsed.story_vi = targetLang === 'vi' ? (parsed.story_target || parsed.story_vi) : (parsed.story_fluent || parsed.story_vi);
+    }
+    return parsed;
   } catch (err) {
     console.error('AI story generation error:', err.message);
     throw err;
@@ -484,16 +551,18 @@ Trả về JSON với cấu trúc:
 /**
  * 4. AI Paraphraser & Tone Polisher
  */
-export async function paraphraseSentenceAI({ sentence, tone = 'business' }, apiKey = null) {
+export async function paraphraseSentenceAI({ sentence, tone = 'business' }, apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
   const toneDescriptions = {
-    business: 'Trang trọng, chuyên nghiệp, chuẩn mực đàm phán và email công việc (Business Corporate)',
-    academic: 'Học thuật, từ vựng C1-C2, mệnh đề phức và liên từ cao cấp (Academic / IELTS 8.0+)',
-    casual: 'Tự nhiên, đời thường, lưu loát như người bản xứ Mỹ/Anh (Natural Native Daily)',
+    business: 'Trang trọng, chuyên nghiệp, chuẩn mực công sở (Business Corporate)',
+    academic: 'Học thuật, từ vựng nâng cao, mệnh đề phức và liên từ chuẩn mực (Academic)',
+    casual: 'Tự nhiên, đời thường, lưu loát như người bản xứ (Natural Daily Conversation)',
     concise: 'Ngắn gọn, súc tích, lược bỏ từ thừa, đi thẳng vào trọng tâm (Concise & Direct)'
   };
 
   const selectedToneDesc = toneDescriptions[tone] || toneDescriptions.business;
   const effectiveKey = getEffectiveApiKey(apiKey);
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
 
   if (!effectiveKey) {
     return {
@@ -501,56 +570,62 @@ export async function paraphraseSentenceAI({ sentence, tone = 'business' }, apiK
       tone,
       paraphrases: [
         {
-          version: `(Demo Business) Regarding your request: ${sentence}`,
-          explanation_vi: 'Cách diễn đạt trang trọng trong email công sở (Cần API Key để tạo bản AI chi tiết)',
-          key_phrases: [{ phrase: 'Regarding your request', meaning_vi: 'Liên quan đến yêu cầu của bạn' }]
-        },
-        {
-          version: `(Demo Native) Here is the thing: ${sentence}`,
-          explanation_vi: 'Cách nói tự nhiên đời thường của người bản xứ',
-          key_phrases: [{ phrase: 'Here is the thing', meaning_vi: 'Vấn đề là / Điểm mấu chốt là' }]
+          version: `[${selectedToneDesc}] ${sentence}`,
+          explanation: fluentLang === 'en' ? 'Demo paraphrase version' : 'Cách diễn đạt mẫu',
+          explanation_vi: 'Cách diễn đạt mẫu',
+          key_phrases: [{ phrase: sentence, meaning: sentence, meaning_vi: sentence }]
         }
       ]
     };
   }
 
   const prompt = `
-Bạn là chuyên gia ngôn ngữ học tiếng Anh hàng đầu. Hãy viết lại (paraphrase) câu sau theo văn phong: "${selectedToneDesc}".
+Bạn là chuyên gia ngôn ngữ học ${targetLangName} hàng đầu.
+Người học có ngôn ngữ mẹ đẻ là ${fluentLangName}.
+Hãy viết lại (paraphrase) câu sau BẰNG ${targetLangName} theo phong cách / văn phong: "${selectedToneDesc}".
 Câu gốc: "${sentence}"
 
-Hãy cung cấp 3 phiên bản viết lại xuất sắc nhất từ tự nhiên đến nâng cao.
+Cung cấp 3 phiên bản viết lại xuất sắc nhất từ tự nhiên đến nâng cao.
+Mọi giải thích lý do hay và giải nghĩa cụm từ đắt giá PHẢI được viết BẰNG ${fluentLangName}.
+
 Trả về JSON với cấu trúc:
 {
   "original": "${sentence}",
   "tone": "${tone}",
   "paraphrases": [
     {
-      "version": "Câu viết lại phiên bản 1",
-      "explanation_vi": "Giải thích ngắn gọn tại sao phiên bản này hay và sắc thái của nó",
+      "version": "Câu viết lại phiên bản 1 bằng ${targetLangName}",
+      "explanation": "Giải thích ngắn gọn lý do tại sao phiên bản này hay bằng ${fluentLangName}",
+      "explanation_vi": "Giải thích bằng ${fluentLangName}",
       "key_phrases": [
         {
-          "phrase": "cụm từ hay được nâng cấp trong câu",
-          "meaning_vi": "nghĩa tiếng Việt chính xác"
+          "phrase": "cụm từ hay được nâng cấp bằng ${targetLangName}",
+          "meaning": "nghĩa bằng ${fluentLangName}",
+          "meaning_vi": "nghĩa bằng ${fluentLangName}"
         }
       ]
     },
     {
-      "version": "Câu viết lại phiên bản 2",
-      "explanation_vi": "Giải thích ngắn gọn",
+      "version": "Câu viết lại phiên bản 2 bằng ${targetLangName}",
+      "explanation": "Giải thích ngắn gọn bằng ${fluentLangName}",
+      "explanation_vi": "Giải thích bằng ${fluentLangName}",
       "key_phrases": [
         {
-          "phrase": "cụm từ hay",
-          "meaning_vi": "nghĩa tiếng Việt"
+          "phrase": "cụm từ hay bằng ${targetLangName}",
+          "meaning": "nghĩa bằng ${fluentLangName}",
+          "meaning_vi": "nghĩa bằng ${fluentLangName}"
         }
       ]
     },
     {
-      "version": "Câu viết lại phiên bản 3",
-      "explanation_vi": "Giải thích ngắn gọn",
+      "version": "Câu viết lại phiên bản 3 bằng ${targetLangName}",
+      "explanation": "Giải thích ngắn gọn bằng ${fluentLangName}",
+      "explanation_vi": "Giải thích bằng ${fluentLangName}",
       "key_phrases": [
         {
-          "phrase": "cụm từ hay",
-          "meaning_vi": "nghĩa tiếng Việt"
+          "phrase": "cụm từ hay bằng ${targetLangName}",
+          "meaning": "nghĩa bằng ${fluentLangName}",
+          "meaning_vi": "nghĩa bằng ${fluentLangName}"
         }
       ]
     }
@@ -570,88 +645,99 @@ Trả về JSON với cấu trúc:
 /**
  * 5. AI Collocation & Deep Idiom Explorer
  */
-export async function exploreCollocationsAI(word, apiKey = null) {
+export async function exploreCollocationsAI(word, apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
   const effectiveKey = getEffectiveApiKey(apiKey);
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
 
   if (!effectiveKey) {
     return {
       target_word: word,
       phonetic: '/.../',
-      word_type: 'noun / verb',
+      word_type: targetLang === 'vi' ? 'từ vựng' : 'word',
+      core_meaning: `Ý nghĩa chính của từ ${word}`,
       core_meaning_vi: `Ý nghĩa chính của từ ${word}`,
       collocations: [
         {
-          pattern: 'Verb + Noun',
-          collocation: `leverage ${word}`,
-          meaning_vi: `tận dụng ${word}`,
-          example_en: `We must leverage our capabilities to achieve success.`,
-          example_vi: `Chúng ta phải tận dụng năng lực của mình để đạt được thành công.`
+          pattern: 'Collocation Pattern',
+          collocation: `${word}`,
+          meaning: `${word}`,
+          meaning_vi: `${word}`,
+          example_target: `Ví dụ với ${word}`,
+          example_fluent: `Dịch ví dụ của ${word}`,
+          example_en: `Example with ${word}`,
+          example_vi: `Ví dụ với ${word}`
         }
       ],
-      idioms_and_phrasal_verbs: [
-        {
-          phrase: `in terms of ${word}`,
-          meaning_vi: `xét về mặt ${word}`,
-          example_en: `In terms of quality, this product is unmatched.`,
-          example_vi: `Xét về mặt chất lượng, sản phẩm này không có đối thủ.`
-        }
-      ],
-      common_mistakes: [
-        {
-          incorrect: `Dịch thô từng từ của ${word}`,
-          correct: `Cách dùng tự nhiên chuẩn bản xứ`,
-          explanation_vi: `Cần Gemini API Key trong Cài đặt để bóc tách sâu hơn.`
-        }
-      ]
+      idioms_and_phrasal_verbs: [],
+      common_mistakes: []
     };
   }
 
   const prompt = `
-Bạn là từ điển sống và chuyên gia khảo sát ngữ liệu tiếng Anh (Corpus Linguistics). Hãy đào sâu phân tích từ vựng: "${word}".
-Bóc tách các Collocations (cụm từ cố định tự nhiên), Thành ngữ (Idioms/Phrasal Verbs) và các Lỗi sai người học Việt Nam hay mắc (Common Pitfalls).
+Bạn là chuyên gia ngữ liệu học (Corpus Linguistics) và từ điển sống của ${targetLangName}.
+Người học có ngôn ngữ mẹ đẻ / giải nghĩa là ${fluentLangName}.
+Hãy phân tích chuyên sâu từ vựng: "${word}" (${targetLangName}).
+
+Bóc tách các cụm từ kết hợp tự nhiên (Collocations), Thành ngữ / Quán ngữ cố định (Idioms / Set phrases) và các Lỗi sai người học hay mắc.
+Mọi giải thích, nghĩa của từ và dịch ví dụ phải viết BẰNG ${fluentLangName}.
 
 Trả về JSON với cấu trúc:
 {
   "target_word": "${word}",
-  "phonetic": "Phiên âm IPA chuẩn Anh-Mỹ",
-  "word_type": "noun / verb / adjective / adverb",
-  "core_meaning_vi": "Nghĩa tiếng Việt chuẩn xác và sắc thái chính",
+  "phonetic": "Phiên âm IPA hoặc ký âm phát âm của ${targetLangName}",
+  "word_type": "Từ loại (danh từ, động từ...) bằng ${fluentLangName}",
+  "core_meaning": "Nghĩa chuẩn xác bằng ${fluentLangName}",
+  "core_meaning_vi": "Nghĩa chuẩn xác bằng ${fluentLangName}",
   "collocations": [
     {
-      "pattern": "Verb + Noun / Adj + Noun / Preposition",
-      "collocation": "cụm từ kết hợp tự nhiên (vd: tackle a problem)",
-      "meaning_vi": "nghĩa tiếng Việt của cả cụm",
-      "example_en": "Câu ví dụ thực tế sử dụng cụm này",
-      "example_vi": "Dịch nghĩa câu ví dụ"
+      "pattern": "Mẫu kết hợp (ví dụ: Verb + Noun, Tính từ + Danh từ...)",
+      "collocation": "cụm từ bằng ${targetLangName}",
+      "meaning": "nghĩa của cả cụm bằng ${fluentLangName}",
+      "meaning_vi": "nghĩa của cả cụm bằng ${fluentLangName}",
+      "example_target": "Câu ví dụ thực tế sử dụng cụm này bằng ${targetLangName}",
+      "example_fluent": "Dịch nghĩa câu ví dụ sang ${fluentLangName}",
+      "example_en": "Câu ví dụ",
+      "example_vi": "Dịch câu ví dụ"
     },
     {
-      "pattern": "Verb + Noun / Adj + Noun / Preposition",
-      "collocation": "cụm từ 2",
-      "meaning_vi": "nghĩa tiếng Việt",
+      "pattern": "Mẫu kết hợp 2",
+      "collocation": "cụm từ 2 bằng ${targetLangName}",
+      "meaning": "nghĩa bằng ${fluentLangName}",
+      "meaning_vi": "nghĩa bằng ${fluentLangName}",
+      "example_target": "Câu ví dụ bằng ${targetLangName}",
+      "example_fluent": "Dịch sang ${fluentLangName}",
       "example_en": "Câu ví dụ",
-      "example_vi": "Dịch câu"
+      "example_vi": "Dịch câu ví dụ"
     },
     {
-      "pattern": "Verb + Noun / Adj + Noun / Preposition",
-      "collocation": "cụm từ 3",
-      "meaning_vi": "nghĩa tiếng Việt",
+      "pattern": "Mẫu kết hợp 3",
+      "collocation": "cụm từ 3 bằng ${targetLangName}",
+      "meaning": "nghĩa bằng ${fluentLangName}",
+      "meaning_vi": "nghĩa bằng ${fluentLangName}",
+      "example_target": "Câu ví dụ bằng ${targetLangName}",
+      "example_fluent": "Dịch sang ${fluentLangName}",
       "example_en": "Câu ví dụ",
-      "example_vi": "Dịch câu"
+      "example_vi": "Dịch câu ví dụ"
     }
   ],
   "idioms_and_phrasal_verbs": [
     {
-      "phrase": "thành ngữ hoặc phrasal verb liên quan đến từ này",
-      "meaning_vi": "nghĩa tiếng Việt",
-      "example_en": "Câu ví dụ sinh động",
+      "phrase": "thành ngữ / quán ngữ bằng ${targetLangName}",
+      "meaning": "nghĩa bằng ${fluentLangName}",
+      "meaning_vi": "nghĩa bằng ${fluentLangName}",
+      "example_target": "Câu ví dụ sinh động bằng ${targetLangName}",
+      "example_fluent": "Dịch câu ví dụ sang ${fluentLangName}",
+      "example_en": "Câu ví dụ",
       "example_vi": "Dịch câu ví dụ"
     }
   ],
   "common_mistakes": [
     {
-      "incorrect": "Cách diễn đạt sai mà người Việt hay dùng (Vinglish/dịch thô)",
-      "correct": "Cách nói/viết chuẩn của người bản xứ",
-      "explanation_vi": "Giải thích vì sao sai và sắc thái khác nhau"
+      "incorrect": "Cách dùng sai hoặc dịch thô người học hay mắc",
+      "correct": "Cách diễn đạt chuẩn của người bản xứ ${targetLangName}",
+      "explanation": "Giải thích vì sao sai bằng ${fluentLangName}",
+      "explanation_vi": "Giải thích vì sao sai bằng ${fluentLangName}"
     }
   ]
 }
@@ -669,70 +755,73 @@ Trả về JSON với cấu trúc:
 /**
  * 6. AI Situational Dialogue & Roleplay Generator
  */
-export async function generateSituationalDialogueAI({ scenario = 'job_interview', userWords = [] }, apiKey = null) {
+export async function generateSituationalDialogueAI({ scenario = 'job_interview', userWords = [] }, apiKey = null, { targetLang = 'en', fluentLang = 'vi' } = {}) {
   const scenarioNames = {
-    job_interview: 'Phỏng vấn xin việc vị trí cấp cao (Tech / Corporate Interview)',
-    salary_negotiation: 'Đàm phán lương thưởng & quyền lợi (Salary & Compensation Negotiation)',
-    tech_standup: 'Họp Agile Standup & Giải quyết sự cố kỹ thuật (Engineering Standup)',
-    business_meeting: 'Họp đàm phán hợp đồng đối tác (Client Partnership Meeting)',
-    daily_casual: 'Trò chuyện cafe đời thường với đồng nghiệp bản xứ (Casual Coffee Chat)',
-    travel_airport: 'Check-in sân bay và xử lý sự cố chuyến bay (Airport & Travel Emergency)'
+    job_interview: targetLang === 'vi' ? 'Phỏng vấn tuyển dụng công ty (Job Interview)' : 'Corporate Job Interview',
+    salary_negotiation: targetLang === 'vi' ? 'Đàm phán lương thưởng & quyền lợi' : 'Salary & Compensation Negotiation',
+    tech_standup: targetLang === 'vi' ? 'Họp công việc hàng ngày (Daily Standup)' : 'Agile Engineering Standup',
+    business_meeting: targetLang === 'vi' ? 'Gặp gỡ và làm việc với đối tác' : 'Client Partnership Meeting',
+    daily_casual: targetLang === 'vi' ? 'Trò chuyện cafe đời thường bạn bè' : 'Casual Coffee Chat with Colleague',
+    travel_airport: targetLang === 'vi' ? 'Hỏi đường, du lịch & mua sắm' : 'Airport & Travel Emergency'
   };
 
   const scenarioTitle = scenarioNames[scenario] || scenario;
-  const wordsStr = userWords.length > 0 ? userWords.join(', ') : 'resilient, eloquent, leverage, ubiquitous';
+  const wordsStr = userWords.length > 0 ? userWords.join(', ') : (targetLang === 'vi' ? 'cảm ơn, giúp đỡ, hài lòng, phát triển' : 'resilient, eloquent, leverage, ubiquitous');
   const effectiveKey = getEffectiveApiKey(apiKey);
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
 
   if (!effectiveKey) {
     return {
       scenario_title: scenarioTitle,
-      scenario_desc_vi: `Bối cảnh: Thực hành hội thoại trong tình huống ${scenarioTitle}`,
+      scenario_desc: `Bối cảnh: ${scenarioTitle}`,
+      scenario_desc_vi: `Bối cảnh: ${scenarioTitle}`,
       roles: ['Speaker A', 'Speaker B'],
-      integrated_words: ['resilient', 'leverage'],
+      integrated_words: userWords.slice(0, 2),
       dialogue: [
         {
           speaker: 'Speaker A',
-          text_en: `Good morning! How do you plan to leverage our current resources?`,
-          text_vi: `Chào buổi sáng! Bạn dự định tận dụng các nguồn lực hiện tại của chúng ta như thế nào?`,
-          highlighted_word: 'leverage'
-        },
-        {
-          speaker: 'Speaker B',
-          text_en: `We will build a resilient system that withstands high traffic.`,
-          text_vi: `Chúng tôi sẽ xây dựng một hệ thống bền bỉ có khả năng chịu tải cao.`,
-          highlighted_word: 'resilient'
+          text_target: `[${targetLangName}] Hello! How are you today?`,
+          text_fluent: `[${fluentLangName}] Xin chào! Bạn hôm nay thế nào?`,
+          text_en: `Hello! How are you today?`,
+          text_vi: `Xin chào! Bạn hôm nay thế nào?`,
+          highlighted_word: userWords[0] || null
         }
       ],
-      key_takeaways: [
-        { phrase: 'leverage our current resources', meaning_vi: 'tận dụng các nguồn lực hiện có' },
-        { phrase: 'resilient system', meaning_vi: 'hệ thống bền bỉ, phục hồi nhanh' }
-      ]
+      key_takeaways: []
     };
   }
 
   const prompt = `
-Bạn là biên kịch và chuyên gia giảng dạy giao tiếp tiếng Anh ứng dụng.
+Bạn là biên kịch và chuyên gia sư phạm giao tiếp ứng dụng ${targetLangName}.
+Người học có ngôn ngữ mẹ đẻ / giải nghĩa là ${fluentLangName}.
 Hãy tạo một đoạn hội thoại 2 chiều thực tế, tự nhiên và lôi cuốn (khoảng 4-6 lượt thoại) trong tình huống: "${scenarioTitle}".
+Toàn bộ lời thoại giao tiếp PHẢI được viết BẰNG ${targetLangName}.
+Kèm theo bản dịch nghĩa tự nhiên sang ${fluentLangName}.
 Yêu cầu ĐẶC BIỆT: Hãy khéo léo lồng ghép các từ vựng sau đây của người học vào câu thoại: [${wordsStr}].
 
 Trả về JSON với cấu trúc:
 {
   "scenario_title": "${scenarioTitle}",
-  "scenario_desc_vi": "Mô tả ngắn gọn bối cảnh tình huống và vai trò của hai bên",
+  "scenario_desc": "Mô tả ngắn gọn bối cảnh tình huống bằng ${fluentLangName}",
+  "scenario_desc_vi": "Mô tả ngắn gọn bối cảnh tình huống bằng ${fluentLangName}",
   "roles": ["Người hỏi / Vai 1", "Người trả lời / Vai 2"],
   "integrated_words": ["danh sách các từ trong danh sách trên đã được lồng ghép"],
   "dialogue": [
     {
       "speaker": "Tên người nói",
-      "text_en": "Câu thoại tiếng Anh tự nhiên",
-      "text_vi": "Bản dịch tiếng Việt tự nhiên chuẩn ngữ cảnh",
-      "highlighted_word": "từ vựng được lồng ghép trong câu này (nếu có, nếu không thì null)"
+      "text_target": "Câu thoại tự nhiên bằng ${targetLangName}",
+      "text_fluent": "Bản dịch nghĩa tự nhiên sang ${fluentLangName}",
+      "text_en": "Câu thoại bằng ${targetLangName}",
+      "text_vi": "Bản dịch sang ${fluentLangName}",
+      "highlighted_word": "từ vựng được lồng ghép trong câu này (nếu có, không có thì null)"
     }
   ],
   "key_takeaways": [
     {
-      "phrase": "cụm từ hoặc mẫu câu giao tiếp đắt giá",
-      "meaning_vi": "giải thích ý nghĩa và cách áp dụng"
+      "phrase": "cụm từ hoặc mẫu câu giao tiếp đắt giá bằng ${targetLangName}",
+      "meaning": "giải thích ý nghĩa bằng ${fluentLangName}",
+      "meaning_vi": "giải thích ý nghĩa bằng ${fluentLangName}"
     }
   ]
 }
@@ -740,7 +829,15 @@ Trả về JSON với cấu trúc:
 
   try {
     const rawResponse = await callGemini(prompt, effectiveKey, null, null, true);
-    return safeParseJson(rawResponse);
+    const parsed = safeParseJson(rawResponse);
+    if (parsed && Array.isArray(parsed.dialogue)) {
+      parsed.dialogue = parsed.dialogue.map(d => ({
+        ...d,
+        text_en: targetLang === 'en' ? (d.text_target || d.text_en) : (d.text_fluent || d.text_en),
+        text_vi: targetLang === 'vi' ? (d.text_target || d.text_vi) : (d.text_fluent || d.text_vi)
+      }));
+    }
+    return parsed;
   } catch (err) {
     console.error('AI dialogue error:', err.message);
     throw err;
@@ -750,17 +847,31 @@ Trả về JSON với cấu trúc:
 /**
  * 8. AI Smart Contextual Quiz Generator (Biên soạn bài trắc nghiệm ngữ cảnh thực tế theo cấp độ IELTS)
  */
-export async function generateAIQuiz({ topic = 'All', count = 5, words = [], level = 'all', context_levels = null, mode = 'mixed', date_scope = 'all', date = null, start_date = null, end_date = null }, apiKey = null) {
+/**
+ * 8. AI Smart Contextual Quiz Generator (Language-adaptive for English CEFR & Vietnamese VSL)
+ */
+export async function generateAIQuiz({ topic = 'All', count = 5, words = [], level = 'all', context_levels = null, mode = 'mixed', date_scope = 'all', date = null, start_date = null, end_date = null, userId = null, target_language = 'en', native_language = 'vi' }, apiKey = null) {
   const db = getDb();
   let candidateWords = [];
   let topicDisplay = 'Tất cả (All)';
   let allWords = [];
 
+  const targetLang = target_language || 'en';
+  const fluentLang = native_language || (targetLang === 'vi' ? 'en' : 'vi');
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+
   if (words && words.length > 0) {
     candidateWords = words;
     allWords = words;
   } else {
-    allWords = db.prepare('SELECT id, word, meaning_vi, meaning_en, part_of_speech, examples, level, topic_id, created_at FROM words').all();
+    let q = 'SELECT id, word, meaning_vi, meaning_en, part_of_speech, examples, level, topic_id, created_at, user_id FROM words WHERE 1=1';
+    const params = [];
+    if (userId && userId !== 'admin_master_user_id') {
+      q += ' AND user_id = ?';
+      params.push(userId);
+    }
+    allWords = db.prepare(q).all(...params);
     const dateFiltered = filterItemsByDate(allWords, date_scope, date, start_date, end_date);
     const resolved = resolveTopics(db, topic);
     if (!resolved.isAll) {
@@ -778,16 +889,26 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
   }
 
   if (candidateWords.length === 0) {
-    candidateWords = [
-      { id: 'sample_1', word: 'ubiquitous', meaning_vi: 'Có mặt ở khắp nơi', level: 'C1', topic_id: 'tech' },
-      { id: 'sample_2', word: 'resilience', meaning_vi: 'Sự kiên cường, phục hồi', level: 'B2', topic_id: 'mindset' },
-      { id: 'sample_3', word: 'eloquent', meaning_vi: 'Lưu loát, có tài hùng biện', level: 'C2', topic_id: 'ielts' },
-      { id: 'sample_4', word: 'pragmatic', meaning_vi: 'Thực tế, thực dụng', level: 'B2', topic_id: 'work' },
-      { id: 'sample_5', word: 'meticulous', meaning_vi: 'Tỉ mỉ, trau chuốt', level: 'C1', topic_id: 'work' }
-    ];
+    if (targetLang === 'vi') {
+      candidateWords = [
+        { id: 'sample_vi_1', word: 'xin chào', meaning_vi: 'Chào hỏi lịch sự', meaning_en: 'Hello / Greetings', level: 'A1', topic_id: 'vsl_tones' },
+        { id: 'sample_vi_2', word: 'cảm ơn', meaning_vi: 'Bày tỏ lòng biết ơn', meaning_en: 'Thank you', level: 'A1', topic_id: 'vsl_tones' },
+        { id: 'sample_vi_3', word: 'đồng nghiệp', meaning_vi: 'Người cùng làm việc', meaning_en: 'Colleague', level: 'B1', topic_id: 'vsl_workplace' },
+        { id: 'sample_vi_4', word: 'tối ưu hóa', meaning_vi: 'Làm cho đạt hiệu quả cao nhất', meaning_en: 'Optimize', level: 'B2', topic_id: 'vsl_sino_vietnamese' },
+        { id: 'sample_vi_5', word: 'bền bỉ', meaning_vi: 'Kiên trì lâu dài', meaning_en: 'Resilient / Persistent', level: 'B2', topic_id: 'vsl_workplace' }
+      ];
+    } else {
+      candidateWords = [
+        { id: 'sample_1', word: 'ubiquitous', meaning_vi: 'Có mặt ở khắp nơi', meaning_en: 'Present everywhere', level: 'C1', topic_id: 'daily' },
+        { id: 'sample_2', word: 'resilience', meaning_vi: 'Sự kiên cường, phục hồi', meaning_en: 'Ability to recover', level: 'B2', topic_id: 'daily' },
+        { id: 'sample_3', word: 'eloquent', meaning_vi: 'Lưu loát, có tài hùng biện', meaning_en: 'Fluent or persuasive', level: 'C2', topic_id: 'ielts' },
+        { id: 'sample_4', word: 'pragmatic', meaning_vi: 'Thực tế, thực dụng', meaning_en: 'Dealing with things sensibly', level: 'B2', topic_id: 'daily' },
+        { id: 'sample_5', word: 'meticulous', meaning_vi: 'Tỉ mỉ, trau chuốt', meaning_en: 'Showing great attention to detail', level: 'C1', topic_id: 'daily' }
+      ];
+    }
   }
 
-  // Filter candidate words by Granular IELTS tier ONLY if explicitly requested (e.g. ielts_4_5)
+  // Filter candidate words by Granular IELTS / VSL tier ONLY if explicitly requested
   if (level && level.startsWith('ielts_')) {
     const tierMap = {
       'ielts_4_5': ['A1', 'A2', 'B1'],
@@ -822,9 +943,7 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
   if (shuffled.length >= targetCount) {
     selected = shuffled.slice(0, targetCount);
   } else {
-    // Round 1: Tất cả các từ ứng viên trong phạm vi xuất hiện ít nhất 1 lần
     selected = [...shuffled];
-    // Round 2+: Tiếp tục random xoay vòng từ uniqueCandidates cho đến khi đủ targetCount, TUYỆT ĐỐI không lấy từ bên ngoài
     while (selected.length < targetCount && uniqueCandidates.length > 0) {
       const nextRound = [...uniqueCandidates].sort(() => 0.5 - Math.random());
       for (const w of nextRound) {
@@ -845,123 +964,31 @@ export async function generateAIQuiz({ topic = 'All', count = 5, words = [], lev
     activeContextLevels = ['a1_a2', 'b1', 'b2', 'c1_c2'];
   }
 
-  const contextLevelDescriptions = activeContextLevels.map(l => {
-    if (l === 'a1_a2' || l === 'a1' || l === 'a2') return 'A1 - A2 (Cơ bản / Đời sống hàng ngày)';
-    if (l === 'b1') return 'B1 (Trung cấp / Công sở & Giao tiếp thực tế)';
-    if (l === 'b2') return 'B2 (Trung cấp khá / Chuyên nghiệp công sở)';
-    if (l === 'c1' || l === 'c1_c2') return 'C1 (Cao cấp / Học thuật IELTS Band 7.0 - 7.5)';
-    if (l === 'c2') return 'C2 (Bản xứ / Chuyên gia IELTS Band 8.5 - 9.0)';
-    return l.toUpperCase();
-  }).join(' + ');
-
-  const ieltsRequirementMap = {
-    'all': 'Đa dạng linh hoạt từ A2 đến C2',
-    'easy': 'MỨC ĐỘ DỄ GIẢI (EASY TO SOLVE): Câu hỏi trực quan, ngữ cảnh thân thuộc, các phương án gây nhiễu phân biệt rất rõ ràng không gây nhầm lẫn. Kèm gợi ý nghĩa hoặc từ loại rõ ràng trong hướng dẫn.',
-    'medium': 'MỨC ĐỘ TIÊU CHUẨN (STANDARD TO SOLVE): Câu văn ngữ cảnh đời sống & công sở chuẩn mực, 4 lựa chọn cùng loại từ, người học cần hiểu đúng nghĩa câu để chọn.',
-    'hard': 'MỨC ĐỘ KHÓ & ĐÁNH ĐỐ CAO (VERY TRICKY & HARD TO SOLVE): Câu hỏi cực kỳ đánh đố về cách dùng. Sử dụng BẪY HỌ TỪ (Word Family: đưa danh từ/tính từ/trạng từ của từ đó vào phương án gây nhiễu) hoặc BẪY TỪ GẦN NGHĨA (Confusing Synonyms) / Collocations để người học phải phân tích sâu ngữ pháp và sắc thái mới giải được.',
-    'ielts_4_5': 'Cấp độ IELTS Band 4.0 - 5.0 (CEFR A2 - B1 Nền Tảng): Ngữ cảnh giao tiếp hàng ngày thân thuộc, câu văn ngắn gọn, từ ngữ tự nhiên và dễ nắm bắt.',
-    'ielts_55_60': 'Cấp độ IELTS Band 5.5 - 6.0 (CEFR B1 - B2 Tiền Trung Cấp): Ngữ cảnh công việc cơ bản & đời sống xã hội, câu văn ghép đơn giản, phân biệt rõ nghĩa từ.',
-    'ielts_65_70': 'Cấp độ IELTS Band 6.5 - 7.0 (CEFR B2 - C1 Trung Cấp Khá): Ngữ cảnh bài luận học thuật, báo chí, môi trường công sở chuyên nghiệp, cấu trúc câu phức và mệnh đề quan hệ.',
-    'ielts_75_80': 'Cấp độ IELTS Band 7.5 - 8.0 (CEFR C1 Nâng Cao): Ngữ cảnh học thuật chuyên sâu (IELTS Reading/Writing Task 2), collocations học thuật đắt giá, bẫy trắc nghiệm logic và sắc thái từ tinh tế.',
-    'ielts_85_90': 'Cấp độ IELTS Band 8.5 - 9.0 (CEFR C2 Mastery Bản Xứ): Văn phong học thuật đỉnh cao, thuật ngữ chuyên ngành uyên bác, phân biệt các sắc thái đồng nghĩa cực kỳ tinh xảo.'
-  };
-  const ieltsGuideline = ieltsRequirementMap[level] || ieltsRequirementMap['all'];
-
-  const modeInstructions = {
-    'cloze_blank': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Điền vào câu (Cloze Blank) & Đa dạng Ngữ Pháp (Tenses & Inflections)"
-- Mọi câu hỏi đều là câu văn ngữ cảnh thực tế chứa chỗ trống "_______" tương ứng với từ mục tiêu.
-- ĐẢM BẢO TÍNH LOGIC & NGỮ CẢNH TỰ NHIÊN (BẮT BUỘC):
-  + Tuyệt đối không tạo câu vô lý, gượng ép hoặc trái ngược tính chất của từ vựng. Ví dụ: từ tiêu cực như "rude" (thô lỗ), "toxic", "arrogant" TUYỆT ĐỐI KHÔNG đặt vào câu khen ngợi ("The engineering team demonstrated a remarkably rude approach"), mà phải là câu đúng ngữ cảnh xã giao ("It is very rude to interrupt someone when they are speaking").
-  + Hãy ưu tiên tham khảo câu ví dụ mẫu chuẩn được cung cấp bên dưới để tạo ngữ cảnh chuẩn mực nhất.
-- ĐA DẠNG HÓA CÁC THÌ & DẠNG TỪ (BẮT BUỘC):
-  + TUYỆT ĐỐI KHÔNG CHỈ hỏi từ ở dạng nguyên mẫu (bare infinitive)!
-  + Hãy linh hoạt tạo các câu hỏi kiểm tra:
-    * Động từ thêm "-s" hoặc "-es" khi đi với chủ ngữ ngôi thứ 3 số ít ở hiện tại đơn (ví dụ: "She consistently avoids...", "Our lead delegates...").
-    * Động từ chia quá khứ đơn (-ed hoặc bất quy tắc) với mốc thời gian quá khứ (ví dụ: "Last month, the team achieved...", "Yesterday she articulated...").
-    * Danh động từ V-ing đứng sau giới từ (ví dụ: "By avoiding...", "After delegating...").
-    * Thể bị động (was/were + V3/ed, ví dụ: "All tasks were delegated...").
-    * Danh từ số nhiều (-s/-es) đi sau all / several / multiple (ví dụ: "all project deliverables / milestones").
-- 4 PHƯƠNG ÁN (OPTIONS) BẮT BUỘC PHẢI CÙNG TỪ LOẠI:
-  + Nếu câu hỏi kiểm tra Tính từ (Adjective), 4 lựa chọn BẮT BUỘC phải là các Tính từ hoặc họ từ biến cách của từ đó (ví dụ: rude, rudely, rudeness, polite). TUYỆT ĐỐI KHÔNG trộn lẫn từ loại cọc cạch khác biệt như danh từ (sunshine, book) hay động từ (run) vào câu hỏi tính từ!
-  + Nếu câu hỏi kiểm tra Động từ chia thì: 4 lựa chọn là các dạng chia của động từ đó (ví dụ: avoids vs avoid vs avoided vs avoiding).
-- correctAnswer: Dạng từ ngữ pháp chính xác để điền vào câu (ví dụ: 'avoids', 'avoided', 'avoiding', 'milestones', 'rude').
-- promptSubtitle: Nêu rõ yêu cầu ngữ pháp (ví dụ: "Chia động từ ở thì Hiện tại đơn (Chủ ngữ ngôi thứ 3 số ít):" hoặc "Chọn tính từ phù hợp với ngữ cảnh câu:").
-- explanation: Phải giải thích rõ quy tắc ngữ pháp hoặc ngữ nghĩa (tại sao phải điền từ này vào câu).
-- type: "cloze_blank"
-`,
-    'meaning_vi': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Chọn nghĩa tiếng Việt theo ngữ cảnh (In-context Reading & Nuance)"
-- Mỗi câu hỏi đưa ra 1 câu văn tiếng Anh học thuật / thực tế hoàn chỉnh có in đậm từ mục tiêu (ví dụ: "The team conducted a **meticulous** audit before product release.").
-- questionText: Câu văn tiếng Anh chứa từ mục tiêu in đậm **từ vựng**.
-- promptSubtitle: "[Từ loại] Dựa vào ngữ cảnh câu trên, từ '**từ vựng**' mang ý nghĩa và sắc thái nào:"
-- options: 4 phương án nghĩa tiếng Việt BẮT BUỘC CÙNG TỪ LOẠI (1 nghĩa đúng chuẩn xác ngữ cảnh và 3 nghĩa gây nhiễu học thuật cùng từ loại). TUYỆT ĐỐI KHÔNG dùng từ gây nhiễu ngô nghê/trẻ con!
-- correctAnswer: Nghĩa tiếng Việt đúng.
-- type: "meaning_vi"
-`,
-    'reverse_en': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Ứng dụng từ vựng vào câu thực tế (Contextual Sentence Blank - Reverse English)"
-- questionText: Một câu văn tiếng Anh hoàn chỉnh có chỗ trống "_______" ở vị trí từ mục tiêu (ví dụ: "To prevent delays, our manager decided to _______ several tasks to senior engineers.").
-- promptSubtitle: "[Từ loại] Chọn từ tiếng Anh chính xác nhất để hoàn chỉnh câu (Nghĩa: 'ủy quyền, giao phó'):"
-- options: 4 từ vựng tiếng Anh BẮT BUỘC CÙNG TỪ LOẠI (ví dụ: 4 động từ B2-C1: delegate, mitigate, articulate, prioritize). TUYỆT ĐỐI KHÔNG trộn lẫn từ loại khác nhau!
-- correctAnswer: Từ tiếng Anh chính xác điền vào câu.
-- type: "reverse_en"
-`,
-    'listening': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Luyện phản xạ Nghe & Ngữ âm (Listening Reflex & Phonology)"
-- questionText: Từ vựng mục tiêu cần luyện nghe kèm phiên âm IPA chuẩn (ví dụ: "meticulous /mɪˈtɪk.jə.ləs/").
-- promptSubtitle: "[Luyện nghe phản xạ] Nghe phát âm chuẩn và chọn nghĩa tiếng Việt chính xác [Từ loại]:"
-- options: 4 phương án nghĩa tiếng Việt BẮT BUỘC CÙNG TỪ LOẠI.
-- correctAnswer: Nghĩa tiếng Việt đúng.
-- type: "listening"
-`,
-    'mixed': `
-🎯 YÊU CẦU CHẾ ĐỘ: "Hỗn Hợp Đa Dạng Chuẩn Cambridge / IELTS (Mixed Modes)"
-- Hãy đan xen luân phiên các dạng câu hỏi giữa các câu:
-  + Dạng cloze_blank: Câu tiếng Anh có chỗ trống _______, options là 4 từ tiếng Anh cùng từ loại (đa dạng thì: hiện tại đơn -s/-es, quá khứ -ed, V-ing, danh từ số nhiều -s/-es; đúng ngữ cảnh ngữ nghĩa tự nhiên).
-  + Dạng meaning_vi: Câu tiếng Anh hoàn chỉnh in đậm **từ vựng**, options là 4 nghĩa tiếng Việt cùng từ loại theo ngữ cảnh.
-  + Dạng reverse_en: Câu tiếng Anh có chỗ trống _______, prompt nêu nghĩa tiếng Việt, options là 4 từ tiếng Anh cùng từ loại.
-  + Dạng listening: Luyện nghe phát âm từ vựng kèm IPA, options là 4 nghĩa tiếng Việt cùng từ loại.
-- Gán trường "type" chính xác ('cloze_blank' | 'meaning_vi' | 'reverse_en' | 'listening') cho từng câu hỏi.
-`
-  };
-
-  const currentModeInstruction = modeInstructions[mode] || modeInstructions['mixed'];
   const wordsInput = selected.map((w, idx) => {
     const posInfo = w.part_of_speech ? ` | Từ loại: ${w.part_of_speech}` : '';
-    let exInfo = '';
-    if (w.examples) {
-      try {
-        const exList = typeof w.examples === 'string' ? JSON.parse(w.examples) : w.examples;
-        if (Array.isArray(exList) && exList.length > 0) {
-          exInfo = ` | Ví dụ mẫu thực tế: "${exList[0]}"`;
-        }
-      } catch (e) {}
-    }
-    return `Câu ${idx + 1}: Mục tiêu từ "${w.word}" (Nghĩa: ${w.meaning_vi || ''}${posInfo}${exInfo})`;
+    const meaningText = fluentLang === 'en' ? (w.meaning_en || w.meaning_vi || '') : (w.meaning_vi || w.meaning_en || '');
+    return `Câu ${idx + 1}: Mục tiêu từ "${w.word}" (Nghĩa: ${meaningText}${posInfo})`;
   }).join('\n');
 
-  const prompt = `
-Bạn là chuyên gia khảo thí tiếng Anh (IELTS/ETS). Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm tiếng Anh thông minh cho chủ đề "${topicDisplay}".
-🎯 Trình độ bối cảnh câu hỏi (Context Proficiency): ${contextLevelDescriptions}
-🎯 Cấp độ giải câu hỏi mục tiêu: ${ieltsGuideline}
-${currentModeInstruction}
+  const prompt = targetLang === 'vi' ? `
+Bạn là Trưởng ban Khảo thí Tiếng Việt Quốc tế (VSL - Vietnamese as a Second Language Senior Examiner).
+Học viên đang học Tiếng Việt (${targetLangName}), với ngôn ngữ mẹ đẻ là: ${fluentLangName}.
+Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm tiếng Việt thông minh cho chủ đề "${topicDisplay}".
+
+QUY TẮC BẮT BUỘC (TUÂN THỦ 100%):
+1. VĂN BẢN CÂU HỎI:
+   - Các câu hỏi phải là các câu văn tiếng Việt chuẩn mực, tự nhiên trong đời sống, văn hóa, công sở Việt Nam.
+   - Dạng cloze_blank: Câu tiếng Việt có chỗ trống "_______" ở vị trí từ mục tiêu. 4 lựa chọn là các từ tiếng Việt cùng từ loại.
+   - Dạng meaning_vi: Câu tiếng Việt hoàn chỉnh in đậm **từ vựng**, 4 lựa chọn là các nghĩa bằng ${fluentLangName}.
+   - Dạng reverse_en: Câu tiếng Việt có chỗ trống "_______", prompt gợi ý nghĩa bằng ${fluentLangName}, 4 lựa chọn bằng tiếng Việt.
+   - Dạng listening: Nghe phát âm từ tiếng Việt, 4 lựa chọn nghĩa bằng ${fluentLangName}.
+2. MỌI GIẢI THÍCH (explanation) và BẢN DỊCH NGHĨA CÂU (translation) PHẢI ĐƯỢC VIẾT BẰNG ${fluentLangName} để học viên hiểu tường tận.
+3. Tuyệt đối không tạo câu hỏi trùng lặp, câu văn phải đúng ngữ cảnh tự nhiên của tiếng Việt.
 
 Danh sách mục tiêu từng câu:
 ${wordsInput}
 
-LƯU Ý ĐẶC BIỆT (BẮT BUỘC):
-- SỐ LƯỢNG BẮT BUỘC: Bạn PHẢI trả về ĐỦ CHÍNH XÁC đúng ${targetCount} câu hỏi trong mảng "questions" (tương ứng đúng ${targetCount} mục tiêu ở trên). Tuyệt đối không được trả về thiếu bất kỳ câu nào (questions.length === ${targetCount})!
-- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG NHAU (NO DUPLICATE QUESTIONS):
-  + Nếu có từ mục tiêu xuất hiện nhiều hơn 1 lần trong danh sách được giao, TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI GIỐNG NHAU! Mỗi lần từ đó xuất hiện, BẮT BUỘC phải tạo một câu văn ngữ cảnh hoàn toàn mới, một tình huống công sở/đời sống khác biệt, hoặc kiểm tra ở một khía cạnh ngữ pháp khác (ví dụ: một lần hỏi thì hiện tại, một lần hỏi thì quá khứ, một lần hỏi danh động từ/tính từ, hoặc ngữ cảnh giao tiếp khác).
-  + Với dạng listening / reverse_en khi từ lặp lại, ghi rõ lượt vào prompt/tiêu đề (ví dụ: 'Nghe phát âm từ: [từ vựng] [Luyện nghe #2]') để text câu hỏi không bị trùng lặp!
-  + Tuyệt đối không tự ý sinh thêm bất kỳ từ vựng mới nào ngoài danh sách từ mục tiêu được giao bên trên!
-- ĐẢM BẢO TÍNH TỰ NHIÊN CỦA COLLOCATION:
-  + Tuyệt đối không gượng ép ghép từ vào câu vô nghĩa (như 'appear mutual strengths'). Động từ nội động từ (appear, sleep) phải dùng cấu trúc tự nhiên (appear to be, appear on screen). Tính từ cảm xúc (grateful) phải dùng với người hoặc cảm giác (feel grateful for).
-  + Câu văn phải phân bổ theo các trình độ bối cảnh đã chọn: ${activeContextLevels.join(', ')}.
-- Mỗi câu hỏi bắt buộc phải có giải thích ngữ pháp/ngữ nghĩa chi tiết và dịch nghĩa tiếng Việt cả câu.
-
-Hãy trả về JSON với cấu trúc:
+Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ:
 {
   "topic": "${topicDisplay}",
   "level": "${level}",
@@ -973,12 +1000,47 @@ Hãy trả về JSON với cấu trúc:
       "type": "cloze_blank",
       "word": "từ vựng mục tiêu",
       "context_level": "B1",
-      "questionText": "Nội dung câu hỏi theo đúng chế độ",
+      "questionText": "Câu văn tiếng Việt có chỗ trống _______",
       "promptSubtitle": "Tiêu đề hướng dẫn",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
       "correctAnswer": "Option đúng",
-      "explanation": "Giải thích ngắn gọn lý do chọn đáp án này",
-      "translation": "Bản dịch nghĩa câu tiếng Việt"
+      "explanation": "Giải thích chi tiết bằng ${fluentLangName}",
+      "translation": "Bản dịch nghĩa câu sang ${fluentLangName}"
+    }
+  ]
+}
+` : `
+Bạn là chuyên gia khảo thí tiếng Anh (IELTS/ETS Senior Examiner).
+Học viên đang học Tiếng Anh (${targetLangName}), ngôn ngữ mẹ đẻ là: ${fluentLangName}.
+Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm tiếng Anh thông minh cho chủ đề "${topicDisplay}".
+
+Danh sách mục tiêu từng câu:
+${wordsInput}
+
+YÊU CẦU:
+1. Mọi câu hỏi đều là câu văn tiếng Anh học thuật / thực tế chuẩn mực.
+2. Dạng cloze_blank: câu tiếng Anh có chỗ trống _______, 4 lựa chọn tiếng Anh cùng từ loại.
+3. Dạng meaning_vi: câu tiếng Anh in đậm **từ vựng**, 4 lựa chọn nghĩa bằng ${fluentLangName}.
+4. Mọi giải thích ngữ pháp (explanation) và bản dịch câu (translation) viết bằng ${fluentLangName}.
+
+Trả về JSON với cấu trúc:
+{
+  "topic": "${topicDisplay}",
+  "level": "${level}",
+  "mode": "${mode}",
+  "context_levels": ${JSON.stringify(activeContextLevels)},
+  "questions": [
+    {
+      "id": "q1",
+      "type": "cloze_blank",
+      "word": "từ vựng mục tiêu",
+      "context_level": "B1",
+      "questionText": "Câu văn tiếng Anh có chỗ trống _______",
+      "promptSubtitle": "Tiêu đề hướng dẫn",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correctAnswer": "Option đúng",
+      "explanation": "Giải thích chi tiết bằng ${fluentLangName}",
+      "translation": "Bản dịch nghĩa câu sang ${fluentLangName}"
     }
   ]
 }
@@ -991,10 +1053,8 @@ Hãy trả về JSON với cấu trúc:
     let randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_vocab');
     const generationTimeMs = Date.now() - startTime;
 
-    // Strict contract: Guarantee exactly targetCount questions are returned
     if (randomizedQuestions.length < targetCount) {
       const needed = targetCount - randomizedQuestions.length;
-      console.warn(`[AI Quiz Guard] AI returned ${randomizedQuestions.length}/${targetCount} questions. Backfilling ${needed} questions from pedagogical generator.`);
       try {
         const backfill = quizService.generateQuiz({
           topic,
@@ -1005,7 +1065,9 @@ Hãy trả về JSON với cấu trúc:
           date_scope,
           date,
           start_date,
-          end_date
+          end_date,
+          userId,
+          target_language: targetLang
         });
         if (backfill && Array.isArray(backfill.questions)) {
           const existingIds = new Set(randomizedQuestions.map(q => q.id));
@@ -1048,9 +1110,25 @@ Hãy trả về JSON với cấu trúc:
 /**
  * 9. AI Smart Pattern Quiz Generator (Biên soạn bài trắc nghiệm mẫu câu & cấu trúc chuyên sâu bằng AI)
  */
-export async function generateAIPatternQuiz({ category = 'all', tone = 'all', count = 5, level = 'all', mode = 'mixed', date_scope = 'all', date = null }, apiKey = null) {
+export async function generateAIPatternQuiz({ category = 'all', tone = 'all', count = 5, level = 'all', mode = 'mixed', date_scope = 'all', date = null, userId = null, target_language = 'en', native_language = 'vi' }, apiKey = null) {
   const db = getDb();
-  let patterns = db.prepare('SELECT id, name, formula, explanation, meaning_vi, category, tone, examples, created_at FROM patterns').all();
+  const targetLang = target_language || 'en';
+  const fluentLang = native_language || (targetLang === 'vi' ? 'en' : 'vi');
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+
+  let q = 'SELECT id, name, formula, explanation, meaning_vi, category, tone, examples, created_at, user_id FROM patterns WHERE 1=1';
+  const params = [];
+  if (userId && userId !== 'admin_master_user_id') {
+    q += ' AND user_id = ?';
+    params.push(userId);
+  }
+  let patterns = db.prepare(q).all(...params);
+
+  if (patterns.length === 0) {
+    // If user patterns empty, load system patterns for target track
+    patterns = db.prepare('SELECT id, name, formula, explanation, meaning_vi, category, tone, examples, created_at FROM patterns').all();
+  }
 
   if (patterns.length === 0) {
     throw new Error('Kho mẫu câu đang trống. Vui lòng thêm mẫu câu trước khi tạo Quiz AI!');
@@ -1107,24 +1185,57 @@ export async function generateAIPatternQuiz({ category = 'all', tone = 'all', co
     selected.push(...uniqueOther.slice(0, needed));
   }
 
-  const patternsInput = selected.map((p, idx) => `Câu ${idx + 1}: Mẫu câu "${p.name}" (Công thức: ${p.formula} | Nghĩa: ${p.meaning_vi} | Chức năng: ${p.category})`).join('\n');
+  const patternsInput = selected.map((p, idx) => `Câu ${idx + 1}: Mẫu câu "${p.name}" (Công thức: ${p.formula} | Nghĩa/Giải thích: ${p.explanation || p.meaning_vi || ''} | Chức năng: ${p.category})`).join('\n');
 
-  const prompt = `
-Bạn là chuyên gia luyện thi ngữ pháp & viết luận tiếng Anh (IELTS Academic / GRE / Cambridge).
-Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm chuyên sâu về MẪU CÂU & CẤU TRÚC NGỮ PHÁP (Sentence Patterns & Advanced Grammar Structures).
-🎯 Cấp độ IELTS / CEFR: ${level || 'all'}
+  const prompt = targetLang === 'vi' ? `
+Bạn là chuyên gia sư phạm & khảo thí Ngữ pháp Tiếng Việt Quốc tế.
+Học viên đang học mẫu câu Tiếng Việt (${targetLangName}), ngôn ngữ mẹ đẻ là: ${fluentLangName}.
+Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm chuyên sâu về MẪU CÂU & CẤU TRÚC NGỮ PHÁP TIẾNG VIỆT (Sentence Patterns & Structures).
 
 Danh sách mẫu câu mục tiêu từng câu:
 ${patternsInput}
 
-YÊU CẦU ĐẶC BIỆT (BẮT BUỘC):
-- TUYỆT ĐỐI KHÔNG TẠO CÂU HỎI TRÙNG LẶP: Mỗi câu hỏi phải kiểm tra một mẫu câu riêng biệt và tình huống riêng biệt, không được lặp lại câu hỏi đã có.
-1. Mỗi câu hỏi kiểm tra cách ứng dụng thực tế của mẫu câu trong câu văn hoàn chỉnh (IELTS Writing Task 2, Bài luận học thuật, Thư công việc trang trọng).
-2. Tạo chỗ trống "_______" ở vị trí vế đảo ngữ / từ nối / liên từ / dạng chia động từ đặc trưng của mẫu câu.
-3. Cung cấp 4 lựa chọn (options): 1 đáp án chuẩn ngữ pháp và 3 đáp án gây nhiễu chứa các lỗi ngữ pháp hay gặp (ví dụ: quên đảo trợ từ, chia sai thì, dùng sai liên từ đi kèm).
-4. Cung cấp giải thích chi tiết quy tắc ngữ pháp của mẫu câu và dịch nghĩa cả câu sang tiếng Việt.
+YÊU CẦU:
+1. Mỗi câu hỏi kiểm tra cách ứng dụng thực tế của mẫu câu trong câu văn tiếng Việt hoàn chỉnh.
+2. Tạo chỗ trống "_______" ở vị trí từ nối / cặp liên từ / hư từ đặc trưng của mẫu câu tiếng Việt.
+3. Cung cấp 4 lựa chọn (options) bằng tiếng Việt: 1 đáp án chuẩn xác và 3 đáp án gây nhiễu hợp lý.
+4. Cung cấp giải thích chi tiết quy tắc ngữ pháp (explanation) và dịch nghĩa cả câu (translation) BẰNG ${fluentLangName}.
 
-Hãy trả về JSON với cấu trúc:
+Trả về JSON:
+{
+  "topic": "🧩 Quiz Cấu Trúc Câu Tiếng Việt (AI)",
+  "isPatternQuiz": true,
+  "level": "${level}",
+  "questions": [
+    {
+      "id": "pq1",
+      "type": "pattern_context",
+      "isPattern": true,
+      "word": "Tên mẫu câu",
+      "questionText": "Câu văn tiếng Việt có chỗ trống _______",
+      "promptSubtitle": "Điền cấu trúc ngữ pháp chuẩn xác vào ngữ cảnh:",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correctAnswer": "Option đúng",
+      "explanation": "Giải thích chi tiết bằng ${fluentLangName}",
+      "translation": "Bản dịch nghĩa câu sang ${fluentLangName}"
+    }
+  ]
+}
+` : `
+Bạn là chuyên gia luyện thi ngữ pháp & viết luận tiếng Anh (IELTS Academic / GRE / Cambridge).
+Học viên đang học Tiếng Anh (${targetLangName}), ngôn ngữ mẹ đẻ là: ${fluentLangName}.
+Hãy tạo đúng chính xác ${targetCount} câu hỏi trắc nghiệm chuyên sâu về MẪU CÂU & CẤU TRÚC NGỮ PHÁP TIẾNG ANH.
+
+Danh sách mẫu câu mục tiêu từng câu:
+${patternsInput}
+
+YÊU CẦU:
+1. Mỗi câu hỏi kiểm tra cách ứng dụng thực tế của mẫu câu trong câu văn tiếng Anh học thuật.
+2. Tạo chỗ trống "_______" ở vị trí vế đảo ngữ / liên từ / dạng chia động từ đặc trưng của mẫu câu.
+3. Cung cấp 4 lựa chọn tiếng Anh: 1 đáp án chuẩn ngữ pháp và 3 đáp án gây nhiễu.
+4. Cung cấp giải thích chi tiết (explanation) và dịch nghĩa câu (translation) BẰNG ${fluentLangName}.
+
+Trả về JSON:
 {
   "topic": "🧩 Quiz Cấu Trúc Câu Chuyên Sâu (AI)",
   "isPatternQuiz": true,
@@ -1139,8 +1250,8 @@ Hãy trả về JSON với cấu trúc:
       "promptSubtitle": "Điền cấu trúc ngữ pháp chuẩn xác vào ngữ cảnh:",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
       "correctAnswer": "Option đúng",
-      "explanation": "Giải thích chi tiết quy tắc ngữ pháp của cấu trúc này",
-      "translation": "Bản dịch tiếng Việt"
+      "explanation": "Giải thích chi tiết bằng ${fluentLangName}",
+      "translation": "Bản dịch nghĩa câu sang ${fluentLangName}"
     }
   ]
 }
@@ -1153,7 +1264,6 @@ Hãy trả về JSON với cấu trúc:
     let randomizedQuestions = normalizeAndRandomizeQuestions(parsed, 'ai_pattern');
     const generationTimeMs = Date.now() - startTime;
 
-    // Strict contract: Guarantee exactly targetCount questions are returned
     if (randomizedQuestions.length < targetCount) {
       const needed = targetCount - randomizedQuestions.length;
       try {
@@ -1209,51 +1319,57 @@ Hãy trả về JSON với cấu trúc:
 const contextTranslationCache = new Map();
 const MAX_CONTEXT_CACHE_SIZE = 2000;
 
-export async function translateInContextAI({ text, contextSentence = '', articleTitle = '', articleTopic = 'General' }, apiKey = null) {
+export async function translateInContextAI({ text, contextSentence = '', articleTitle = '', articleTopic = 'General', targetLang = 'en', fluentLang = 'vi' }, apiKey = null) {
   const cleanWord = (text || '').trim();
   const cleanSentence = (contextSentence || '').trim();
-  const cacheKey = `${cleanWord.toLowerCase()}:::${cleanSentence.toLowerCase()}:::${(articleTopic || '').toLowerCase()}`;
+  const targetLangName = getLanguageName(targetLang);
+  const fluentLangName = getLanguageName(fluentLang);
+  const cacheKey = `${targetLang}:::${fluentLang}:::${cleanWord.toLowerCase()}:::${cleanSentence.toLowerCase()}:::${(articleTopic || '').toLowerCase()}`;
 
   // 1. Check in-memory cache for 0ms instant response
   if (contextTranslationCache.has(cacheKey)) {
     return contextTranslationCache.get(cacheKey);
   }
 
-  const prompt = `Dịch và phân tích từ "${cleanWord}" THEO NGỮ CẢNH CÂU VĂN:
-Câu chứa từ: "${cleanSentence || cleanWord}"
-Chủ đề bài: "${articleTopic || 'General'}" - "${articleTitle || ''}"
+  const prompt = `
+Bạn là từ điển ngữ cảnh và chuyên gia phân tích từ vựng ngôn ngữ ${targetLangName}.
+Người đọc đang học ${targetLangName}, và cần dịch / giải nghĩa bằng ${fluentLangName}.
 
-Trả về JSON ngắn gọn chuẩn xác:
+Từ cần tra: "${cleanWord}" (${targetLangName})
+Câu văn chứa từ: "${cleanSentence || cleanWord}"
+Chủ đề bài đọc: "${articleTopic || 'General'}" - "${articleTitle || ''}"
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 {
   "targetText": "${cleanWord}",
   "phonetic": "/.../",
   "partOfSpeech": "verb | noun | adjective | adverb | idiom | phrase",
-  "contextualMeaningVi": "Nghĩa tiếng Việt chuẩn xác trong câu này",
-  "contextExplanation": "Giải thích ngắn gọn sắc thái hoặc ngữ cảnh (1 câu)",
-  "overallSentenceVi": "Bản dịch tiếng Việt tự nhiên của cả câu chứa từ",
+  "contextualMeaning": "Nghĩa chuẩn xác trong câu này bằng ${fluentLangName}",
+  "contextExplanation": "Giải thích ngắn gọn sắc thái hoặc ngữ cảnh bằng ${fluentLangName}",
+  "overallSentence": "Bản dịch tự nhiên của cả câu chứa từ sang ${fluentLangName}",
   "collocations": ["cụm từ 1", "cụm từ 2"],
   "synonyms": ["từ đồng nghĩa 1", "từ đồng nghĩa 2"],
-  "level": "B2 | C1 | C2"
+  "level": "B1 | B2 | C1 | C2"
 }`;
 
   try {
-    // Use fastest flash model with lightweight tokens for sub-second generation
     const rawResponse = await callGemini(prompt, apiKey, null, 'gemini-2.5-flash', true);
     const parsed = safeParseJson(rawResponse);
-    if (parsed && (parsed.contextualMeaningVi || parsed.meaning_vi || parsed.overallSentenceVi)) {
+    if (parsed && (parsed.contextualMeaning || parsed.contextualMeaningVi || parsed.overallSentence || parsed.overallSentenceVi)) {
       const result = {
         targetText: parsed.targetText || cleanWord,
         phonetic: parsed.phonetic || '',
         partOfSpeech: parsed.partOfSpeech || parsed.part_of_speech || 'noun',
-        contextualMeaningVi: parsed.contextualMeaningVi || parsed.meaning_vi || 'Nghĩa theo ngữ cảnh bài đọc',
+        contextualMeaning: parsed.contextualMeaning || parsed.contextualMeaningVi || 'Nghĩa ngữ cảnh',
+        contextualMeaningVi: parsed.contextualMeaning || parsed.contextualMeaningVi || 'Nghĩa ngữ cảnh',
         contextExplanation: parsed.contextExplanation || parsed.explanation || '',
-        overallSentenceVi: parsed.overallSentenceVi || parsed.sentence_vi || '',
+        overallSentence: parsed.overallSentence || parsed.overallSentenceVi || '',
+        overallSentenceVi: parsed.overallSentence || parsed.overallSentenceVi || '',
         collocations: parsed.collocations || [],
         synonyms: parsed.synonyms || [],
         level: parsed.level || 'B2'
       };
 
-      // Store in memory cache
       if (contextTranslationCache.size >= MAX_CONTEXT_CACHE_SIZE) {
         const firstKey = contextTranslationCache.keys().next().value;
         contextTranslationCache.delete(firstKey);
@@ -1268,6 +1384,7 @@ Trả về JSON ngắn gọn chuẩn xác:
     throw err;
   }
 }
+
 
 
 

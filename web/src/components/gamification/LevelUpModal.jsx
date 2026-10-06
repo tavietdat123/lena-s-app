@@ -19,7 +19,7 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
   const {
     newLevel = 2,
     title = 'Lexical Apprentice 🌿',
-    perk = 'Mở khóa phân tích sâu Collocations',
+    perk = 'Collocations Unlocked',
     totalXp = 200
   } = levelData;
 
@@ -91,10 +91,10 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
             letterSpacing: '1px',
             textTransform: 'uppercase'
           }}>
-            {t.levelUp?.congrats || '🎉 CHÚC MỪNG BẠN ĐÃ THĂNG CẤP!'}
+            {t?.levelUp?.congrats || "Congratulations on reaching a new level! 🎉"}
           </span>
           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0.4rem 0 0.2rem 0', color: 'var(--text-primary)' }}>
-            {t.levelUp?.levelLabel || 'LEVEL'} {newLevel}
+            {t?.levelUp?.levelLabel || "Level"} {newLevel}
           </h2>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-primary)', margin: 0 }}>
             {title}
@@ -113,13 +113,13 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
           gap: '0.4rem'
         }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            {t.levelUp?.perkUnlocked || 'QUYỀN LỢI & DANH HIỆU MỚI'}
+            {t?.levelUp?.perkUnlocked || "New Perks & Title:"}
           </span>
           <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             ✨ {perk}
           </p>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Tổng tích lũy hiện tại: <b>{totalXp} XP</b>
+            {t?.common?.total || "Total"}: <b>{totalXp} XP</b>
           </span>
         </div>
 
@@ -140,7 +140,7 @@ export default function LevelUpModal({ isOpen, onClose, levelData }) {
             gap: '0.5rem'
           }}
         >
-          <span>{t.levelUp?.continueBtn || 'Tiếp Tục Rèn Luyện 🚀'}</span>
+          <span>{t?.levelUp?.continueBtn || "Continue Learning"}</span>
           <ArrowRight size={18} />
         </button>
       </div>

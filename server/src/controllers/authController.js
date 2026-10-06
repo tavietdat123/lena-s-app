@@ -366,8 +366,8 @@ export const authController = {
       }
 
       const updatedName = full_name !== undefined ? full_name.trim() : user.full_name;
-      const updatedAvatar = avatar_url !== undefined ? avatar_url : user.avatar_url;
-      const updatedNative = ['vi', 'en', 'ru'].includes(native_language) ? native_language : (user.native_language || 'en');
+      // Fluent / Native language is permanently locked upon account creation
+      const updatedNative = user.native_language || 'en';
 
       // Target learning language lock enforcement:
       // If user hasn't locked target language yet (e.g. 2-step onboarding Step 2), allow setting it and lock it permanently.

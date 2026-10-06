@@ -27,7 +27,9 @@ export const gamificationController = {
     try {
       const apiKey = req.query.apiKey || req.body?.apiKey || null;
       const userId = req.user?.id || 'admin_master_user_id';
-      const report = await aiAssessmentService.generateMasteryReport(apiKey, userId);
+      const targetLanguage = req.query.target_language || req.body?.target_language || req.user?.target_language || 'en';
+      const fluentLanguage = req.query.fluent_language || req.body?.fluent_language || req.user?.native_language || (targetLanguage === 'vi' ? 'en' : 'vi');
+      const report = await aiAssessmentService.generateMasteryReport(apiKey, userId, targetLanguage, fluentLanguage);
       res.json(report);
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });

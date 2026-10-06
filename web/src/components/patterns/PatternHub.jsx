@@ -15,7 +15,7 @@ import { playAudio } from '../../services/audioService';
 import { api } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import PatternCategoryModal from './PatternCategoryModal';
-import { DEFAULT_PATTERN_CATEGORIES } from '../../constants/patternCategories';
+import { DEFAULT_PATTERN_CATEGORIES, getCategoryLabel } from '../../constants/patternCategories';
 
 // Helper: Remove Vietnamese Tones for Accent-Insensitive Smart Search
 const removeVietnameseTones = (str) => {
@@ -41,7 +41,7 @@ const removeVietnameseTones = (str) => {
 };
 
 export default function PatternHub({ patterns = [], onAddPattern, onEditPattern, onDeletePattern }) {
-  const { uiLang, t } = useLanguage();
+  const { uiLang, t, fluentLanguage } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [categories, setCategories] = useState(DEFAULT_PATTERN_CATEGORIES);
@@ -113,7 +113,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
           <input
             type="text"
             className="input-control"
-            placeholder={t.patterns?.searchPlaceholder || "Tìm kiếm mẫu câu, công thức, giải thích..."}
+            placeholder={t?.patterns?.searchPlaceholder || "Search patterns, formulas, notes..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ paddingLeft: '2.75rem' }}
@@ -127,26 +127,17 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
             onChange={(e) => setCategoryFilter(e.target.value)}
             style={{ width: 'auto', fontWeight: 600 }}
           >
-            <option value="all">{t.patterns?.allCategories || '🌟 Tất cả chức năng (All)'}</option>
+            <option value="all">{t?.patterns?.allCategories || "All Categories"}</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>
-                {c.emoji ? `${c.emoji} ` : ''}{c.name}
+                {c.emoji ? `${c.emoji} ` : ''}{getCategoryLabel(c, fluentLanguage)}
               </option>
             ))}
           </select>
 
-          <button 
-            onClick={() => setIsCategoryModalOpen(true)} 
-            className="btn-secondary"
-            title={t.patterns?.manageCategoriesBtn || "Quản lý các nhóm chức năng diễn đạt"}
-          >
-            <Settings size={17} />
-            <span>{t.patterns?.manageCategoriesBtn || 'Quản Lý Chức Năng'}</span>
-          </button>
-
           <button onClick={onAddPattern} className="btn-primary">
             <Plus size={18} />
-            <span>{t.patterns?.addPatternBtn || 'Thêm Mẫu Câu Mới'}</span>
+            <span>{t?.patterns?.addPatternBtn || "Add Pattern"}</span>
           </button>
         </div>
       </div>
@@ -161,19 +152,19 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
           border: '1px solid var(--border-color)'
         }}>
           <Layers size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem auto', opacity: 0.6 }} />
-          <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{t.patterns?.emptyVault || 'Chưa có mẫu câu nào phù hợp'}</h4>
+          <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{t?.patterns?.emptyVault || "No patterns found"}</h4>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1.5rem' }}>
-            {uiLang === 'ru' ? 'Сохраняйте грамматические шаблоны для естественной речи.' : uiLang === 'en' ? 'Save sentence patterns to build natural speaking and writing reflexes.' : 'Lưu các mẫu câu và công thức ngữ pháp để xây dựng phản xạ viết và nói tự nhiên.'}
+            {t?.patterns?.subtitle || "Functional grammar structures in context"}
           </p>
           <button onClick={onAddPattern} className="btn-primary">
             <Plus size={18} />
-            <span>{t.patterns?.addPatternBtn || 'Thêm Mẫu Câu Đầu Tiên'}</span>
+            <span>{t?.patterns?.addPatternBtn || "Add Pattern"}</span>
           </button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
           {filteredPatterns.map(p => {
-            const catInfo = categories.find(c => c.id === p.category) || { name: 'Chức năng', emoji: '🧩', color: '#8b5cf6' };
+            const catInfo = categories.find(c => c.id === p.category) || { name: 'Pattern', emoji: '🧩', color: '#8b5cf6' };
             return (
               <div
                 key={p.id}
@@ -203,7 +194,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                       color: catInfo.color || '#8b5cf6',
                       whiteSpace: 'nowrap'
                     }}>
-                      {catInfo.emoji || '🧩'} {catInfo.name}
+                      {catInfo.emoji || '🧩'} {getCategoryLabel(catInfo, fluentLanguage)}
                     </span>
                   </div>
 
@@ -223,11 +214,13 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                 </div>
 
                 {/* Meaning & Explanation */}
-                <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  {p.meaning_vi}
-                </p>
+                {p.meaning_vi && (
+                  <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    {p.meaning_vi}
+                  </p>
+                )}
 
-                {p.explanation && (
+                {p.explanation && p.explanation !== p.meaning_vi && (
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.85rem', lineHeight: 1.4 }}>
                     {p.explanation}
                   </p>
@@ -237,7 +230,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                 {p.examples && p.examples.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      {t.patterns?.usageExamplesTitle || 'Ví dụ áp dụng:'}
+                      {t?.patterns?.usageExamplesTitle || "Usage Examples:"}
                     </span>
                     {p.examples.map((ex, i) => (
                       <div
@@ -259,7 +252,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                           onClick={() => playAudio(ex)}
                           className="btn-icon"
                           style={{ padding: '0.15rem', color: 'var(--accent-primary)', flexShrink: 0 }}
-                          title={t.patterns?.listenSentenceTooltip || "Nghe phát âm cả câu"}
+                          title={t?.patterns?.listenSentenceTooltip || "Listen sentence"}
                         >
                           <Volume2 size={15} />
                         </button>
@@ -281,7 +274,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                   <button
                     onClick={() => onEditPattern(p)}
                     className="btn-icon"
-                    title={t.patterns?.editPatternTooltip || "Chỉnh sửa mẫu câu"}
+                    title={t?.patterns?.editPatternTooltip || "Edit pattern"}
                     style={{ padding: '0.4rem' }}
                   >
                     <Edit3 size={15} />
@@ -289,7 +282,7 @@ export default function PatternHub({ patterns = [], onAddPattern, onEditPattern,
                   <button
                     onClick={() => onDeletePattern(p.id)}
                     className="btn-icon"
-                    title={t.patterns?.deletePatternTooltip || "Xóa mẫu câu"}
+                    title={t?.patterns?.deletePatternTooltip || "Delete pattern"}
                     style={{ padding: '0.4rem', color: 'var(--accent-danger)' }}
                   >
                     <Trash2 size={15} />

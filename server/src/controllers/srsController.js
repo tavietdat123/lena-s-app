@@ -10,17 +10,30 @@ export const srsController = {
   getDueItems: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
+      const targetLang = req.query.target_language;
       const nowIso = new Date().toISOString();
       const today = nowIso.split('T')[0];
 
       // Due words
-      const wordsStmt = db.prepare(`
+      let wordsQuery = `
         SELECT * FROM words
         WHERE (due_date <= ? OR due_date IS NULL)
           AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-        ORDER BY status ASC, repetition ASC
-      `);
-      let words = wordsStmt.all(nowIso, userId, userId, userId);
+      `;
+      const wordsParams = [nowIso, userId, userId, userId];
+      if (targetLang && targetLang !== 'all') {
+        if (targetLang === 'vi') {
+          wordsQuery += ' AND target_language = ?';
+          wordsParams.push('vi');
+        } else if (targetLang === 'en') {
+          wordsQuery += ' AND (target_language = ? OR target_language IS NULL)';
+          wordsParams.push('en');
+        }
+      }
+      wordsQuery += ' ORDER BY status ASC, repetition ASC';
+
+      const wordsStmt = db.prepare(wordsQuery);
+      let words = wordsStmt.all(...wordsParams);
       words = words.map(w => ({
         ...w,
         type: 'word',
@@ -31,13 +44,25 @@ export const srsController = {
       }));
 
       // Due patterns
-      const patternsStmt = db.prepare(`
+      let patternsQuery = `
         SELECT * FROM patterns
         WHERE (due_date <= ? OR due_date IS NULL)
           AND (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
-        ORDER BY status ASC, repetition ASC
-      `);
-      let patterns = patternsStmt.all(nowIso, userId, userId, userId);
+      `;
+      const patternsParams = [nowIso, userId, userId, userId];
+      if (targetLang && targetLang !== 'all') {
+        if (targetLang === 'vi') {
+          patternsQuery += ' AND target_language = ?';
+          patternsParams.push('vi');
+        } else if (targetLang === 'en') {
+          patternsQuery += ' AND (target_language = ? OR target_language IS NULL)';
+          patternsParams.push('en');
+        }
+      }
+      patternsQuery += ' ORDER BY status ASC, repetition ASC';
+
+      const patternsStmt = db.prepare(patternsQuery);
+      let patterns = patternsStmt.all(...patternsParams);
       patterns = patterns.map(p => ({
         ...p,
         type: 'pattern',

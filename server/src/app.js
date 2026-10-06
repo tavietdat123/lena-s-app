@@ -169,13 +169,27 @@ function mountPublicRoutes(app, authLimiter) {
 const ttsMemoryCache = new Map();
 
 async function streamTts(req, res) {
-  const text = String(req.query.text || '');
+  const rawText = String(req.query.text || '');
   const lang = String(req.query.lang || 'en-US');
-  if (!text.trim()) {
+
+  // Strip HTML tags and markdown symbols before TTS upstream
+  const sanitized = rawText
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&(?:#39;|apos;|rsquo;|lsquo;)/gi, "'")
+    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/[*_~`#]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!sanitized) {
     return res.status(400).json({ success: false, code: 'VALIDATION_ERROR', error: 'Text is required' });
   }
 
-  const cleanText = text.substring(0, 350).trim();
+  const cleanText = sanitized.substring(0, 350).trim();
   const cacheKey = `${lang}:${cleanText.toLowerCase()}`;
 
   // 1. Check in-memory cache for instant < 1ms response

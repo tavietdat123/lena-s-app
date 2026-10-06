@@ -27,12 +27,11 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { playAudio } from '../../services/audioService';
-import PatternCategoryModal from '../patterns/PatternCategoryModal';
-import { DEFAULT_PATTERN_CATEGORIES } from '../../constants/patternCategories';
+import { DEFAULT_PATTERN_CATEGORIES, getCategoryLabel, getCategoryDescription } from '../../constants/patternCategories';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
-  const { t, uiLang } = useLanguage();
+  const { t, uiLang, targetLanguage, fluentLanguage, isVietnameseTrack } = useLanguage();
   const [activeTab, setActiveTab] = useState('parser'); // 'parser' | 'paraphrase' | 'writer' | 'collocations' | 'dialogue' | 'story'
 
   // Tab 1: Parser State
@@ -44,7 +43,6 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [patternCategories, setPatternCategories] = useState(DEFAULT_PATTERN_CATEGORIES);
   const [selectedPatternCategories, setSelectedPatternCategories] = useState({});
   const [selectedPatternTones, setSelectedPatternTones] = useState({});
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Tab 2: Paraphrase State
   const [paraphraseInput, setParaphraseInput] = useState('');
@@ -54,16 +52,27 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   // Tab 3: Writer State
-  const [targetItem, setTargetItem] = useState('resilient');
+  const [targetItem, setTargetItem] = useState(isVietnameseTrack ? 'kiên trì' : 'resilient');
   const [userSentence, setUserSentence] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [checkResult, setCheckResult] = useState(null);
 
   // Tab 4: Collocations State
-  const [collocationWord, setCollocationWord] = useState('leverage');
+  const [collocationWord, setCollocationWord] = useState(isVietnameseTrack ? 'phát triển' : 'leverage');
   const [isExploringCollocations, setIsExploringCollocations] = useState(false);
   const [collocationResult, setCollocationResult] = useState(null);
   const [savedCollocationIndex, setSavedCollocationIndex] = useState({});
+
+  // Synchronize targetItem and collocationWord when learning track changes
+  useEffect(() => {
+    if (isVietnameseTrack) {
+      if (targetItem === 'resilient') setTargetItem('kiên trì');
+      if (collocationWord === 'leverage') setCollocationWord('phát triển');
+    } else {
+      if (targetItem === 'kiên trì') setTargetItem('resilient');
+      if (collocationWord === 'phát triển') setCollocationWord('leverage');
+    }
+  }, [isVietnameseTrack]);
 
   // Tab 5: Situational Dialogue State
   const [dialogueScenario, setDialogueScenario] = useState('job_interview');
@@ -131,7 +140,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setParseResult(null);
 
     try {
-      const res = await api.parseSentenceAI(sentenceInput.trim());
+      const res = await api.parseSentenceAI(sentenceInput.trim(), {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setParseResult(res.data);
         const initialCats = {};
@@ -159,7 +171,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setParaphraseResult(null);
 
     try {
-      const res = await api.paraphraseSentenceAI(paraphraseInput.trim(), paraphraseTone);
+      const res = await api.paraphraseSentenceAI(paraphraseInput.trim(), paraphraseTone, {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setParaphraseResult(res.data);
       }
@@ -179,7 +194,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setCheckResult(null);
 
     try {
-      const res = await api.checkSentenceAI(targetItem.trim(), userSentence.trim());
+      const res = await api.checkSentenceAI(targetItem.trim(), userSentence.trim(), {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setCheckResult(res.data);
       }
@@ -200,7 +218,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setSavedCollocationIndex({});
 
     try {
-      const res = await api.exploreCollocationsAI(collocationWord.trim());
+      const res = await api.exploreCollocationsAI(collocationWord.trim(), {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setCollocationResult(res.data);
       }
@@ -217,7 +238,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setDialogueResult(null);
 
     try {
-      const res = await api.generateDialogueAI(dialogueScenario);
+      const res = await api.generateDialogueAI(dialogueScenario, [], {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setDialogueResult(res.data);
       }
@@ -234,7 +258,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
     setStoryResult(null);
 
     try {
-      const res = await api.generateStoryAI();
+      const res = await api.generateStoryAI([], {
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
+      });
       if (res.success && res.data) {
         setStoryResult(res.data);
       }
@@ -281,7 +308,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <Sparkles size={16} />
-          <span>{t.aiLab?.tabParser || '1. Bóc Tách Câu'}</span>
+          <span>{t?.aiLab?.tabParser || "Sentence Parser"}</span>
         </button>
 
         <button
@@ -302,7 +329,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <RefreshCw size={16} />
-          <span>{t.aiLab?.tabParaphrase || '2. Nâng Cấp Văn Phong'}</span>
+          <span>{t?.aiLab?.tabParaphrase || "Tone Polisher"}</span>
         </button>
 
         <button
@@ -323,7 +350,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <Feather size={16} />
-          <span>{t.aiLab?.tabWriter || '3. Chấm & Sửa Câu'}</span>
+          <span>{t?.aiLab?.tabWriter || "Sentence Writer"}</span>
         </button>
 
         <button
@@ -344,7 +371,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <Layers size={16} />
-          <span>{t.aiLab?.tabCollocations || '4. Cụm Từ & Thành Ngữ'}</span>
+          <span>{t?.aiLab?.tabCollocations || "Collocations"}</span>
         </button>
 
         <button
@@ -365,7 +392,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <MessagesSquare size={16} />
-          <span>{t.aiLab?.tabDialogue || '5. Hội Thoại Tình Huống'}</span>
+          <span>{t?.aiLab?.tabDialogue || "Roleplay Dialogue"}</span>
         </button>
 
         <button
@@ -386,7 +413,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           }}
         >
           <BookOpen size={16} />
-          <span>{t.aiLab?.tabStory || '6. Truyện SRS'}</span>
+          <span>{t?.aiLab?.tabStory || "Memory Weaver"}</span>
         </button>
       </div>
 
@@ -395,17 +422,23 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              {t.aiLab?.parserTitle || 'Dán câu tiếng Anh phức tạp hoặc đoạn văn bạn muốn phân tích'}
+              {isVietnameseTrack 
+                ? (uiLang === 'en' ? "Analyze Vietnamese Sentences" : "Phân tích câu Tiếng Việt")
+                : (t?.aiLab?.parserTitle || "Analyze Complex English Sentences")}
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {t.aiLab?.parserSubtitle || 'AI sẽ bóc tách từ vựng hay, nhận diện cấu trúc ngữ pháp và dịch nghĩa tự nhiên theo đúng ngữ cảnh.'}
+              {isVietnameseTrack
+                ? (uiLang === 'en' ? "Extract Vietnamese vocabulary, sentence structures and natural translation." : "Bóc tách từ vựng, cấu trúc ngữ pháp và dịch thuật theo ngữ cảnh.")
+                : (t?.aiLab?.parserSubtitle || "Extract key vocabulary, identify grammar patterns and translate accurately.")}
             </p>
 
             <form onSubmit={handleParseSentence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <textarea
                 className="input-control"
                 rows={3}
-                placeholder={t.aiLab?.parserPlaceholder || 'Ví dụ: Although the startup faced unprecedented headwinds, the team remained resilient and successfully articulated their vision to investors.'}
+                placeholder={isVietnameseTrack
+                  ? (uiLang === 'en' ? "Paste a Vietnamese sentence to analyze..." : "Nhập hoặc dán câu tiếng Việt cần phân tích...")
+                  : (t?.aiLab?.parserPlaceholder || "Paste an English sentence to analyze...")}
                 value={sentenceInput}
                 onChange={(e) => setSentenceInput(e.target.value)}
                 style={{ fontSize: '1rem', lineHeight: 1.6 }}
@@ -415,7 +448,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button type="submit" disabled={isParsing || !sentenceInput.trim()} className="btn-primary">
                   {isParsing ? <Loader2 size={18} className="animate-spin" /> : <BrainCircuit size={18} />}
-                  <span>{isParsing ? (t.aiLab?.analyzing || 'Đang Phân Tích...') : (t.aiLab?.analyzeBtn || 'Phân Tích Bằng AI')}</span>
+                  <span>{isParsing ? (t?.aiLab?.analyzing || "Analyzing...") : (t?.aiLab?.analyzeBtn || "Analyze with AI")}</span>
                 </button>
               </div>
             </form>
@@ -427,9 +460,9 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               <div className="card" style={{ borderLeft: '4px solid var(--accent-primary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                    {t.aiLab?.naturalTranslation || 'Bản dịch tiếng Việt chuẩn ngữ cảnh:'}
+                    {t?.aiLab?.naturalTranslation || "Natural Contextual Translation:"}
                   </span>
-                  <button onClick={() => playAudio(sentenceInput)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
+                  <button onClick={() => playAudio(sentenceInput, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
                     <Volume2 size={16} />
                   </button>
                 </div>
@@ -442,7 +475,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {parseResult.sentence_structure && (
                 <div className="card" style={{ background: 'rgba(59, 130, 246, 0.08)', borderLeft: '4px solid #3b82f6' }}>
                   <h5 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#3b82f6', marginBottom: '0.4rem' }}>
-                    📐 Bóc Tách Cấu Trúc Ngữ Pháp (Syntax Breakdown):
+                    📐 {t?.aiLab?.syntaxBreakdown || "Syntax Breakdown"}
                   </h5>
                   <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.6 }}>
                     {parseResult.sentence_structure}
@@ -456,23 +489,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div>
                       <h4 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>
-                        {t.aiLab?.extractedPatternsTitle || 'Mẫu Câu & Cấu Trúc Trọng Tâm:'}
+                        {t?.aiLab?.extractedPatternsTitle || "Extracted Patterns & Structures:"}
                       </h4>
                       <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                        Tự động nhận diện cấu trúc ngữ pháp. Bạn có thể chọn lại nhóm chức năng diễn đạt phù hợp trước khi lưu.
+                        {uiLang === 'vi' ? 'Cấu trúc câu giao tiếp được nhận diện theo chức năng ngữ dụng' : 'Communicative sentence frames identified by function'}
                       </p>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsCategoryModalOpen(true)}
-                      className="btn-secondary"
-                      style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                      title="Quản lý và thêm mới các nhóm chức năng câu"
-                    >
-                      <Layers size={14} />
-                      <span>{t.patterns?.manageCategoriesBtn || 'Quản Lý Chức Năng'} ({patternCategories.length})</span>
-                    </button>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
@@ -506,7 +528,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                                 flexShrink: 0
                               }}>
                                 <span>{currentCat.emoji}</span>
-                                <span>{currentCat.name}</span>
+                                <span>{getCategoryLabel(currentCat, fluentLanguage)}</span>
                               </span>
                             </div>
 
@@ -543,10 +565,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                                   <Layers size={13} style={{ color: currentCat.color || 'var(--accent-primary)' }} />
-                                  <span>Chọn chức năng câu:</span>
+                                  <span>{t?.aiLab?.selectPatternCat || "Select pattern category:"}</span>
                                 </label>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {patternCategories.length} nhóm có sẵn
+                                  {patternCategories.length} {t?.patterns?.patternsCountUnit || "patterns"}
                                 </span>
                               </div>
 
@@ -567,19 +589,19 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                               >
                                 {patternCategories.map(cat => (
                                   <option key={cat.id} value={cat.id}>
-                                    {cat.emoji} {cat.name}
+                                    {cat.emoji} {getCategoryLabel(cat, fluentLanguage)}
                                   </option>
                                 ))}
                               </select>
 
-                              {currentCat.description && (
+                              {getCategoryDescription(currentCat, fluentLanguage) && (
                                 <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)', lineHeight: 1.4, fontStyle: 'italic' }}>
-                                  💡 {currentCat.description}
+                                  💡 {getCategoryDescription(currentCat, fluentLanguage)}
                                 </div>
                               )}
 
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.35rem', borderTop: '1px dashed var(--border-color)', marginTop: '0.15rem' }}>
-                                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Văn phong:</span>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t.aiLab?.toneLabel || 'Tone:'}</span>
                                 <select
                                   value={currentTone}
                                   onChange={(e) => setSelectedPatternTones(prev => ({ ...prev, [idx]: e.target.value }))}
@@ -593,11 +615,11 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                                     color: 'var(--text-primary)'
                                   }}
                                 >
-                                  <option value="Formal">Formal (Trang trọng)</option>
-                                  <option value="Academic">Academic (Học thuật)</option>
-                                  <option value="Business">Business (Công việc)</option>
-                                  <option value="Daily">Daily (Hàng ngày)</option>
-                                  <option value="Neutral">Neutral (Trung tính)</option>
+                                  <option value="Formal">Formal</option>
+                                  <option value="Academic">Academic</option>
+                                  <option value="Business">Business</option>
+                                  <option value="Daily">Daily</option>
+                                  <option value="Neutral">Neutral</option>
                                 </select>
                               </div>
                             </div>
@@ -613,13 +635,14 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                                   meaning_vi: item.explanation || item.name,
                                   category: currentCatId,
                                   tone: currentTone,
+                                  target_language: targetLanguage,
                                   examples: [sentenceInput],
                                   tags: ['Grammar', 'AI-Lab']
                                 });
                                 setSavedPatternIndex(prev => ({ ...prev, [idx]: true }));
                               } catch (e) {
                                 console.error(e);
-                                alert('Lỗi khi lưu mẫu câu: ' + e.message);
+                                alert((t?.common?.error || "Error") + e.message);
                               }
                             }}
                             disabled={savedPatternIndex[idx]}
@@ -629,12 +652,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                             {savedPatternIndex[idx] ? (
                               <>
                                 <Check size={16} style={{ color: 'var(--accent-success)' }} />
-                                <span>Đã Lưu Mẫu Câu ({currentCat.name})</span>
+                                <span>{t?.aiLab?.savedPatternBtn || "Saved"} ({getCategoryLabel(currentCat, fluentLanguage)})</span>
                               </>
                             ) : (
                               <>
                                 <BookPlus size={16} />
-                                <span>Lưu Mẫu Câu Này Vào Kho</span>
+                                <span>{t?.aiLab?.savePatternBtn || "Save Pattern"}</span>
                               </>
                             )}
                           </button>
@@ -649,7 +672,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {parseResult.extracted_words && parseResult.extracted_words.length > 0 && (
                 <div>
                   <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                    Từ Vựng & Cụm Từ Nổi Bật Được Trích Xuất:
+                    {t?.aiLab?.extractedVocabTitle || "Key Vocabulary:"}
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                     {parseResult.extracted_words.map((item, idx) => (
@@ -658,7 +681,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <h5 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{item.word}</h5>
-                              <button onClick={() => playAudio(item.word)} className="btn-icon" style={{ padding: '0.2rem', color: 'var(--accent-primary)' }}>
+                              <button onClick={() => playAudio(item.word, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ padding: '0.2rem', color: 'var(--accent-primary)' }}>
                                 <Volume2 size={16} />
                               </button>
                             </div>
@@ -666,7 +689,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                           </div>
 
                           <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
-                            {item.meaning_vi}
+                            {item.meaning || (fluentLanguage === 'en' ? item.meaning_en : item.meaning_vi) || item.meaning_vi || item.meaning_en}
                           </p>
 
                           {item.context_usage && (
@@ -681,8 +704,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                             if (onSaveExtractedWord) {
                               onSaveExtractedWord({
                                 word: item.word,
-                                meaning_vi: item.meaning_vi,
+                                meaning_vi: item.meaning_vi || (fluentLanguage === 'vi' ? item.meaning : ''),
+                                meaning_en: item.meaning_en || (fluentLanguage === 'en' ? item.meaning : ''),
                                 part_of_speech: item.part_of_speech || 'noun',
+                                target_language: targetLanguage,
                                 examples: [sentenceInput]
                               });
                             }
@@ -695,12 +720,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                           {savedWordIndex[idx] ? (
                             <>
                               <Check size={16} style={{ color: 'var(--accent-success)' }} />
-                              <span>{t.aiLab?.savedToVaultBtn || 'Đã Lưu'}</span>
+                              <span>{t?.aiLab?.savedToVaultBtn || "Saved"}</span>
                             </>
                           ) : (
                             <>
                               <BookPlus size={16} />
-                              <span>{t.aiLab?.saveToVaultBtn || 'Lưu Vào Kho Từ'}</span>
+                              <span>{t?.aiLab?.saveToVaultBtn || "Save to Vault"}</span>
                             </>
                           )}
                         </button>
@@ -715,7 +740,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                 <div className="card" style={{ background: 'var(--bg-tertiary)' }}>
                   <h5 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <Lightbulb size={16} color="var(--accent-warning)" />
-                    <span>Phân tích Ngữ pháp & Điểm lưu ý:</span>
+                    <span>{t?.aiLab?.grammarNotes || "Grammar Notes:"}</span>
                   </h5>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     {parseResult.grammar_notes}
@@ -732,23 +757,23 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              {t.aiLab?.paraphraseTitle || 'AI Viết Lại & Nâng Cấp Câu (Paraphraser & Tone Polisher)'}
+              {t?.aiLab?.paraphraseTitle || "AI Sentence Paraphraser"}
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {t.aiLab?.paraphraseSubtitle || 'Chuyển đổi câu hoặc đoạn văn sang các văn phong chuyên nghiệp: Business, Academic IELTS 8.0+, Natural Native, hoặc Concise.'}
+              {t?.aiLab?.paraphraseSubtitle || "Rewrite sentences into Business, Academic, Native, or Concise styles."}
             </p>
 
             <form onSubmit={handleParaphrase} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  Chọn Văn Phong Mục Tiêu:
+                  {t?.aiLab?.chooseTone || "Choose tone:"}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {[
-                    { id: 'business', emoji: '💼', title: 'Business Corporate', desc: 'Trang trọng, đàm phán, email công sở' },
-                    { id: 'academic', emoji: '🎓', title: 'Academic / IELTS 8.0+', desc: 'Từ vựng C1/C2, cấu trúc câu phức' },
-                    { id: 'casual', emoji: '☕', title: 'Natural Native Daily', desc: 'Tự nhiên như người bản xứ Mỹ/Anh' },
-                    { id: 'concise', emoji: '⚡', title: 'Concise & Direct', desc: 'Súc tích, cô đọng, đi thẳng vào ý' }
+                    { id: 'business', emoji: '💼', title: 'Business Corporate', desc: uiLang === 'ru' ? 'Деловой стиль и переговоры' : uiLang === 'vi' ? 'Trang trọng, email công việc' : 'Formal, negotiation, emails' },
+                    { id: 'academic', emoji: '🎓', title: 'Academic / IELTS 8.0+', desc: uiLang === 'ru' ? 'Лексика C1/C2 и сложные структуры' : uiLang === 'vi' ? 'Từ vựng C1/C2, câu học thuật' : 'C1/C2 vocab, complex syntax' },
+                    { id: 'casual', emoji: '☕', title: 'Natural Native Daily', desc: uiLang === 'ru' ? 'Естественная речь носителей' : uiLang === 'vi' ? 'Tự nhiên như người bản xứ' : 'Natural everyday native speech' },
+                    { id: 'concise', emoji: '⚡', title: 'Concise & Direct', desc: uiLang === 'ru' ? 'Кратко, емко и по делу' : uiLang === 'vi' ? 'Súc tích, ngắn gọn, thẳng ý' : 'Crisp, concise and direct' }
                   ].map(tone => (
                     <div
                       key={tone.id}
@@ -774,12 +799,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  Câu tiếng Anh hoặc Đoạn văn muốn viết lại:
+                  {t?.aiLab?.paraphrasePlaceholder || "Enter a sentence to rewrite..."}
                 </label>
                 <textarea
                   className="input-control"
                   rows={3}
-                  placeholder={t.aiLab?.paraphrasePlaceholder || 'Ví dụ: I want to tell you that we cannot finish the project on time because we have some problems.'}
+                  placeholder={t?.aiLab?.paraphrasePlaceholder || "Enter a sentence to rewrite..."}
                   value={paraphraseInput}
                   onChange={(e) => setParaphraseInput(e.target.value)}
                   required
@@ -789,7 +814,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button type="submit" disabled={isParaphrasing || !paraphraseInput.trim()} className="btn-primary">
                   {isParaphrasing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                  <span>{isParaphrasing ? (t.aiLab?.analyzing || 'Đang viết lại...') : (t.aiLab?.paraphraseBtn || 'Viết Lại Bằng AI')}</span>
+                  <span>{isParaphrasing ? (t?.aiLab?.analyzing || "Analyzing...") : (t?.aiLab?.paraphraseBtn || "Rewrite with AI")}</span>
                 </button>
               </div>
             </form>
@@ -799,7 +824,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           {paraphraseResult && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h4 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
-                {t.aiLab?.paraphraseVariantsTitle || 'Các Phiên Bản Viết Lại Xuất Sắc:'}
+                {t?.aiLab?.paraphraseVariantsTitle || "Paraphrased Versions:"}
               </h4>
 
               {paraphraseResult.paraphrases?.map((item, idx) => (
@@ -809,7 +834,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                       "{item.version}"
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                      <button onClick={() => playAudio(item.version)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
+                      <button onClick={() => playAudio(item.version, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
                         <Volume2 size={16} />
                       </button>
                       <button onClick={() => copyToClipboard(item.version, idx)} className="btn-icon" style={{ color: copiedIndex === idx ? 'var(--accent-success)' : 'var(--text-secondary)' }}>
@@ -820,7 +845,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
 
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <Lightbulb size={13} color="var(--accent-warning)" />
-                    <span>{item.explanation_vi}</span>
+                    <span>{item.explanation || (fluentLanguage === 'en' ? item.explanation_en : item.explanation_vi) || item.explanation_vi}</span>
                   </p>
 
                   {item.key_phrases && item.key_phrases.length > 0 && (
@@ -828,7 +853,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                       {item.key_phrases.map((kp, kIdx) => (
                         <div key={kIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--bg-tertiary)', padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem' }}>
                           <span style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{kp.phrase}:</span>
-                          <span style={{ color: 'var(--text-secondary)' }}>{kp.meaning_vi}</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{kp.meaning || (fluentLanguage === 'en' ? kp.meaning_en : kp.meaning_vi) || kp.meaning_vi}</span>
                         </div>
                       ))}
                     </div>
@@ -845,21 +870,21 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              {t.aiLab?.writerTitle || 'Luyện Viết & Đặt Câu Cá Nhân Hóa'}
+              {t?.aiLab?.writerTitle || "Writing & Sentence Builder"}
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {t.aiLab?.writerSubtitle || 'Tự đặt câu với từ vựng bạn đang học. AI sẽ chấm độ tự nhiên, phát hiện lỗi ngữ pháp và gợi ý câu chuẩn người bản xứ.'}
+              {t?.aiLab?.writerSubtitle || "Write your own sentences and get detailed feedback."}
             </p>
 
             <form onSubmit={handleCheckSentence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  {t.aiLab?.targetWordLabel || 'Từ vựng hoặc Cấu trúc muốn luyện tập'}
+                  {t?.aiLab?.targetWordLabel || "Target word or pattern:"}
                 </label>
                 <input
                   type="text"
                   className="input-control"
-                  placeholder="Ví dụ: articulate, resilient, take for granted..."
+                  placeholder={uiLang === 'ru' ? 'напр. articulate, resilient...' : uiLang === 'vi' ? 'VD: articulate, resilient...' : 'e.g. articulate, resilient...'}
                   value={targetItem}
                   onChange={(e) => setTargetItem(e.target.value)}
                   required
@@ -868,12 +893,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                  {t.aiLab?.yourSentenceLabel || 'Câu tiếng Anh do bạn tự viết'}
+                  {t?.aiLab?.yourSentenceLabel || "Your sentence:"}
                 </label>
                 <textarea
                   className="input-control"
                   rows={3}
-                  placeholder={t.aiLab?.yourSentencePlaceholder || 'Ví dụ: She is very articulate when she talk with her boss in the meeting.'}
+                  placeholder={t?.aiLab?.yourSentencePlaceholder || "Write your sentence here..."}
                   value={userSentence}
                   onChange={(e) => setUserSentence(e.target.value)}
                   required
@@ -883,7 +908,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button type="submit" disabled={isChecking || !userSentence.trim()} className="btn-primary">
                   {isChecking ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                  <span>{isChecking ? (t.aiLab?.checkingSentence || 'AI đang chấm điểm...') : (t.aiLab?.checkSentenceBtn || 'Chấm & Sửa Câu')}</span>
+                  <span>{isChecking ? (t?.aiLab?.checkingSentence || "Checking...") : (t?.aiLab?.checkSentenceBtn || "Check & Polish")}</span>
                 </button>
               </div>
             </form>
@@ -900,12 +925,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                     <AlertCircle size={24} style={{ color: 'var(--accent-warning)' }} />
                   )}
                   <h4 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-                    {checkResult.is_correct ? 'Câu Ngữ Pháp Chính Xác!' : 'Có Một Số Điểm Cần Cải Thiện'}
+                    {checkResult.is_correct ? (t?.aiLab?.sentenceCorrect || "Looks great! 🎉") : (t?.aiLab?.sentenceNeedsWork || "Needs polishing:")}
                   </h4>
                 </div>
 
                 <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                  Điểm: {checkResult.score || 80}/100
+                  {t?.aiLab?.scoreLabel || "Score:"} {checkResult.score || 80}/100
                 </span>
               </div>
 
@@ -917,13 +942,13 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {checkResult.native_alternatives && checkResult.native_alternatives.length > 0 && (
                 <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                    Cách diễn đạt chuẩn bản xứ tự nhiên hơn (Native Alternatives):
+                    {t?.aiLab?.nativeAlternatives || "Native Alternatives:"}
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
                     {checkResult.native_alternatives.map((alt, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)' }}>
                         <span style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>"{alt}"</span>
-                        <button onClick={() => playAudio(alt)} className="btn-icon" style={{ color: 'var(--accent-primary)', padding: '0.2rem' }}>
+                        <button onClick={() => playAudio(alt, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ color: 'var(--accent-primary)', padding: '0.2rem' }}>
                           <Volume2 size={16} />
                         </button>
                       </div>
@@ -941,17 +966,17 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              {t.aiLab?.collocationsTitle || 'Đào Sâu Cụm Từ Cố Định & Thành Ngữ (Collocation & Idiom Explorer)'}
+              {t?.aiLab?.collocationsTitle || "Collocation & Idiom Explorer"}
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {t.aiLab?.collocationsSubtitle || 'Khám phá các cách kết hợp từ tự nhiên (Verb+Noun, Adj+Noun) và các lỗi sai người Việt hay mắc phải.'}
+              {t?.aiLab?.collocationsSubtitle || "Discover native combinations and natural usage."}
             </p>
 
             <form onSubmit={handleExploreCollocations} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <input
                 type="text"
                 className="input-control"
-                placeholder={t.aiLab?.collocationWordPlaceholder || 'Nhập từ vựng: leverage, compromise, sustainable, viable...'}
+                placeholder={t?.aiLab?.collocationWordPlaceholder || "Enter a word: leverage, resilient..."}
                 value={collocationWord}
                 onChange={(e) => setCollocationWord(e.target.value)}
                 style={{ flex: 1 }}
@@ -959,7 +984,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               />
               <button type="submit" disabled={isExploringCollocations || !collocationWord.trim()} className="btn-primary" style={{ flexShrink: 0 }}>
                 {isExploringCollocations ? <Loader2 size={18} className="animate-spin" /> : <Layers size={18} />}
-                <span>{isExploringCollocations ? (t.aiLab?.exploringCollocations || 'Đang tra cứu cụm từ...') : (t.aiLab?.exploreCollocationsBtn || 'Khảo Sát Cụm Từ')}</span>
+                <span>{isExploringCollocations ? (t?.aiLab?.exploringCollocations || "Exploring...") : (t?.aiLab?.exploreCollocationsBtn || "Explore Collocations")}</span>
               </button>
             </form>
           </div>
@@ -973,12 +998,12 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{collocationResult.target_word}</h3>
                     <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{collocationResult.phonetic}</span>
-                    <button onClick={() => playAudio(collocationResult.target_word)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
+                    <button onClick={() => playAudio(collocationResult.target_word, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ color: 'var(--accent-primary)' }}>
                       <Volume2 size={18} />
                     </button>
                   </div>
                   <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-primary)', marginTop: '0.2rem' }}>
-                    {collocationResult.core_meaning_vi}
+                    {collocationResult.core_meaning || (fluentLanguage === 'en' ? collocationResult.core_meaning_en : collocationResult.core_meaning_vi) || collocationResult.core_meaning_vi}
                   </p>
                 </div>
                 <span className="badge badge-blue">{collocationResult.word_type || 'word'}</span>
@@ -988,7 +1013,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {collocationResult.collocations && (
                 <div>
                   <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-                    🌟 Cụm Từ Tự Nhiên Hay Đi Cùng (Collocations):
+                    🌟 {t?.aiLab?.naturalPairingsTitle || "Natural Pairings:"}
                   </h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                     {collocationResult.collocations.map((col, cIdx) => (
@@ -999,16 +1024,16 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                             <span className="badge badge-gray">{col.pattern}</span>
                           </div>
                           <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-                            {col.meaning_vi}
+                            {col.meaning || (fluentLanguage === 'en' ? col.meaning_en : col.meaning_vi) || col.meaning_vi}
                           </p>
                           <div style={{ marginTop: '0.5rem', background: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
-                            <p style={{ fontSize: '0.85rem', fontStyle: 'italic' }}>"{col.example_en}"</p>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{col.example_vi}</p>
+                            <p style={{ fontSize: '0.85rem', fontStyle: 'italic' }}>"{col.example_target || col.example_en}"</p>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{col.example_fluent || col.example_vi}</p>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => playAudio(col.example_en)} className="btn-secondary" style={{ padding: '0.4rem 0.6rem' }}>
+                          <button onClick={() => playAudio(col.example_target || col.example_en, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-secondary" style={{ padding: '0.4rem 0.6rem' }}>
                             <Volume2 size={15} />
                           </button>
                           <button
@@ -1016,9 +1041,11 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                               if (onSaveExtractedWord) {
                                 onSaveExtractedWord({
                                   word: col.collocation,
-                                  meaning_vi: col.meaning_vi,
+                                  meaning_vi: col.meaning_vi || (fluentLanguage === 'vi' ? col.meaning : ''),
+                                  meaning_en: col.meaning_en || (fluentLanguage === 'en' ? col.meaning : ''),
                                   part_of_speech: 'phrase',
-                                  examples: [col.example_en]
+                                  target_language: targetLanguage,
+                                  examples: [col.example_target || col.example_en]
                                 });
                               }
                               setSavedCollocationIndex(prev => ({ ...prev, [cIdx]: true }));
@@ -1027,7 +1054,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                             className={savedCollocationIndex[cIdx] ? 'btn-secondary' : 'btn-primary'}
                             style={{ flex: 1, justifyContent: 'center', padding: '0.4rem', fontSize: '0.8rem' }}
                           >
-                            {savedCollocationIndex[cIdx] ? '✓ Đã Lưu' : '+ Lưu Cụm Này'}
+                            {savedCollocationIndex[cIdx] ? (t?.aiLab?.savedCollocationBtn || "Saved") : (t?.aiLab?.saveCollocationBtn || "Save Collocation")}
                           </button>
                         </div>
                       </div>
@@ -1040,24 +1067,24 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {collocationResult.common_mistakes && collocationResult.common_mistakes.length > 0 && (
                 <div className="card" style={{ borderLeft: '4px solid var(--accent-warning)', background: 'var(--bg-secondary)' }}>
                   <h5 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-warning)', marginBottom: '0.6rem' }}>
-                    ⚠️ Lỗi Sai Người Việt Hay Mắc Phải (Common Pitfalls):
+                    ⚠️ {t?.aiLab?.commonPitfalls || "Common Pitfalls:"}
                   </h5>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     {collocationResult.common_mistakes.map((mis, mIdx) => (
                       <div key={mIdx} style={{ background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontSize: '0.9rem', fontWeight: 700 }}>
                           <XCircle size={15} />
-                          <span>Sai:</span>
+                          <span>{uiLang === 'vi' ? 'Sai:' : 'Incorrect:'}</span>
                           <span style={{ textDecoration: 'line-through' }}>{mis.incorrect}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.9rem', fontWeight: 700, marginTop: '0.2rem' }}>
                           <CheckCircle size={15} />
-                          <span>Đúng:</span>
+                          <span>{t?.aiLab?.correctWord || "Correct Word:"}</span>
                           <span>{mis.correct}</span>
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <Lightbulb size={13} color="var(--accent-warning)" />
-                          <span>{mis.explanation_vi}</span>
+                          <span>{mis.explanation || (fluentLanguage === 'en' ? mis.explanation_en : mis.explanation_vi) || mis.explanation_vi}</span>
                         </p>
                       </div>
                     ))}
@@ -1074,25 +1101,25 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="card">
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-              {t.aiLab?.dialogueTitle || 'Tạo Hội Thoại Giao Tiếp Tình Huống Thực Tế (Roleplay Dialogue)'}
+              {t?.aiLab?.dialogueTitle || "Roleplay Dialogue"}
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              {t.aiLab?.dialogueSubtitle || 'AI sẽ tạo cuộc hội thoại 2 chiều thực chiến và lồng ghép các từ vựng trong kho của bạn để bạn luyện tập phản xạ.'}
+              {t?.aiLab?.dialogueSubtitle || "Generate two-way conversations using your vault words."}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  {t.aiLab?.scenarioLabel || 'Chọn Tình Huống Giao Tiếp:'}
+                  {t?.aiLab?.scenarioLabel || "Select scenario:"}
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
                   {[
-                    { id: 'job_interview', emoji: '💼', title: 'Phỏng Vấn Xin Việc Tech' },
-                    { id: 'salary_negotiation', emoji: '💰', title: 'Đàm Phán Lương Thưởng' },
-                    { id: 'tech_standup', emoji: '💻', title: 'Họp Agile Standup Dự Án' },
-                    { id: 'business_meeting', emoji: '🤝', title: 'Đàm Phán Đối Tác Hợp Đồng' },
-                    { id: 'daily_casual', emoji: '☕', title: 'Trò Chuyện Cafe Đồng Nghiệp' },
-                    { id: 'travel_airport', emoji: '✈️', title: 'Check-in Sân Bay & Du Lịch' }
+                    { id: 'job_interview', emoji: '💼', title: uiLang === 'ru' ? 'Собеседование Tech' : uiLang === 'vi' ? 'Phỏng Vấn Tech' : 'Tech Job Interview' },
+                    { id: 'salary_negotiation', emoji: '💰', title: uiLang === 'ru' ? 'Переговоры о зарплате' : uiLang === 'vi' ? 'Đàm Phán Lương' : 'Salary Negotiation' },
+                    { id: 'tech_standup', emoji: '💻', title: uiLang === 'ru' ? 'Agile Standup' : uiLang === 'vi' ? 'Họp Agile Standup' : 'Agile Standup Meeting' },
+                    { id: 'business_meeting', emoji: '🤝', title: uiLang === 'ru' ? 'Деловая встреча' : uiLang === 'vi' ? 'Đàm Phán Đối Tác' : 'Business Meeting' },
+                    { id: 'daily_casual', emoji: '☕', title: uiLang === 'ru' ? 'Кофе с коллегами' : uiLang === 'vi' ? 'Cafe Đồng Nghiệp' : 'Coffee with Colleague' },
+                    { id: 'travel_airport', emoji: '✈️', title: uiLang === 'ru' ? 'Аэропорт и поездка' : uiLang === 'vi' ? 'Sân Bay & Du Lịch' : 'Airport & Travel' }
                   ].map(sc => (
                     <div
                       key={sc.id}
@@ -1124,7 +1151,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                   className="btn-primary"
                 >
                   {isGeneratingDialogue ? <Loader2 size={18} className="animate-spin" /> : <MessagesSquare size={18} />}
-                  <span>{isGeneratingDialogue ? (t.aiLab?.generatingDialogue || 'Đang tạo hội thoại...') : (t.aiLab?.generateDialogueBtn || 'Tạo Cuộc Hội Thoại Ngay')}</span>
+                  <span>{isGeneratingDialogue ? (t?.aiLab?.generatingDialogue || "Generating...") : (t?.aiLab?.generateDialogueBtn || "Generate Dialogue")}</span>
                 </button>
               </div>
             </div>
@@ -1138,7 +1165,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                   🎭 {dialogueResult.scenario_title}
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                  {dialogueResult.scenario_desc_vi}
+                  {dialogueResult.scenario_desc || (fluentLanguage === 'en' ? dialogueResult.scenario_desc_en : dialogueResult.scenario_desc_vi) || dialogueResult.scenario_desc_vi}
                 </p>
               </div>
 
@@ -1165,15 +1192,15 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isLeft ? 'var(--text-muted)' : 'var(--accent-primary)' }}>
                           {turn.speaker}
                         </span>
-                        <button onClick={() => playAudio(turn.text_en)} className="btn-icon" style={{ padding: '0.1rem', color: 'var(--accent-primary)' }}>
+                        <button onClick={() => playAudio(turn.text_target || turn.text_en, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-icon" style={{ padding: '0.1rem', color: 'var(--accent-primary)' }}>
                           <Volume2 size={14} />
                         </button>
                       </div>
                       <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                        {turn.text_en}
+                        {turn.text_target || turn.text_en}
                       </p>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                        {turn.text_vi}
+                        {turn.text_fluent || turn.text_vi}
                       </p>
                     </div>
                   );
@@ -1184,13 +1211,13 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               {dialogueResult.key_takeaways && (
                 <div style={{ background: 'var(--bg-secondary)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
                   <h5 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--accent-primary)', marginBottom: '0.4rem' }}>
-                    💎 Cụm từ & Mẫu câu đắt giá trong hội thoại:
+                    💎 {uiLang === 'ru' ? 'Ключевые фразы:' : uiLang === 'vi' ? 'Cụm từ nổi bật:' : 'Key phrases:'}
                   </h5>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {dialogueResult.key_takeaways.map((kt, kIdx) => (
                       <div key={kIdx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>• {kt.phrase}:</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>{kt.meaning_vi}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{kt.meaning || (fluentLanguage === 'en' ? kt.meaning_en : kt.meaning_vi) || kt.meaning_vi}</span>
                       </div>
                     ))}
                   </div>
@@ -1207,10 +1234,10 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
           <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
             <Sparkles size={40} style={{ color: 'var(--accent-primary)', margin: '0 auto 0.75rem auto' }} />
             <h4 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
-              {t.aiLab?.storyTitle || 'Sáng Tác Truyện Ngắn Chống Quên (Story Weaver)'}
+              {t?.aiLab?.storyTitle || "Spaced Memory Story"}
             </h4>
             <p style={{ color: 'var(--text-secondary)', maxWidth: '550px', margin: '0.5rem auto 1.5rem auto', fontSize: '0.95rem' }}>
-              {t.aiLab?.storySubtitle || 'AI sẽ tự động gom các từ vựng bạn sắp quên trong ngày hôm nay và viết thành một câu chuyện ngắn lôi cuốn trong 1 phút để bạn ghi nhớ toàn bộ trong ngữ cảnh.'}
+              {t?.aiLab?.storySubtitle || "Weave due words into a memorable 1-minute story."}
             </p>
 
             <button
@@ -1220,7 +1247,7 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
               style={{ padding: '0.85rem 1.75rem', fontSize: '1rem', margin: '0 auto' }}
             >
               {isGeneratingStory ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-              <span>{isGeneratingStory ? (t.aiLab?.generatingStory || 'AI Đang Sáng Tác...') : (t.aiLab?.generateStoryBtn || 'Sáng Tác Câu Chuyện Ngay')}</span>
+              <span>{isGeneratingStory ? (t?.aiLab?.generatingStory || "Writing...") : (t?.aiLab?.generateStoryBtn || "Write Story")}</span>
             </button>
           </div>
 
@@ -1231,9 +1258,9 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                 <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
                   📖 {storyResult.title}
                 </h4>
-                <button onClick={() => playAudio(storyResult.story_en)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                <button onClick={() => playAudio(storyResult.story_target || storyResult.story_en, null, isVietnameseTrack ? 'vi-VN' : undefined)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                   <Volume2 size={16} />
-                  <span>Nghe Đọc Truyện</span>
+                  <span>{t.common?.listen || 'Listen'}</span>
                 </button>
               </div>
 
@@ -1247,29 +1274,21 @@ export default function AILab({ initialSentence = '', onSaveExtractedWord }) {
                   borderRadius: 'var(--radius-lg)',
                   borderLeft: '4px solid var(--accent-primary)'
                 }}
-                dangerouslySetInnerHTML={{ __html: storyResult.story_en }}
+                dangerouslySetInnerHTML={{ __html: storyResult.story_target || storyResult.story_en }}
               />
 
               <div>
                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Bản dịch tiếng Việt:
+                  {t.aiLab?.translationLabel || 'Translation:'}
                 </span>
                 <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.6 }}>
-                  {storyResult.story_vi}
+                  {storyResult.story_fluent || storyResult.story_vi}
                 </p>
               </div>
             </div>
           )}
         </div>
       )}
-
-      {/* Pattern Category Management Modal */}
-      <PatternCategoryModal
-        isOpen={isCategoryModalOpen}
-        categories={patternCategories}
-        onClose={() => setIsCategoryModalOpen(false)}
-        onCategoriesChange={() => loadPatternCategories()}
-      />
     </div>
   );
 }

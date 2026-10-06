@@ -6,12 +6,22 @@ export const patternController = {
   getAllPatterns: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
-      const { search, category, tone } = req.query;
+      const { search, category, tone, target_language } = req.query;
       let query = `
         SELECT * FROM patterns 
-        WHERE (user_id = ? OR user_id IS NULL OR user_id = 'admin_master_user_id')
+        WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `;
-      const params = [userId];
+      const params = [userId, userId, userId];
+
+      if (target_language && target_language !== 'all') {
+        if (target_language === 'vi') {
+          query += ' AND target_language = ?';
+          params.push('vi');
+        } else if (target_language === 'en') {
+          query += ' AND (target_language = ? OR target_language IS NULL)';
+          params.push('en');
+        }
+      }
 
       if (search) {
         query += ' AND (name LIKE ? OR formula LIKE ? OR meaning_vi LIKE ? OR explanation LIKE ?)';
@@ -84,7 +94,8 @@ export const patternController = {
         category = 'emphasis',
         tone = 'Neutral',
         examples = [],
-        tags = []
+        tags = [],
+        target_language = 'en'
       } = req.body;
 
       if (!name || !formula || !meaning_vi) {
@@ -99,11 +110,11 @@ export const patternController = {
         INSERT INTO patterns (
           id, name, formula, explanation, meaning_vi, category, tone,
           examples, tags, repetition, interval, ease_factor,
-          due_date, status, created_at, updated_at, user_id
+          due_date, status, created_at, updated_at, user_id, target_language
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?,
           ?, ?, 0, 0, 2.5,
-          ?, 'new', ?, ?, ?
+          ?, 'new', ?, ?, ?, ?
         )
       `);
 
@@ -120,7 +131,8 @@ export const patternController = {
         today,
         now,
         now,
-        userId
+        userId,
+        target_language || 'en'
       );
 
       res.status(201).json({ success: true, data: { id, name, formula, category, status: 'new' } });

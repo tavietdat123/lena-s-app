@@ -8,12 +8,22 @@ export const vocabController = {
   getAllWords: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
-      const { search, tag, status, level, topic_id } = req.query;
+      const { search, tag, status, level, topic_id, target_language } = req.query;
       let query = `
         SELECT * FROM words 
         WHERE (user_id = ? OR (user_id IS NULL AND ? = 'admin_master_user_id') OR (user_id = 'admin_master_user_id' AND ? = 'admin_master_user_id'))
       `;
       const params = [userId, userId, userId];
+
+      if (target_language && target_language !== 'all') {
+        if (target_language === 'vi') {
+          query += ' AND target_language = ?';
+          params.push('vi');
+        } else if (target_language === 'en') {
+          query += ' AND (target_language = ? OR target_language IS NULL)';
+          params.push('en');
+        }
+      }
 
       if (search) {
         query += ' AND (word LIKE ? OR meaning_vi LIKE ? OR meaning_en LIKE ?)';
@@ -102,7 +112,11 @@ export const vocabController = {
         examples = [],
         tags = [],
         level = 'B1',
-        topic_id = 'daily'
+        topic_id = 'daily',
+        target_language,
+        tone = '',
+        sino_vietnamese = '',
+        vsl_level = ''
       } = req.body;
 
       const finalMeaningVi = (meaning_vi || '').trim() || (meaning_en || '').trim();
@@ -112,6 +126,9 @@ export const vocabController = {
         return res.status(400).json({ success: false, error: 'Từ vựng và Nghĩa là bắt buộc' });
       }
 
+      const hasVietnameseChars = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(word || '');
+      const finalTargetLang = target_language || (hasVietnameseChars ? 'vi' : 'en');
+
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
       const today = now.split('T')[0];
@@ -120,11 +137,13 @@ export const vocabController = {
         INSERT INTO words (
           id, word, phonetic, audio_url, part_of_speech, meaning_vi, meaning_en,
           collocations, examples, tags, level, repetition, interval, ease_factor,
-          due_date, status, created_at, updated_at, topic_id, user_id
+          due_date, status, created_at, updated_at, topic_id, user_id,
+          target_language, tone, sino_vietnamese, vsl_level
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, 0, 0, 2.5,
-          ?, 'new', ?, ?, ?, ?
+          ?, 'new', ?, ?, ?, ?,
+          ?, ?, ?, ?
         )
       `);
 
@@ -144,7 +163,11 @@ export const vocabController = {
         now,
         now,
         topic_id || 'daily',
-        userId
+        userId,
+        finalTargetLang,
+        tone || '',
+        sino_vietnamese || '',
+        vsl_level || ''
       );
 
       // Gamification: Reward +10 XP for adding new word
@@ -247,9 +270,9 @@ export const vocabController = {
   // 6. Fast Auto-lookup Dictionary API
   autoLookup: async (req, res) => {
     try {
-      const { word, target_language, native_language } = req.query;
+      const { word, target_language, native_language, fluent_language } = req.query;
       const targetLang = target_language || req.user?.target_language || 'en';
-      const nativeLang = native_language || req.user?.native_language || 'en';
+      const nativeLang = fluent_language || native_language || req.user?.native_language || (targetLang === 'vi' ? 'en' : 'vi');
       if (!word) {
         return res.status(400).json({ success: false, error: 'Thiếu từ cần tra cứu' });
       }

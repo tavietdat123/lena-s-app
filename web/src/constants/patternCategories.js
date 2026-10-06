@@ -1,170 +1,320 @@
 export const DEFAULT_PATTERN_CATEGORIES = [
   {
     id: 'cause_effect',
-    name: 'Nguyên nhân & Hệ quả',
+    name: 'Cause & Effect',
+    nameEn: 'Cause & Effect',
+    nameVi: 'Nguyên nhân & Hệ quả',
+    nameRu: 'Причина и следствие',
     emoji: '⚡',
     color: '#f59e0b',
-    description: 'Diễn giải nguyên nhân, căn nguyên, hệ quả và mối quan hệ nhân quả (Due to, Lead to, As a result, Attribute to)'
+    description: 'Due to, Lead to, As a result'
   },
   {
-    id: 'purpose',
-    name: 'Mục đích & Dự định',
-    emoji: '🎯',
-    color: '#10b981',
-    description: 'Chỉ rõ mục đích hướng đến, dự định tương lai và hành động có chủ đích (In order that, With a view to, So as to)'
-  },
-  {
-    id: 'condition',
-    name: 'Điều kiện & Giả định',
-    emoji: '⚠️',
-    color: '#eab308',
-    description: 'Giả định tình huống, câu điều kiện loại 3, thể giả định thức cấp bách (Provided that, Unless, Had it not been for)'
+    id: 'contrast',
+    name: 'Contrast & Concession',
+    nameEn: 'Contrast',
+    nameVi: 'Tương phản & Nhượng bộ',
+    nameRu: 'Контраст',
+    emoji: '⚖️',
+    color: '#3b82f6',
+    description: 'Although, Despite, In contrast'
   },
   {
     id: 'concession',
-    name: 'Nhượng bộ & Đối lập',
+    name: 'Contrast & Concession',
+    nameEn: 'Contrast',
+    nameVi: 'Nhượng bộ & Đối lập',
+    nameRu: 'Контраст',
     emoji: '⚖️',
     color: '#3b82f6',
-    description: 'Nêu sự tương phản bất chấp trở ngại hoặc điều kiện nghịch cảnh (Although, Despite, In spite of, Regardless of)'
+    description: 'Although, Despite, Regardless of'
+  },
+  {
+    id: 'purpose',
+    name: 'Purpose & Goal',
+    nameEn: 'Purpose',
+    nameVi: 'Mục đích & Dự định',
+    nameRu: 'Цель',
+    emoji: '🎯',
+    color: '#10b981',
+    description: 'In order that, So as to'
+  },
+  {
+    id: 'condition',
+    name: 'Condition',
+    nameEn: 'Condition',
+    nameVi: 'Điều kiện & Giả định',
+    nameRu: 'Условие',
+    emoji: '⚠️',
+    color: '#eab308',
+    description: 'Provided that, Unless, Had it not been'
   },
   {
     id: 'comparison',
-    name: 'So sánh & Đối chiếu',
+    name: 'Comparison',
+    nameEn: 'Comparison',
+    nameVi: 'So sánh & Đối chiếu',
+    nameRu: 'Сравнение',
     emoji: '🔍',
     color: '#06b6d4',
-    description: 'So sánh tương quan, mức độ, cấu trúc càng... càng (The more... the more, In contrast to, Far superior to)'
+    description: 'The more... the more, In contrast to'
   },
   {
     id: 'exception',
-    name: 'Ngoại lệ & Giới hạn',
+    name: 'Exception',
+    nameEn: 'Exception',
+    nameVi: 'Ngoại lệ & Giới hạn',
+    nameRu: 'Исключение',
     emoji: '🚫',
     color: '#ef4444',
-    description: 'Loại trừ, giới hạn phạm vi hoặc chỉ định ngoại lệ cụ thể (Except for, With the exception of, Insofar as)'
+    description: 'Except for, With the exception of'
   },
   {
     id: 'emphasis',
-    name: 'Nhấn mạnh & Đảo ngữ',
+    name: 'Emphasis & Inversion',
+    nameEn: 'Emphasis',
+    nameVi: 'Nhấn mạnh & Đảo ngữ',
+    nameRu: 'Акцент и инверсия',
     emoji: '💥',
     color: '#8b5cf6',
-    description: 'Đảo ngữ trợ động từ, câu chẻ nhấn mạnh hành động hoặc đối tượng (Not only... but also, It is... that, Only by)'
+    description: 'Not only... but also, Only by'
   },
   {
     id: 'advice',
-    name: 'Khuyên bảo & Thúc giục',
+    name: 'Advice & Urgent Action',
+    nameEn: 'Advice',
+    nameVi: 'Khuyên bảo & Thúc giục',
+    nameRu: 'Совет',
     emoji: '⏰',
     color: '#ec4899',
-    description: 'Nhắc nhở, khuyên can cấp thiết hoặc nhấn mạnh đã đến lúc hành động (It is high time, It is advisable that)'
+    description: 'It is high time, It is advisable that'
   },
   {
     id: 'speculation',
-    name: 'Phỏng đoán & Khả năng',
+    name: 'Speculation',
+    nameEn: 'Speculation',
+    nameVi: 'Phỏng đoán & Khả năng',
+    nameRu: 'Вероятность',
     emoji: '🔮',
     color: '#a855f7',
-    description: 'Đánh giá xác suất, phỏng đoán quá khứ hoặc khả năng xảy ra (It is likely that, Bound to, High probability of)'
+    description: 'It is likely that, Bound to'
   },
   {
     id: 'opinion',
-    name: 'Khẳng định Quan điểm',
+    name: 'Opinion & Stance',
+    nameEn: 'Opinion',
+    nameVi: 'Quan điểm',
+    nameRu: 'Мнение',
     emoji: '💬',
     color: '#0ea5e9',
-    description: 'Khẳng định lập trường, nêu chính kiến và sự thật hiển nhiên (From my perspective, It is argued that, There is no denying)'
+    description: 'From my perspective, It is argued that'
   },
   {
     id: 'addition',
-    name: 'Bổ sung & Phát triển ý',
+    name: 'Addition',
+    nameEn: 'Addition',
+    nameVi: 'Bổ sung ý',
+    nameRu: 'Дополнение',
     emoji: '➕',
     color: '#14b8a6',
-    description: 'Thêm thông tin hỗ trợ, phát triển luận cứ và mở rộng ý tưởng (Furthermore, In addition to, Not to mention, Coupled with)'
+    description: 'Furthermore, In addition to'
   },
   {
     id: 'example',
-    name: 'Ví dụ & Minh họa',
+    name: 'Example & Evidence',
+    nameEn: 'Example',
+    nameVi: 'Ví dụ & Minh họa',
+    nameRu: 'Примеры',
     emoji: '💡',
     color: '#f97316',
-    description: 'Đưa ra dẫn chứng thực tế, số liệu hoặc trường hợp minh họa cụ thể (For instance, Such as, To illustrate this point)'
+    description: 'For instance, Such as'
   },
   {
     id: 'clarification',
-    name: 'Làm rõ & Diễn giải lại',
+    name: 'Clarification',
+    nameEn: 'Clarification',
+    nameVi: 'Làm rõ ý',
+    nameRu: 'Уточнение',
     emoji: '✨',
     color: '#6366f1',
-    description: 'Giải thích chi tiết hơn, diễn đạt lại bằng từ ngữ dễ hiểu (In other words, That is to say, Namely, To put it simply)'
+    description: 'In other words, That is to say'
   },
   {
     id: 'transition',
-    name: 'Chuyển ý & Dẫn dắt',
+    name: 'Transition',
+    nameEn: 'Transition',
+    nameVi: 'Chuyển ý',
+    nameRu: 'Переход',
     emoji: '🔄',
     color: '#64748b',
-    description: 'Chuyển sang luận điểm mới, mở rộng phạm vi chủ đề (Moving on to, In terms of, Regarding, As far as ... is concerned)'
+    description: 'Moving on to, Regarding'
   },
   {
     id: 'sequence',
-    name: 'Thời gian & Trình tự',
+    name: 'Sequence & Time',
+    nameEn: 'Sequence',
+    nameVi: 'Trình tự thời gian',
+    nameRu: 'Последовательность',
     emoji: '⏳',
     color: '#d97706',
-    description: 'Chuỗi sự kiện kế tiếp, mốc thời gian và hành động tức thì (No sooner... than, Prior to, In the meantime, Following)'
+    description: 'No sooner... than, Prior to'
   },
   {
     id: 'conclusion',
-    name: 'Tóm tắt & Kết luận',
+    name: 'Summary & Conclusion',
+    nameEn: 'Conclusion',
+    nameVi: 'Kết luận & Tóm tắt',
+    nameRu: 'Заключение',
     emoji: '🏁',
     color: '#059669',
-    description: 'Tóm lược các ý chính, đưa ra kết luận hoặc bài học tổng thể (In conclusion, To sum up, All things considered, Ultimately)'
+    description: 'In conclusion, To sum up'
   },
   {
     id: 'request',
-    name: 'Yêu cầu & Đề nghị lịch sự',
+    name: 'Polite Request',
+    nameEn: 'Request',
+    nameVi: 'Đề nghị lịch sự',
+    nameRu: 'Просьба',
     emoji: '🤝',
     color: '#2563eb',
-    description: 'Đề nghị lịch sự, phản biện ngoại giao trong công việc (Would you mind, I would appreciate it if, With all due respect)'
+    description: 'Would you mind, I would appreciate'
   },
   {
     id: 'definition',
-    name: 'Định nghĩa & Khái niệm',
+    name: 'Definition',
+    nameEn: 'Definition',
+    nameVi: 'Định nghĩa',
+    nameRu: 'Определение',
     emoji: '📖',
     color: '#7c3aed',
-    description: 'Định nghĩa thuật ngữ, giải thích bản chất khái niệm (Is defined as, Refers to, Constitutes, Characterized by)'
+    description: 'Is defined as, Constitutes'
   },
   {
     id: 'counter_argument',
-    name: 'Phản bác & Phản đề',
+    name: 'Counter Argument',
+    nameEn: 'Counter Argument',
+    nameVi: 'Phản bác luận điểm',
+    nameRu: 'Контраргумент',
     emoji: '🛡️',
     color: '#e11d48',
-    description: 'Bác bỏ lập luận đối phương, vạch ra thiếu sót và đưa ra lý lẽ phản biện (Contrary to popular belief, It is misleading to claim, While it is often argued that)'
+    description: 'Contrary to, Misleading to claim'
   },
   {
     id: 'agreement',
-    name: 'Đồng thuận & Tán thành',
+    name: 'Agreement',
+    nameEn: 'Agreement',
+    nameVi: 'Đồng thuận',
+    nameRu: 'Согласие',
     emoji: '✅',
     color: '#10b981',
-    description: 'Bày tỏ sự đồng tình hoàn toàn hoặc một phần với luận điểm (I am in full agreement with, There is widespread consensus, Echoes the viewpoint)'
+    description: 'Full agreement with, Consensus'
   },
   {
     id: 'disagreement',
-    name: 'Bất đồng & Nghi vấn',
+    name: 'Disagreement',
+    nameEn: 'Disagreement',
+    nameVi: 'Bất đồng',
+    nameRu: 'Несогласие',
     emoji: '❌',
     color: '#f43f5e',
-    description: 'Thể hiện sự không đồng ý một cách khéo léo hoặc trực tiếp (I respectfully beg to differ, That is not necessarily the case, Cast doubt on)'
+    description: 'Beg to differ, Not the case'
   },
   {
     id: 'problem_solution',
-    name: 'Vấn đề & Giải pháp',
+    name: 'Problem & Solution',
+    nameEn: 'Problem & Solution',
+    nameVi: 'Vấn đề & Giải pháp',
+    nameRu: 'Проблема и решение',
     emoji: '🛠️',
     color: '#0284c7',
-    description: 'Nêu thực trạng nan giải và đề xuất phương án xử lý, khắc phục (A viable solution lies in, Urgent measures must be taken, To mitigate the impact)'
+    description: 'Viable solution, Urgent measures'
   },
   {
     id: 'evaluation',
-    name: 'Đánh giá & Tầm quan trọng',
+    name: 'Evaluation',
+    nameEn: 'Evaluation',
+    nameVi: 'Đánh giá tác động',
+    nameRu: 'Оценка',
     emoji: '🌟',
     color: '#8b5cf6',
-    description: 'Đánh giá tính hiệu quả, tầm quan trọng hoặc mức độ tác động (Plays a pivotal role in, Is of paramount importance, Profound implications)'
+    description: 'Pivotal role, Paramount importance'
   },
   {
     id: 'degree_extent',
-    name: 'Mức độ & Phạm vi',
+    name: 'Degree & Extent',
+    nameEn: 'Degree & Extent',
+    nameVi: 'Mức độ & Phạm vi',
+    nameRu: 'Степень и масштаб',
     emoji: '📏',
     color: '#0d9488',
-    description: 'Chỉ rõ mức độ ảnh hưởng, biên độ hoặc phạm vi áp dụng (To a significant extent, Far outweighs, In large measure due to)'
+    description: 'Significant extent, Far outweighs'
   }
 ];
+
+export function getCategoryLabel(cat, lang = 'en') {
+  if (!cat) return '';
+  const catId = typeof cat === 'string' ? cat : cat.id;
+  const found = DEFAULT_PATTERN_CATEGORIES.find(c => c.id === catId);
+
+  if (lang === 'ru') {
+    if (typeof cat === 'object' && cat.nameRu) return cat.nameRu;
+    if (found?.nameRu) return found.nameRu;
+    if (typeof cat === 'object' && cat.name) return cat.name;
+    return catId;
+  }
+
+  if (lang === 'vi') {
+    if (typeof cat === 'object' && cat.nameVi) return cat.nameVi;
+    if (found?.nameVi) return found.nameVi;
+    if (typeof cat === 'object' && cat.name) return cat.name;
+    return catId;
+  }
+
+  // English fallback
+  if (typeof cat === 'object' && cat.nameEn) return cat.nameEn;
+  if (found?.nameEn) return found.nameEn;
+  if (typeof cat === 'object' && cat.name && !found) return cat.name;
+  return found?.nameEn || catId;
+}
+
+const CATEGORY_DESCRIPTIONS_VI = {
+  cause_effect: 'Do, Vì... nên, Dẫn đến, Kết quả là',
+  contrast: 'Mặc dù, Dẫu vậy, Tuy nhiên, Ngược lại',
+  concession: 'Dù cho, Bất kể, Nhượng bộ',
+  purpose: 'Để, Nhằm mục đích, Cốt để',
+  condition: 'Nếu... thì, Miễn là, Giả sử',
+  comparison: 'Càng... càng, So với, Tương tự như',
+  exception: 'Trừ khi, Ngoại trừ, Loại trừ',
+  emphasis: 'Không những... mà còn, Chính là, Có... mới',
+  advice: 'Nên, Đã đến lúc, Tốt hơn hết',
+  speculation: 'Có lẽ, Dường như, Chắc chắn',
+  opinion: 'Theo tôi, Quan điểm là, Thiết nghĩ',
+  addition: 'Hơn nữa, Ngoài ra, Thêm vào đó',
+  example: 'Ví dụ như, Chẳng hạn, Điển hình là',
+  clarification: 'Nói cách khác, Tức là, Rõ hơn là',
+  transition: 'Chuyển sang, Xét về, Bàn về',
+  sequence: 'Trước tiên, Ngay sau khi, Tiếp theo',
+  conclusion: 'Tóm lại, Kết luận là, Chung quy lại',
+  request: 'Làm ơn, Xin vui lòng, Bạn có phiền',
+  definition: 'Được định nghĩa là, Tức là',
+  counter_argument: 'Trái lại, Sai lầm khi cho rằng',
+  agreement: 'Hoàn toàn đồng ý, Nhất trí',
+  disagreement: 'Khó có thể đồng tình, Không phải vậy',
+  problem_solution: 'Giải pháp khả thi, Biện pháp cấp bách',
+  evaluation: 'Đóng vai trò then chốt, Ý nghĩa sống còn',
+  degree_extent: 'Mức độ đáng kể, Vượt trội hơn hẳn'
+};
+
+export function getCategoryDescription(cat, lang = 'en') {
+  if (!cat) return '';
+  const catId = typeof cat === 'string' ? cat : cat.id;
+  const found = DEFAULT_PATTERN_CATEGORIES.find(c => c.id === catId);
+
+  if (lang === 'vi') {
+    if (CATEGORY_DESCRIPTIONS_VI[catId]) return CATEGORY_DESCRIPTIONS_VI[catId];
+    if (typeof cat === 'object' && cat.descriptionVi) return cat.descriptionVi;
+  }
+
+  if (typeof cat === 'object' && cat.description) return cat.description;
+  return found?.description || '';
+}

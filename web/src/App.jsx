@@ -95,10 +95,10 @@ function ErrorFallback({ error, onReset }) {
   return (
     <div style={{ maxWidth: '580px', margin: '3rem auto', padding: '2.5rem', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
       <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto', fontSize: '1.8rem' }}>⚠️</div>
-      <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{t.toasts?.errorBoundaryTitle || 'Đã xảy ra sự cố hiển thị'}</h2>
+      <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{t?.toasts?.errorBoundaryTitle || "Display Error Occurred"}</h2>
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{error?.message || 'Vui lòng bấm tải lại.'}</p>
       <button onClick={onReset} className="btn-primary" style={{ padding: '0.75rem 1.5rem', borderRadius: '12px' }}>
-        {t.toasts?.retryBtn || '🔄 Thử Lại'}
+        {t?.toasts?.retryBtn || "Retry"}
       </button>
     </div>
   );
@@ -124,7 +124,7 @@ class ErrorBoundary extends React.Component {
 }
 
 function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking, loadCurrentUser }) {
-  const { t, uiLang } = useLanguage();
+  const { t, uiLang, targetLanguage, isVietnameseTrack } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -208,20 +208,21 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
     setIsDark(nextDark);
     document.body.className = nextDark ? 'theme-dark' : 'theme-light';
     localStorage.setItem('linguavault_theme', nextDark ? 'dark' : 'light');
-    addToast(nextDark ? (t.toasts?.darkTheme || 'Đã chuyển sang Giao diện Tối') : (t.toasts?.lightTheme || 'Đã chuyển sang Giao diện Sáng'), 'info');
+    addToast(nextDark ? (t?.toasts?.darkTheme || "Dark Theme") : (t?.toasts?.lightTheme || "Light Theme"), 'info');
   };
 
   // Load All App Data
-  const refreshAllData = async () => {
+  const refreshAllData = async (targetLang = targetLanguage) => {
     try {
+      const langParam = { target_language: targetLang };
       const [wordsRes, patternsRes, notesRes, statsRes, dueRes, gamificationRes, topicsRes] = await Promise.all([
-        api.getWords(),
-        api.getPatterns(),
-        api.getNotes(),
+        api.getWords(langParam),
+        api.getPatterns(langParam),
+        api.getNotes(langParam),
         api.getStats(),
-        api.getDueItems(),
+        api.getDueItems(langParam),
         api.getGamificationProfile(),
-        api.getTopics()
+        api.getTopics(langParam)
       ]);
 
       if (wordsRes.success) setWords(wordsRes.data || []);
@@ -255,12 +256,10 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
 
   useEffect(() => {
     if (currentUser) {
-      if (currentUser.target_language) {
-        audioService.setTargetLanguage(currentUser.target_language);
-      }
-      refreshAllData();
+      audioService.setTargetLanguage(targetLanguage);
+      refreshAllData(targetLanguage);
     }
-  }, [currentUser]);
+  }, [currentUser, targetLanguage]);
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
@@ -271,12 +270,12 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
     await api.auth.logout();
     setCurrentUser(null);
     navigate('/login', { replace: true });
-    addToast(t.toasts?.loggedOut || 'Đã đăng xuất tài khoản', 'info');
+    addToast(t?.toasts?.loggedOut || "Signed out", 'info');
   };
 
   const handleProfileUpdated = (updatedUser) => {
     setCurrentUser(prev => ({ ...prev, ...updatedUser }));
-    addToast(t.toasts?.profileUpdated || 'Đã cập nhật hồ sơ cá nhân thành công!', 'success');
+    addToast(t?.toasts?.profileUpdated || "Profile updated", 'success');
   };
 
   const getSupervisorUrl = () => {
@@ -295,7 +294,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
   const handleSharePublicStats = () => {
     const url = getSupervisorUrl();
     navigator.clipboard.writeText(url).then(() => {
-      addToast(t.toasts?.supervisorCopied || 'Đã sao chép link Cổng Giám Sát Học Tập! 🛡️ Bạn có thể gửi cho người khác để họ giám sát bạn.', 'success');
+      addToast(t?.toasts?.supervisorCopied || "Supervisor link copied!", 'success');
     }).catch(() => {
       window.open(url, '_blank');
     });
@@ -358,13 +357,13 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
   };
 
   const handleDeleteWord = async (id) => {
-    if (!window.confirm(t.toasts?.deleteWordConfirm || 'Bạn có chắc chắn muốn xóa từ vựng này không?')) return;
+    if (!window.confirm(t?.toasts?.deleteWordConfirm || "Delete this word?")) return;
     try {
       await api.deleteWord(id);
-      addToast(t.toasts?.wordDeleted || 'Đã xóa từ vựng khỏi kho lưu trữ', 'info');
+      addToast(t?.toasts?.wordDeleted || "Word deleted", 'info');
       refreshAllData();
     } catch (err) {
-      addToast((t.toasts?.deleteWordError || 'Lỗi xóa từ: ') + err.message, 'error');
+      addToast((t?.toasts?.deleteWordError || "Error deleting word: ") + err.message, 'error');
     }
   };
 
@@ -380,37 +379,41 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
   };
 
   const handleDeletePattern = async (id) => {
-    if (!window.confirm(t.toasts?.deletePatternConfirm || 'Bạn có chắc chắn muốn xóa mẫu câu này không?')) return;
+    if (!window.confirm(t?.toasts?.deletePatternConfirm || "Delete this pattern?")) return;
     try {
       await api.deletePattern(id);
-      addToast(t.toasts?.patternDeleted || 'Đã xóa mẫu câu', 'info');
+      addToast(t?.toasts?.patternDeleted || "Pattern deleted", 'info');
       refreshAllData();
     } catch (err) {
-      addToast((t.toasts?.deletePatternError || 'Lỗi xóa mẫu câu: ') + err.message, 'error');
+      addToast((t?.toasts?.deletePatternError || "Error deleting pattern: ") + err.message, 'error');
     }
   };
 
   // Handlers for Notes
   const handleSaveNote = async (noteData) => {
     try {
+      const payload = {
+        ...noteData,
+        target_language: noteData.target_language || targetLanguage || currentUser?.target_language || 'en'
+      };
       if (noteData.id) {
-        await api.updateNote(noteData.id, noteData);
-        addToast(t.toasts?.noteUpdated || 'Đã cập nhật bài viết thành công');
+        await api.updateNote(noteData.id, payload);
+        addToast(t?.toasts?.noteUpdated || "Article updated");
       } else {
-        await api.createNote(noteData);
-        addToast(t.toasts?.noteCreated || 'Đã tạo bài viết mới thành công');
+        await api.createNote(payload);
+        addToast(t?.toasts?.noteCreated || "New article created");
       }
       refreshAllData();
     } catch (err) {
-      addToast((t.toasts?.noteSaveError || 'Lỗi lưu bài viết: ') + err.message, 'error');
+      addToast((t?.toasts?.noteSaveError || "Error saving article: ") + err.message, 'error');
     }
   };
 
   const handleDeleteNote = async (id) => {
-    if (!window.confirm(t.toasts?.deleteNoteConfirm || 'Bạn có chắc chắn muốn xóa bài đọc/ghi chú này không?')) return;
+    if (!window.confirm(t?.toasts?.deleteNoteConfirm || "Delete this article?")) return;
     try {
       await api.deleteNote(id);
-      addToast(t.toasts?.noteDeleted || 'Đã xóa bài viết', 'info');
+      addToast(t?.toasts?.noteDeleted || "Article deleted", 'info');
       refreshAllData();
     } catch (err) {
       addToast('Lỗi: ' + err.message, 'error');
@@ -422,11 +425,15 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
     if (contextTranslation) {
       setEditingWord({
         word: text,
-        phonetic: contextTranslation.phonetic || '',
-        meaning_vi: contextTranslation.contextualMeaningVi || '',
-        meaning_en: contextTranslation.contextExplanation || '',
+        phonetic: isVietnameseTrack ? '' : (contextTranslation.phonetic || ''),
+        meaning_vi: isVietnameseTrack
+          ? (contextTranslation.targetExplanation || contextTranslation.contextExplanation || text)
+          : (contextTranslation.contextualMeaning || contextTranslation.contextualMeaningVi || ''),
+        meaning_en: isVietnameseTrack
+          ? (contextTranslation.contextualMeaning || contextTranslation.contextualMeaningVi || '')
+          : (contextTranslation.contextExplanation || ''),
         part_of_speech: contextTranslation.partOfSpeech || 'noun',
-        examples: contextTranslation.overallSentenceVi ? [contextTranslation.overallSentenceVi] : [],
+        examples: (contextTranslation.overallSentence || contextTranslation.overallSentenceVi) ? [contextTranslation.overallSentence || contextTranslation.overallSentenceVi] : [],
         collocations: contextTranslation.collocations || [],
         level: contextTranslation.level || 'B2'
       });
@@ -466,9 +473,9 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      addToast(t.toasts?.backupExported || 'Đã xuất file sao lưu JSON thành công!');
+      addToast(t?.toasts?.backupExported || "JSON backup exported!");
     } catch (err) {
-      addToast((t.toasts?.backupExportError || 'Lỗi xuất dữ liệu: ') + err.message, 'error');
+      addToast((t?.toasts?.backupExportError || "Error exporting backup: ") + err.message, 'error');
     }
   };
 
@@ -478,7 +485,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-primary)' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="spinner" style={{ width: '42px', height: '42px', margin: '0 auto 1.25rem', border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', fontWeight: 700 }}>{t.toasts?.loadingApp || 'Đang khởi tạo LinguaVault...'}</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', fontWeight: 700 }}>{t?.toasts?.loadingApp || "Initializing LinguaVault..."}</p>
         </div>
       </div>
     );
@@ -681,7 +688,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
                     onFinishSession={() => {
                       refreshAllData();
                       handleNavigate('dashboard');
-                      addToast(t.toasts?.sessionCompleted || 'Chúc mừng bạn đã hoàn thành phiên ôn tập hôm nay!');
+                      addToast(t?.toasts?.sessionCompleted || "Review session completed!");
                     }}
                   />
                 } 
@@ -750,7 +757,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
           onClose={() => setIsQuickAddOpen(false)}
           onSaved={() => {
             refreshAllData();
-            addToast(editingWord?.id ? (t.toasts?.wordUpdated || 'Đã cập nhật từ vựng') : (t.toasts?.wordAdded || 'Đã thêm từ vựng mới vào kho'));
+            addToast(editingWord?.id ? (t?.toasts?.wordUpdated || "Word updated") : (t?.toasts?.wordAdded || "New word saved"));
           }}
         />
       )}
@@ -762,7 +769,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
         onClose={() => setIsTopicManagerOpen(false)}
         onTopicChange={() => {
           refreshAllData();
-          addToast(t.toasts?.topicsUpdated || 'Đã cập nhật danh sách chủ đề');
+          addToast(t?.toasts?.topicsUpdated || "Topics updated");
         }}
       />
 
@@ -772,7 +779,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
           onClose={() => setIsPatternModalOpen(false)}
           onSaved={() => {
             refreshAllData();
-            addToast(editingPattern?.id ? (t.toasts?.patternUpdated || 'Đã cập nhật mẫu câu') : (t.toasts?.patternAdded || 'Đã thêm mẫu câu mới vào kho'));
+            addToast(editingPattern?.id ? (t?.toasts?.patternUpdated || "Pattern updated") : (t?.toasts?.patternAdded || "New pattern saved"));
           }}
         />
       )}
@@ -782,7 +789,7 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
           onClose={() => setIsSettingsOpen(false)}
           onDataRestored={() => {
             refreshAllData();
-            addToast(t.toasts?.backupRestored || 'Đã khôi phục dữ liệu từ bản sao lưu!');
+            addToast(t?.toasts?.backupRestored || "Data restored successfully!");
           }}
         />
       )}
@@ -805,10 +812,10 @@ function AppContent({ currentUser, setCurrentUser, authChecking, setAuthChecking
           lastAlarmDateKeyRef.current = key;
           localStorage.setItem('linguavault_last_alarm_date', key);
           try {
-            await api.addXp(30, 'Giải mã Báo Thức Kỷ Luật Thép');
+            await api.addXp(30, 'Alarm Challenge');
           } catch (e) {}
           refreshAllData();
-          addToast(t.toasts?.alarmDeactivated || '🎉 Xuất sắc! Bạn đã giải mã thành công & tắt chuông báo thức! (+30 XP)', 'success');
+          addToast(t?.toasts?.alarmDeactivated || "Challenge solved! Alarm dismissed (+30 XP)", 'success');
         }}
       />
 

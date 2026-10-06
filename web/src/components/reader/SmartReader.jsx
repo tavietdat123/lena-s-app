@@ -51,7 +51,7 @@ export default function SmartReader({
   onSaveWordFromSelection, 
   onSendToAiLab 
 }) {
-  const { t } = useLanguage();
+  const { t, targetLanguage, fluentLanguage, getWordMeaning, isVietnameseTrack } = useLanguage();
   const [selectedNoteId, setSelectedNoteId] = useState(notes[0]?.id || null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -101,7 +101,7 @@ export default function SmartReader({
         y: rect.top - 10
       });
 
-      const cleanWord = text.replace(/^[^\w]+|[^\w]+$/g, '').trim();
+      const cleanWord = text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').trim();
 
       // Check if already translated in this reading session -> Instant 0ms!
       const cached = clientCacheRef.current[cleanWord.toLowerCase()];
@@ -122,7 +122,7 @@ export default function SmartReader({
         setSelectedIpa(inVault.phonetic);
       } else if (cleanWord) {
         try {
-          const lookup = await api.autoLookup(cleanWord);
+          const lookup = await api.autoLookup(cleanWord, targetLanguage, fluentLanguage);
           const ipa = lookup?.data?.phonetic || lookup?.phonetic || '';
           if (ipa) setSelectedIpa(ipa);
         } catch (e) {
@@ -139,7 +139,7 @@ export default function SmartReader({
 
   // Trigger Contextual AI Translation on demand (with Instant Optimistic Preview & 0ms Cache)
   const handleTranslateContextual = async () => {
-    const cleanWord = selectionPopup.text.replace(/^[^\w]+|[^\w]+$/g, '').trim();
+    const cleanWord = selectionPopup.text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').trim();
     if (!cleanWord || !selectedNote?.content) return;
 
     // Check client cache first
@@ -151,16 +151,21 @@ export default function SmartReader({
 
     // Optimistic Preview: If word is in Vault, display immediate definition
     const inVault = words.find(w => w.word?.toLowerCase() === cleanWord.toLowerCase());
-    if (inVault && inVault.meaning_vi) {
-      setContextTranslation({
-        targetText: cleanWord,
-        phonetic: inVault.phonetic || selectedIpa,
-        partOfSpeech: inVault.part_of_speech || 'noun',
-        contextualMeaningVi: inVault.meaning_vi,
-        contextExplanation: '⚡ AI đang tinh chỉnh phân tích ngữ cảnh bài đọc...',
-        overallSentenceVi: '',
-        collocations: inVault.collocations || []
-      });
+    if (inVault) {
+      const vaultMeaning = getWordMeaning ? getWordMeaning(inVault) : (inVault.meaning_vi || inVault.meaning_en || inVault.meaning);
+      if (vaultMeaning) {
+        setContextTranslation({
+          targetText: cleanWord,
+          phonetic: inVault.phonetic || selectedIpa,
+          partOfSpeech: inVault.part_of_speech || 'noun',
+          contextualMeaning: vaultMeaning,
+          contextualMeaningVi: vaultMeaning,
+          contextExplanation: '⚡ ' + (t?.reader?.aiTranslatingContext || "AI translating..."),
+          overallSentence: '',
+          overallSentenceVi: '',
+          collocations: inVault.collocations || []
+        });
+      }
     }
 
     setIsTranslating(true);
@@ -172,18 +177,20 @@ export default function SmartReader({
         text: cleanWord,
         contextSentence: foundSentence,
         articleTitle: selectedNote.title || '',
-        articleTopic: selectedNote.topic || 'General'
+        articleTopic: selectedNote.topic || 'General',
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
       });
       if (res?.success && res.data) {
         setContextTranslation(res.data);
         clientCacheRef.current[cleanWord.toLowerCase()] = res.data;
         if (res.data.phonetic) setSelectedIpa(res.data.phonetic);
       } else {
-        if (!inVault) setTranslationError(res?.error || 'Lỗi khi phân tích ngữ cảnh');
+        if (!inVault) setTranslationError(res?.error || (t?.common?.error || "Error"));
       }
     } catch (e) {
       console.warn('Context translation error:', e);
-      if (!inVault) setTranslationError(e.message || 'Lỗi kết nối máy chủ');
+      if (!inVault) setTranslationError(e.message || (t?.common?.error || "Error"));
     } finally {
       setIsTranslating(false);
     }
@@ -250,12 +257,12 @@ export default function SmartReader({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <BookOpen size={18} style={{ color: 'var(--accent-primary)' }} />
               <h4 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
-                {t.reader?.articlesList || 'Tài Liệu & Bài Đọc'}
+                {t?.reader?.articlesList || "Articles List"}
               </h4>
             </div>
             <button onClick={handleStartNewNote} className="btn-primary" style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem' }}>
               <Plus size={16} />
-              <span>{t.reader?.newNoteBtn || 'Bài mới'}</span>
+              <span>{t?.reader?.newNoteBtn || "New Article"}</span>
             </button>
           </div>
 
@@ -264,7 +271,7 @@ export default function SmartReader({
             <input
               type="text"
               className="input-control"
-              placeholder={t.reader?.searchPlaceholder || 'Tìm tài liệu...'}
+              placeholder={t?.reader?.searchPlaceholder || "Search articles..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ paddingLeft: '2.5rem', fontSize: '0.85rem', padding: '0.55rem 0.85rem 0.55rem 2.5rem' }}
@@ -333,16 +340,16 @@ export default function SmartReader({
           <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                {selectedNoteId ? (t.common?.edit || 'Chỉnh Sửa Bài Viết') : (t.reader?.newNoteBtn || 'Tạo Bài Đọc / Tài Liệu Mới')}
+                {selectedNoteId ? (t?.common?.edit || "Edit") : (t?.reader?.newNoteBtn || "New Article")}
               </h3>
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button type="button" onClick={() => setIsEditing(false)} className="btn-secondary">
                   <X size={16} />
-                  <span>{t.common?.cancel || 'Hủy'}</span>
+                  <span>{t?.common?.cancel || "Cancel"}</span>
                 </button>
                 <button type="submit" className="btn-primary">
                   <Check size={16} />
-                  <span>{t.reader?.saveNoteBtn || 'Lưu bài viết'}</span>
+                  <span>{t?.reader?.saveNoteBtn || "Save Article"}</span>
                 </button>
               </div>
             </div>
@@ -351,7 +358,7 @@ export default function SmartReader({
               <input
                 type="text"
                 className="input-control"
-                placeholder={t.reader?.titlePlaceholder || 'Tiêu đề bài viết / tài liệu...'}
+                placeholder={t?.reader?.titlePlaceholder || "Title..."}
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 style={{ fontSize: '1.15rem', fontWeight: 700 }}
@@ -368,7 +375,7 @@ export default function SmartReader({
 
             <textarea
               className="input-control"
-              placeholder={t.reader?.contentPlaceholder || 'Dán hoặc viết nội dung bài báo, tài liệu học tiếng Anh tại đây...'}
+              placeholder={t?.reader?.contentPlaceholder || "Paste or write article content here..."}
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               style={{ flex: 1, minHeight: '450px', resize: 'vertical', lineHeight: 1.8, fontSize: '1.05rem' }}
@@ -406,13 +413,13 @@ export default function SmartReader({
                   style={{ padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
                 >
                   <Edit3 size={15} />
-                  <span>{t.common?.edit || 'Sửa bài'}</span>
+                  <span>{t?.common?.edit || "Edit"}</span>
                 </button>
                 <button
                   onClick={() => onDeleteNote(selectedNote.id)}
                   className="btn-icon"
                   style={{ color: 'var(--accent-danger)' }}
-                  title={t.common?.delete || 'Xóa tài liệu'}
+                  title={t?.common?.delete || "Delete"}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -433,7 +440,7 @@ export default function SmartReader({
             }}>
               <Sparkles size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
               <span>
-                {t.reader?.tipHighlight || '💡 Mẹo: Bôi đen bất kỳ từ hoặc câu nào trong bài đọc để tra cứu và lưu nhanh vào Kho Từ Vựng!'}
+                {t?.reader?.tipHighlight || "💡 Highlight text to look up and save cards instantly."}
               </span>
             </div>
 
@@ -457,14 +464,14 @@ export default function SmartReader({
           <div style={{ textAlign: 'center', margin: 'auto', padding: '3rem' }}>
             <FileText size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem auto' }} />
             <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-              {t.reader?.noArticleSelectedTitle || 'Chưa chọn tài liệu nào'}
+              {t?.reader?.noArticleSelectedTitle || "No article selected"}
             </h4>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
-              {t.reader?.noArticleSelectedDesc || 'Hãy chọn một bài đọc từ danh sách bên trái hoặc tạo bài viết mới.'}
+              {t?.reader?.noArticleSelectedDesc || "Select an article on the left or create one."}
             </p>
             <button onClick={handleStartNewNote} className="btn-primary">
               <Plus size={16} />
-              <span>{t.reader?.createFirstArticleBtn || 'Tạo Bài Đầu Tiên'}</span>
+              <span>{t?.reader?.createFirstArticleBtn || "Create First Article"}</span>
             </button>
           </div>
         )}
@@ -504,10 +511,10 @@ export default function SmartReader({
                 )}
               </div>
               <button
-                onClick={() => playAudio(selectionPopup.text)}
+                onClick={() => playAudio(selectionPopup.text, null, isVietnameseTrack ? 'vi-VN' : undefined)}
                 className="btn-icon"
                 style={{ padding: '0.2rem', color: 'var(--accent-primary)' }}
-                title={t.reader?.pronounceWordTitle || "Phát âm từ"}
+                title={t?.reader?.pronounceWordTitle || "Pronounce"}
               >
                 <Volume2 size={15} />
               </button>
@@ -529,7 +536,7 @@ export default function SmartReader({
                 }}
               >
                 <Sparkles size={14} />
-                <span>{t.reader?.clickToTranslateContext || 'Bấm để dịch theo ngữ cảnh'}</span>
+                <span>{t?.reader?.clickToTranslateContext || "Highlight to translate"}</span>
               </button>
             )}
 
@@ -543,13 +550,13 @@ export default function SmartReader({
             {isTranslating ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--accent-primary)', padding: '0.2rem 0.4rem' }}>
                 <Loader2 size={14} className="animate-spin" />
-                <span>{t.reader?.aiTranslatingContext || 'AI đang dịch nghĩa theo ngữ cảnh bài đọc...'}</span>
+                <span>{t?.reader?.aiTranslatingContext || "AI translating..."}</span>
               </div>
             ) : contextTranslation ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                    🎯 {contextTranslation.contextualMeaningVi}
+                    🎯 {contextTranslation.contextualMeaning || contextTranslation.contextualMeaningVi}
                   </span>
                 </div>
                 {contextTranslation.contextExplanation && (
@@ -557,9 +564,9 @@ export default function SmartReader({
                     💡 {contextTranslation.contextExplanation}
                   </p>
                 )}
-                {contextTranslation.overallSentenceVi && (
+                {(contextTranslation.overallSentence || contextTranslation.overallSentenceVi) && (
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.2rem 0 0 0', lineHeight: 1.4 }}>
-                    🌐 "{contextTranslation.overallSentenceVi}"
+                    🌐 "{contextTranslation.overallSentence || contextTranslation.overallSentenceVi}"
                   </p>
                 )}
               </div>
@@ -569,13 +576,13 @@ export default function SmartReader({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               {/* Pronounce audio button */}
               <button
-                onClick={() => playAudio(selectionPopup.text)}
+                onClick={() => playAudio(selectionPopup.text, null, isVietnameseTrack ? 'vi-VN' : undefined)}
                 className="btn-secondary"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
                 title="Pronounce"
               >
                 <Volume2 size={15} style={{ color: 'var(--accent-primary)' }} />
-                <span>{t.common?.listen || 'Nghe'}</span>
+                <span>{t?.common?.listen || "Listen"}</span>
               </button>
 
               {/* Save to Vocab Vault */}
@@ -588,7 +595,7 @@ export default function SmartReader({
                 style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }}
               >
                 <BookPlus size={15} />
-                <span>{t.reader?.saveToVault || 'Lưu vào Kho Từ'}</span>
+                <span>{t?.reader?.saveToVault || "Save to Vault"}</span>
               </button>
 
               {/* Send to AI Lab */}
@@ -602,7 +609,7 @@ export default function SmartReader({
                 title="AI Analysis"
               >
                 <BrainCircuit size={15} style={{ color: '#a855f7' }} />
-                <span>{t.reader?.sendToAiLab || 'Phân Tích AI'}</span>
+                <span>{t?.reader?.sendToAiLab || "Send to AI Lab"}</span>
               </button>
             </div>
           </div>

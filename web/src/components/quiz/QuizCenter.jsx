@@ -29,6 +29,9 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { getTopicDisplayName } from '../../constants/topicMeta';
+import { getCategoryLabel } from '../../constants/patternCategories';
+import { getDisplayPos } from '../../constants/posAdapter';
 
 // Helper to render contextual sentence with bold target words or interactive blanks
 const renderQuestionText = (text) => {
@@ -155,7 +158,7 @@ const renderExplanationContent = (explanationText) => {
 };
 
 export default function QuizCenter({ onOpenReview }) {
-  const { t, uiLang } = useLanguage();
+  const { t, uiLang, targetLanguage, isVietnameseTrack, fluentLanguage, getTopicName } = useLanguage();
   const [activeTab, setActiveTab] = useState('new'); // 'new' | 'history'
   const [quizCategory, setQuizCategory] = useState('vocab'); // 'vocab' | 'pattern'
   const [topics, setTopics] = useState([]);
@@ -194,10 +197,10 @@ export default function QuizCenter({ onOpenReview }) {
     loadPatternCategories();
     loadQuizDates();
     loadQuizHistory();
-  }, []);
+  }, [targetLanguage]);
 
   const loadTopics = async () => {
-    const res = await api.getQuizTopics();
+    const res = await api.getQuizTopics({ target_language: targetLanguage });
     if (res.success) {
       setTopics(res.data || []);
     }
@@ -211,7 +214,7 @@ export default function QuizCenter({ onOpenReview }) {
   };
 
   const loadQuizDates = async () => {
-    const res = await api.getQuizDates();
+    const res = await api.getQuizDates({ target_language: targetLanguage });
     if (res.success && res.data) {
       setQuizDates(res.data || []);
       if (res.data.length > 0 && !selectedDate) {
@@ -255,10 +258,10 @@ export default function QuizCenter({ onOpenReview }) {
         setStreakCount(0);
         setQuizResult(null);
       } else {
-        alert('Không thể tải lại đề thi: ' + (res.error || 'Dữ liệu câu hỏi rỗng'));
+        alert((t?.quiz?.loadError || "Failed to load quiz") + ': ' + (res.error || ''));
       }
     } catch (e) {
-      alert('Lỗi nạp đề thi: ' + e.message);
+      alert((t?.quiz?.loadError || "Failed to load quiz") + ': ' + e.message);
     } finally {
       setLoading(false);
     }
@@ -266,16 +269,16 @@ export default function QuizCenter({ onOpenReview }) {
 
   const handleDeleteHistory = async (id, e) => {
     if (e) e.stopPropagation();
-    if (!window.confirm('Bạn có chắc muốn xóa bộ đề này khỏi lịch sử?')) return;
+    if (!window.confirm(t?.quiz?.deleteQuizConfirm || "Delete this quiz?")) return;
     try {
       const res = await api.deleteQuizHistory(id);
       if (res.success) {
         loadQuizHistory();
       } else {
-        alert(res.error || 'Không thể xóa');
+        alert(res.error || (t?.common?.error || "Error"));
       }
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      alert((t?.common?.error || "Error") + err.message);
     }
   };
 
@@ -347,7 +350,7 @@ export default function QuizCenter({ onOpenReview }) {
       if (dateScope === 'specific') {
         targetDate = selectedDates.length === 1 ? selectedDates[0] : (selectedDates.length > 1 ? selectedDates : null);
         if (!targetDate) {
-          alert('Vui lòng chọn ít nhất 1 ngày cụ thể trong danh sách hoặc qua ô chọn ngày!');
+          alert(t?.quiz?.selectDateAlert || "Please select a date");
           setLoading(false);
           return;
         }
@@ -361,7 +364,9 @@ export default function QuizCenter({ onOpenReview }) {
         date_scope: dateScope,
         date: targetDate,
         start_date: dateScope === 'range' ? startDate : null,
-        end_date: dateScope === 'range' ? endDate : null
+        end_date: dateScope === 'range' ? endDate : null,
+        target_language: targetLanguage,
+        fluent_language: fluentLanguage
       };
 
       if (quizCategory === 'pattern') {
@@ -420,10 +425,10 @@ export default function QuizCenter({ onOpenReview }) {
           audioService.speak(res.data.questions[0].word);
         }
       } else {
-        alert(res.error || 'Không đủ dữ liệu để tạo bài Quiz.');
+        alert(res.error || (t?.quiz?.insufficientDataAlert || "Not enough words to generate quiz"));
       }
     } catch (err) {
-      alert('Lỗi tạo bài quiz: ' + err.message);
+      alert((t?.quiz?.loadError || "Failed to load quiz") + err.message);
     } finally {
       setLoading(false);
     }
@@ -533,10 +538,10 @@ export default function QuizCenter({ onOpenReview }) {
           setQuizResult(res.data);
           loadQuizHistory();
         } else {
-          alert('Lỗi nộp bài: ' + (res.error || 'Vui lòng thử lại'));
+          alert((t?.quiz?.submitError || "Failed to submit quiz") + ': ' + (res.error || ''));
         }
       } catch (err) {
-        alert('Lỗi nộp bài: ' + err.message);
+        alert((t?.quiz?.submitError || "Failed to submit quiz") + ': ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -569,7 +574,7 @@ export default function QuizCenter({ onOpenReview }) {
             <div className={`result-badge-icon ${isGreat ? 'success' : 'warning'}`}>
               {isGreat ? <Trophy size={42} /> : <Target size={42} />}
             </div>
-            <h2>{isGreat ? (uiLang === 'ru' ? 'Отлично! Тест завершён' : uiLang === 'en' ? 'Excellent! Quiz Completed' : 'Xuất Sắc! Hoàn Thành Bài Quiz') : (t.quiz?.completedTitle || 'Hoàn Thành Bài Tập!')}</h2>
+            <h2>{isGreat ? (uiLang === 'ru' ? 'Отлично! Тест завершён' : uiLang === 'en' ? 'Excellent! Quiz Completed' : 'Xuất Sắc! Hoàn Thành Bài Quiz') : (t?.quiz?.completedTitle || "Quiz Completed!")}</h2>
             <p className="result-subtitle">
               {uiLang === 'ru' ? 'Вы правильно ответили на ' : uiLang === 'en' ? 'You correctly answered ' : 'Bạn đã trả lời đúng '}<b>{quizResult.correctCount} / {quizResult.totalQuestions}</b> {uiLang === 'ru' ? 'вопросов' : uiLang === 'en' ? 'questions' : 'câu hỏi'}
             </p>
@@ -577,21 +582,21 @@ export default function QuizCenter({ onOpenReview }) {
 
           <div className="result-stats-row">
             <div className="result-stat-box">
-              <span className="stat-label">{t.quiz?.scoreStat || 'Điểm Số'}</span>
+              <span className="stat-label">{t?.quiz?.scoreStat || "SCORE"}</span>
               <span className="stat-val score">{quizResult.score}%</span>
             </div>
             <div className="result-stat-box">
-              <span className="stat-label">{t.quiz?.xpStat || 'Kinh Nghiệm'}</span>
+              <span className="stat-label">{t?.quiz?.xpStat || "XP EARNED"}</span>
               <span className="stat-val xp">+{quizResult.xpEarned} XP</span>
             </div>
             <div className="result-stat-box">
-              <span className="stat-label">{t.quiz?.accuracyStat || 'Độ Chính Xác'}</span>
-              <span className="stat-val accuracy">{quizResult.isPerfect ? (t.quiz?.perfectStat || '100% Hoàn hảo') : `${quizResult.correctCount}/${quizResult.totalQuestions}`}</span>
+              <span className="stat-label">{t?.quiz?.accuracyStat || "ACCURACY"}</span>
+              <span className="stat-val accuracy">{quizResult.isPerfect ? (t?.quiz?.perfectStat || "100% Perfect") : `${quizResult.correctCount}/${quizResult.totalQuestions}`}</span>
             </div>
           </div>
 
           <div className="result-breakdown">
-            <h3>{t.quiz?.answerDetailsTitle || 'Chi Tiết Câu Trả Lời'}</h3>
+            <h3>{t?.quiz?.answerDetailsTitle || "Answer Details"}</h3>
             <div className="breakdown-list">
               {quizResult.results.map((item, idx) => (
                 <div key={idx} className={`breakdown-item ${item.isCorrect ? 'correct' : 'incorrect'}`}>
@@ -604,7 +609,7 @@ export default function QuizCenter({ onOpenReview }) {
                       <button 
                         className="mini-audio-btn" 
                         onClick={() => audioService.speak(item.word)}
-                        title="Nghe phát âm"
+                        title={t?.quiz?.pronounceWordLabel || "Audio:"}
                       >
                         <Volume2 size={14} />
                       </button>
@@ -623,9 +628,9 @@ export default function QuizCenter({ onOpenReview }) {
                       )}
                     </div>
                     <div className="item-answers">
-                      <span>{t.quiz?.youSelected || 'Bạn chọn:'} <i className={item.isCorrect ? 'text-green' : 'text-red'}>{item.userAnswer}</i></span>
+                      <span>{t?.quiz?.youSelected || "You chose:"} <i className={item.isCorrect ? 'text-green' : 'text-red'}>{item.userAnswer}</i></span>
                       {!item.isCorrect && (
-                        <span> • {t.quiz?.correctAnswerLabel || 'Đáp án đúng:'} <b className="text-green">{item.correctAnswer}</b></span>
+                        <span> • {t?.quiz?.correctAnswerLabel || "Correct answer:"} <b className="text-green">{item.correctAnswer}</b></span>
                       )}
                     </div>
                     {Boolean(item.explanation || item.translation) && (
@@ -637,7 +642,7 @@ export default function QuizCenter({ onOpenReview }) {
                         )}
                         {Boolean(item.translation) && (
                           <div style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.8rem', marginTop: '4px' }}>
-                            <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t.quiz?.contextTranslationLabel || '🌐 Dịch ngữ cảnh: '}</span>
+                            <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t?.quiz?.contextTranslationLabel || "Translation:"}</span>
                             "{item.translation}"
                           </div>
                         )}
@@ -652,16 +657,16 @@ export default function QuizCenter({ onOpenReview }) {
           <div className="result-actions">
             <button className="btn btn-primary" onClick={handleRetakeCurrentQuiz} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <RotateCcw size={16} />
-              <span>{t.quiz?.retakeQuizBtn || 'Làm Lại Bài Quiz Này'}</span>
+              <span>{t?.quiz?.retakeQuizBtn || "Retake Quiz"}</span>
             </button>
             <button className="btn btn-secondary" onClick={() => { setQuizData(null); setQuizResult(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <BookOpen size={16} />
-              <span>{t.quiz?.selectOtherTopicBtn || 'Chọn Topic Khác'}</span>
+              <span>{t?.quiz?.selectOtherTopicBtn || "Pick Other Topic"}</span>
             </button>
             {onOpenReview && (
               <button className="btn btn-secondary" onClick={onOpenReview} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Zap size={16} />
-                <span>{t.quiz?.enterSRSReviewBtn || 'Vào Ôn Tập SRS'}</span>
+                <span>{t?.quiz?.enterSRSReviewBtn || "Go to SRS Review"}</span>
               </button>
             )}
           </div>
@@ -683,7 +688,7 @@ export default function QuizCenter({ onOpenReview }) {
           <div className="quiz-top-bar">
             <div className="quiz-progress-info">
               <span className="question-counter-badge">
-                {t.quiz?.questionWord || 'CÂU'} {currentIndex + 1} <span style={{ opacity: 0.6 }}>/ {quizData.questions.length}</span>
+                {t?.quiz?.questionWord || "Target word:"} {currentIndex + 1} <span style={{ opacity: 0.6 }}>/ {quizData.questions.length}</span>
               </span>
               {currentQ.difficulty && (
                 <span style={{
@@ -702,7 +707,7 @@ export default function QuizCenter({ onOpenReview }) {
               )}
               <span className="quiz-topic-pill">
                 <Tag size={13} />
-                <span>{quizData.topic}</span>
+                <span>{quizData.topic ? getTopicName(quizData.topic) : ''}</span>
               </span>
               {streakCount > 1 && (
                 <span className="quiz-streak-pill">
@@ -718,9 +723,9 @@ export default function QuizCenter({ onOpenReview }) {
                   setQuizData(null);
                 }
               }}
-              title={t.quiz?.exitBtn || 'Thoát bài thi'}
+              title={t?.quiz?.exitBtn || "Exit"}
             >
-              ✕ {t.quiz?.exitBtn || 'Thoát'}
+              ✕ {t?.quiz?.exitBtn || "Exit"}
             </button>
           </div>
 
@@ -734,14 +739,14 @@ export default function QuizCenter({ onOpenReview }) {
             <div className="prompt-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <span className="prompt-type-badge">
-                  {currentQ.type === 'meaning_vi' && (t.quiz?.typeMeaningVi || '🎯 Nghĩa Tiếng Việt')}
-                  {currentQ.type === 'reverse_en' && (t.quiz?.typeReverseEn || '🇬🇧 Tìm Từ Tiếng Anh')}
-                  {currentQ.type === 'cloze_blank' && (t.quiz?.typeClozeBlank || '🧩 Điền Từ Vào Câu')}
-                  {currentQ.type === 'listening' && (t.quiz?.typeListening || '🎧 Luyện Nghe & Chọn Nghĩa')}
-                  {currentQ.type === 'fill_clause' && (t.quiz?.typeFillClause || '⚡ Điền Mẫu Câu / Liên Từ')}
-                  {currentQ.type === 'meaning_usage' && (t.quiz?.typeMeaningUsage || '💡 Ứng Dụng Mẫu Câu')}
-                  {currentQ.type === 'formula_check' && (t.quiz?.typeFormulaCheck || '📐 Công Thức Ngữ Pháp')}
-                  {currentQ.type === 'pattern_context' && (t.quiz?.typePatternContext || '🤖 Cấu Trúc Ngữ Cảnh AI')}
+                  {currentQ.type === 'meaning_vi' && (t?.quiz?.typeMeaningVi || "Pick Meaning")}
+                  {currentQ.type === 'reverse_en' && (t?.quiz?.typeReverseEn || "Find English Word")}
+                  {currentQ.type === 'cloze_blank' && (t?.quiz?.typeClozeBlank || "Fill Blank")}
+                  {currentQ.type === 'listening' && (t?.quiz?.typeListening || "Listening")}
+                  {currentQ.type === 'fill_clause' && (t?.quiz?.typeFillClause || "Fill Clause")}
+                  {currentQ.type === 'meaning_usage' && (t?.quiz?.typeMeaningUsage || "Pattern Usage")}
+                  {currentQ.type === 'formula_check' && (t?.quiz?.typeFormulaCheck || "Grammar Formula")}
+                  {currentQ.type === 'pattern_context' && (t?.quiz?.typePatternContext || "Context Pattern")}
                 </span>
                 {currentQ.part_of_speech && (
                   <span style={{
@@ -756,7 +761,7 @@ export default function QuizCenter({ onOpenReview }) {
                     alignItems: 'center',
                     gap: '4px'
                   }}>
-                    🏷️ {currentQ.part_of_speech}
+                    🏷️ {getDisplayPos(currentQ.part_of_speech, targetLanguage, uiLang)}
                   </span>
                 )}
                 {currentQ.context_level && (
@@ -787,13 +792,13 @@ export default function QuizCenter({ onOpenReview }) {
                   <button 
                     className="big-speaker-btn" 
                     onClick={() => audioService.speak(currentQ.word)}
-                    title="Bấm để nghe phát âm chuẩn"
+                    title={t?.quiz?.pronounceWordLabel || "Audio:"}
                   >
                     <Volume2 size={36} />
                   </button>
                   <div className="listening-hint-box">
-                    <span className="listening-hint">{t.quiz?.listenAudioPrompt || 'Nhấn nút loa để nghe phát âm'}</span>
-                    <span className="listening-subhint">{t.quiz?.listenAudioRepeat || '(Có thể nghe lại nhiều lần)'}</span>
+                    <span className="listening-hint">{t?.quiz?.listenAudioPrompt || "Tap speaker to hear audio"}</span>
+                    <span className="listening-subhint">{t?.quiz?.listenAudioRepeat || "(Can replay)"}</span>
                   </div>
                 </div>
               ) : (
@@ -816,7 +821,7 @@ export default function QuizCenter({ onOpenReview }) {
                       <button 
                         className="mini-audio-btn" 
                         onClick={() => audioService.speak(currentQ.word)}
-                        title="Nghe phát âm"
+                        title={t?.quiz?.pronounceWordLabel || "Audio:"}
                       >
                         <Volume2 size={15} />
                       </button>
@@ -877,7 +882,7 @@ export default function QuizCenter({ onOpenReview }) {
                       <CheckCircle2 size={22} />
                     </div>
                     <div>
-                      <div className="feedback-title correct">{t.quiz?.feedbackCorrectTitle || 'Chính xác tuyệt đối! 🎉'}</div>
+                      <div className="feedback-title correct">{t?.quiz?.feedbackCorrectTitle || "Correct! 🎉"}</div>
                       <div className="feedback-desc">
                         {typeof t.quiz?.feedbackCorrectDesc === 'function'
                           ? t.quiz.feedbackCorrectDesc(currentQ.correctAnswer)
@@ -891,7 +896,7 @@ export default function QuizCenter({ onOpenReview }) {
                       <XCircle size={22} />
                     </div>
                     <div>
-                      <div className="feedback-title incorrect">{t.quiz?.feedbackIncorrectTitle || 'Chưa chính xác!'}</div>
+                      <div className="feedback-title incorrect">{t?.quiz?.feedbackIncorrectTitle || "Not quite!"}</div>
                       <div className="feedback-desc">
                         {typeof t.quiz?.feedbackIncorrectDesc === 'function'
                           ? t.quiz.feedbackIncorrectDesc(currentQ.correctAnswer)
@@ -926,7 +931,7 @@ export default function QuizCenter({ onOpenReview }) {
                         borderRadius: '8px',
                         borderLeft: '2px solid rgba(99, 102, 241, 0.4)'
                       }}>
-                        <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t.quiz?.contextTranslationLabel || '🌐 Dịch ngữ cảnh: '}</span>
+                        <span style={{ fontWeight: 700, fontStyle: 'normal' }}>{t?.quiz?.contextTranslationLabel || "Translation:"}</span>
                         "{currentQ.translation}"
                       </div>
                     )}
@@ -955,15 +960,15 @@ export default function QuizCenter({ onOpenReview }) {
                         transition: 'all 0.2s ease'
                       }}
                       onClick={() => audioService.speak(currentQ?.word || currentQ?.correctAnswer)}
-                      title="Nghe phát âm">
+                      title={t?.quiz?.pronounceWordLabel || "Audio:"}>
                       <Volume2 size={18} />
-                      <span>{t.quiz?.pronounceWordLabel || 'Phát âm:'} <strong style={{ color: 'var(--text-primary)' }}>{currentQ?.word || currentQ?.correctAnswer}</strong> {currentQ?.phonetic ? <span style={{ fontFamily: 'monospace', opacity: 0.85 }}>({currentQ.phonetic})</span> : ''} 🔊</span>
+                      <span>{t?.quiz?.pronounceWordLabel || "Audio:"} <strong style={{ color: 'var(--text-primary)' }}>{currentQ?.word || currentQ?.correctAnswer}</strong> {currentQ?.phonetic ? <span style={{ fontFamily: 'monospace', opacity: 0.85 }}>({currentQ.phonetic})</span> : ''} 🔊</span>
                     </button>
                   </div>
                 )}
               </div>
               <button className="btn btn-primary next-quiz-btn" onClick={handleNextQuestion}>
-                <span>{currentIndex + 1 < quizData.questions.length ? (t.quiz?.nextQuestionBtn || 'Câu Tiếp Theo') : (t.quiz?.viewSummaryBtn || 'Xem Kết Quả Tổng Kết')}</span>
+                <span>{currentIndex + 1 < quizData.questions.length ? (t?.quiz?.nextQuestionBtn || "Next Question") : (t?.quiz?.viewSummaryBtn || "View Results")}</span>
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -988,8 +993,8 @@ export default function QuizCenter({ onOpenReview }) {
           <Target size={14} />
           <span>INTERACTIVE QUIZ HUB</span>
         </div>
-        <h1>Luyện Tập Trắc Nghiệm Thông Minh</h1>
-        <p>Kiểm tra và củng cố phản xạ từ vựng & cấu trúc ngữ pháp học thuật</p>
+        <h1>{t?.quiz?.title || "Smart Quiz Center"}</h1>
+        <p>{t?.quiz?.subtitle || "Strengthen vocabulary and grammar reflexes"}</p>
       </div>
 
       {/* Unified Level-1 Main Segmented Tabs */}
@@ -1000,7 +1005,7 @@ export default function QuizCenter({ onOpenReview }) {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
         >
           <Sparkles size={16} />
-          <span>{t.quiz?.tabNew || 'Tạo Bộ Đề Mới'}</span>
+          <span>{t?.quiz?.tabNew || "New Quiz"}</span>
         </button>
         <button
           className={`quiz-main-tab-btn tab-history ${activeTab === 'history' ? 'active' : ''}`}
@@ -1008,7 +1013,7 @@ export default function QuizCenter({ onOpenReview }) {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}
         >
           <History size={16} />
-          <span>{t.quiz?.tabHistory || 'Lịch Sử Đề & Làm Lại'}</span>
+          <span>{t?.quiz?.tabHistory || "History"}</span>
           {quizHistory.length > 0 && (
             <span className="tab-badge">{quizHistory.length}</span>
           )}
@@ -1022,10 +1027,10 @@ export default function QuizCenter({ onOpenReview }) {
             <div>
               <h2 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <History size={20} color="var(--accent-primary)" />
-                <span>{t.quiz?.historyTitle || 'Kho Đề Thi & Bài Tập Đã Lưu'}</span>
+                <span>{t?.quiz?.historyTitle || "Quiz History"}</span>
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {t.quiz?.historyDesc || 'Tất cả các bộ đề AI và đề tuỳ chỉnh đã được lưu trữ an toàn. Bấm "Làm Lại" để luyện tập bất kỳ lúc nào!'}
+                {t?.quiz?.historyDesc || "All stored AI and custom quizzes."}
               </p>
             </div>
             <button 
@@ -1034,17 +1039,17 @@ export default function QuizCenter({ onOpenReview }) {
               style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
             >
               <RefreshCw size={13} />
-              <span>{t.quiz?.refreshBtn || 'Làm mới'}</span>
+              <span>{t?.quiz?.refreshBtn || "Refresh"}</span>
             </button>
           </div>
 
           {/* Filter Pills */}
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
             {[
-              { id: 'all', label: `Tất Cả (${quizHistory.length})` },
-              { id: 'vocab', label: `Từ Vựng (${quizHistory.filter(q => q.type === 'vocab').length})` },
-              { id: 'pattern', label: `Mẫu Câu (${quizHistory.filter(q => q.type === 'pattern').length})` },
-              { id: 'ai', label: `Đề AI (${quizHistory.filter(q => q.is_ai).length})` }
+              { id: 'all', label: `${t?.quiz?.filterAll || "All"} (${quizHistory.length})` },
+              { id: 'vocab', label: `${t?.quiz?.filterVocab || "Vocab"} (${quizHistory.filter(q => q.type === 'vocab').length})` },
+              { id: 'pattern', label: `${t?.quiz?.filterPattern || "Patterns"} (${quizHistory.filter(q => q.type === 'pattern').length})` },
+              { id: 'ai', label: `${t?.quiz?.filterAi || "AI Quizzes"} (${quizHistory.filter(q => q.is_ai).length})` }
             ].map(f => (
               <button
                 key={f.id}
@@ -1069,12 +1074,12 @@ export default function QuizCenter({ onOpenReview }) {
           {filteredHistory.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)' }}>
               <div style={{ fontSize: '3rem', marginBottom: '0.8rem' }}>📭</div>
-              <h3 style={{ margin: '0 0 0.4rem 0' }}>{t.quiz?.emptyHistory || 'Chưa có bộ đề nào trong mục này'}</h3>
+              <h3 style={{ margin: '0 0 0.4rem 0' }}>{t?.quiz?.emptyHistory || "No quizzes yet"}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0 0 1.2rem 0' }}>
-                {t.quiz?.emptyHistorySub || 'Khi bạn bấm "Tạo Bộ Đề Bằng AI" hoặc bắt đầu bài thi, hệ thống sẽ tự động lưu lại toàn bộ câu hỏi tại đây.'}
+                {t?.quiz?.emptyHistorySub || "Click 'Generate AI Quiz' to build one."}
               </p>
               <button className="btn btn-primary" onClick={() => setActiveTab('new')}>
-                {t.quiz?.createQuizNowBtn || '✨ Tạo Bộ Đề Mới Ngay'}
+                {t?.quiz?.createQuizNowBtn || "Create Quiz Now"}
               </button>
             </div>
           ) : (
@@ -1116,7 +1121,7 @@ export default function QuizCenter({ onOpenReview }) {
                       </div>
 
                       <div style={{ display: 'flex', gap: '1rem', fontSize: '0.82rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span>📝 <b>{item.total_questions}</b> {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : 'câu hỏi'}</span>
+                        <span>📝 <b>{item.total_questions}</b> {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : 'questions'}</span>
                         <span>•</span>
                         <span>
                           {item.best_score !== null && item.best_score !== undefined ? (
@@ -1124,7 +1129,7 @@ export default function QuizCenter({ onOpenReview }) {
                               {typeof t.quiz?.highestScore === 'function' ? t.quiz.highestScore(item.best_score) : `🏆 ${uiLang === 'ru' ? 'Лучший' : uiLang === 'en' ? 'Highest' : 'Cao nhất'}: ${item.best_score}%`}
                             </span>
                           ) : (
-                            <span>{t.quiz?.notAttempted || '🌱 Chưa làm'}</span>
+                            <span>{t?.quiz?.notAttempted || "Not attempted"}</span>
                           )}
                         </span>
                         <span>•</span>
@@ -1156,12 +1161,12 @@ export default function QuizCenter({ onOpenReview }) {
                         }}
                       >
                         <RotateCcw size={14} />
-                        <span>{t.quiz?.retakeHistoryBtn || 'Làm Lại'}</span>
+                        <span>{t?.quiz?.retakeHistoryBtn || "Retake"}</span>
                       </button>
                       <button
                         className="btn btn-secondary"
                         onClick={(e) => handleDeleteHistory(item.id, e)}
-                        title={t.quiz?.deleteQuizTooltip || "Xóa đề này"}
+                        title={t?.quiz?.deleteQuizTooltip || "Delete this quiz"}
                         style={{
                           padding: '0.55rem 0.8rem',
                           fontSize: '0.88rem',
@@ -1195,8 +1200,8 @@ export default function QuizCenter({ onOpenReview }) {
                 <BookOpen size={24} color="var(--accent-primary)" />
               </div>
               <div className="cat-text-box">
-                <span className="cat-title">{t.quiz?.vocabCardTitle || 'Quiz Kho Từ Vựng'}</span>
-                <span className="cat-desc">{t.quiz?.vocabCardDesc || 'Nghĩa từ, ngữ cảnh & phản xạ phát âm'}</span>
+                <span className="cat-title">{t?.quiz?.vocabCardTitle || "Vocabulary"}</span>
+                <span className="cat-desc">{t?.quiz?.vocabCardDesc || "Vocab reflex quiz"}</span>
               </div>
               <div className="cat-radio">
                 {quizCategory === 'vocab' && <div className="cat-radio-inner" />}
@@ -1211,8 +1216,8 @@ export default function QuizCenter({ onOpenReview }) {
                 <Puzzle size={24} color="#ec4899" />
               </div>
               <div className="cat-text-box">
-                <span className="cat-title">{t.quiz?.patternCardTitle || 'Quiz Mẫu Câu & Cấu Trúc'}</span>
-                <span className="cat-desc">{t.quiz?.patternCardDesc || 'Cấu trúc câu, đảo ngữ & viết luận'}</span>
+                <span className="cat-title">{t?.quiz?.patternCardTitle || "Patterns"}</span>
+                <span className="cat-desc">{t?.quiz?.patternCardDesc || "Grammar structure quiz"}</span>
               </div>
               <div className="cat-radio">
                 {quizCategory === 'pattern' && <div className="cat-radio-inner" />}
@@ -1227,18 +1232,18 @@ export default function QuizCenter({ onOpenReview }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Calendar size={18} color="var(--accent-primary)" />
-                <span>{t.quiz?.stepDate || '1. Chọn Ngày Nạp Từ Vựng Cụ Thể (Daily Scope)'}</span>
+                <span>{t?.quiz?.stepDate || "1. Pick study date"}</span>
               </h3>
               <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
-                {dateScope === 'all' && (t.quiz?.allTimeScope ? '🌐 ' + t.quiz.allTimeScope : '🌐 Toàn bộ kho từ')}
-                {dateScope === 'today' && (t.quiz?.todayScope ? '⚡ ' + t.quiz.todayScope : '⚡ Từ vựng nạp Hôm nay')}
-                {dateScope === 'yesterday' && (t.quiz?.yesterdayScope ? '🕒 ' + t.quiz.yesterdayScope : '🕒 Từ vựng nạp Hôm qua')}
-                {dateScope === 'last_7_days' && (t.quiz?.last7DaysScope ? '🔥 ' + t.quiz.last7DaysScope : '🔥 7 ngày gần nhất')}
-                {dateScope === 'range' && `🗓️ ${t.quiz?.fromDate || 'Từ'} ${startDate || '...'} ${t.quiz?.toDate || 'đến'} ${endDate || '...'}`}
+                {dateScope === 'all' && (t.quiz?.allTimeScope ? '🌐 ' + t.quiz.allTimeScope : '🌐 All Vault Words')}
+                {dateScope === 'today' && (t.quiz?.todayScope ? '⚡ ' + t.quiz.todayScope : '⚡ Today’s Words')}
+                {dateScope === 'yesterday' && (t.quiz?.yesterdayScope ? '🕒 ' + t.quiz.yesterdayScope : '🕒 Yesterday’s Words')}
+                {dateScope === 'last_7_days' && (t.quiz?.last7DaysScope ? '🔥 ' + t.quiz.last7DaysScope : '🔥 Last 7 Days')}
+                {dateScope === 'range' && `🗓️ ${t?.quiz?.fromDate || "From:"} ${startDate || '...'} ${t?.quiz?.toDate || "To:"} ${endDate || '...'}`}
                 {dateScope === 'specific' && (
                   selectedDates.length === 1 
-                    ? `📅 Ngày ${selectedDates[0]}` 
-                    : `📅 Đã chọn ${selectedDates.length} ngày (${selectedDates.map(d => { try { const [y,m,day]=d.split('-'); return `${day}/${m}`; } catch(e){return d;} }).join(', ')})`
+                    ? `📅 ${selectedDates[0]}` 
+                    : `📅 ${selectedDates.length} ${uiLang === 'ru' ? 'дней' : uiLang === 'vi' ? 'ngày' : 'days'} (${selectedDates.map(d => { try { const [y,m,day]=d.split('-'); return `${day}/${m}`; } catch(e){return d;} }).join(', ')})`
                 )}
               </span>
             </div>
@@ -1246,11 +1251,11 @@ export default function QuizCenter({ onOpenReview }) {
             {/* Quick Scope Presets */}
             <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '0.85rem' }}>
               {[
-                { id: 'all', label: t.quiz?.allTimeScope || 'Toàn Bộ Thời Gian', icon: Sparkles, desc: t.quiz?.allWordsDesc || 'Tất cả các từ' },
-                { id: 'today', label: t.quiz?.todayScope || 'Hôm Nay', icon: Clock, desc: t.quiz?.todayWordsDesc || 'Từ nạp hôm nay' },
-                { id: 'yesterday', label: t.quiz?.yesterdayScope || 'Hôm Qua', icon: Clock, desc: t.quiz?.yesterdayWordsDesc || 'Từ nạp hôm qua' },
-                { id: 'last_7_days', label: t.quiz?.last7DaysScope || '7 Ngày Qua', icon: Flame, desc: t.quiz?.last7DaysDesc || '1 tuần gần nhất' },
-                { id: 'range', label: t.quiz?.rangeScope || 'Khoảng Ngày', icon: Calendar, desc: t.quiz?.rangeWordsDesc || 'Từ ngày... đến ngày...' }
+                { id: 'all', label: t?.quiz?.allTimeScope || "All Vault Words", icon: Sparkles, desc: t?.quiz?.allWordsDesc || "All vocabulary" },
+                { id: 'today', label: t?.quiz?.todayScope || "Today’s Words", icon: Clock, desc: t?.quiz?.todayWordsDesc || "Learned today" },
+                { id: 'yesterday', label: t?.quiz?.yesterdayScope || "Yesterday’s Words", icon: Clock, desc: t?.quiz?.yesterdayWordsDesc || "Learned yesterday" },
+                { id: 'last_7_days', label: t?.quiz?.last7DaysScope || "Last 7 Days", icon: Flame, desc: t?.quiz?.last7DaysDesc || "Past 1 week" },
+                { id: 'range', label: t?.quiz?.rangeScope || "Date Range", icon: Calendar, desc: t?.quiz?.rangeWordsDesc || "From date to date" }
               ].map(scope => {
                 const isSelected = dateScope === scope.id && (scope.id !== 'all' || selectedDates.length === 0);
                 const IconComp = scope.icon;
@@ -1288,7 +1293,7 @@ export default function QuizCenter({ onOpenReview }) {
                 flexWrap: 'wrap'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.quiz?.fromDate || 'Từ ngày:'}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t?.quiz?.fromDate || "From:"}</span>
                   <input
                     type="date"
                     value={startDate}
@@ -1305,7 +1310,7 @@ export default function QuizCenter({ onOpenReview }) {
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.quiz?.toDate || 'Đến ngày:'}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t?.quiz?.toDate || "To:"}</span>
                   <input
                     type="date"
                     value={endDate}
@@ -1334,7 +1339,7 @@ export default function QuizCenter({ onOpenReview }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {t.quiz?.pickDatesPrompt || '🎯 Chọn theo từng ngày học (Có thể chọn nhiều ngày cùng lúc):'}
+                    {t?.quiz?.pickDatesPrompt || "Pick specific study dates:"}
                   </span>
                   {selectedDates.length > 0 && (
                     <button
@@ -1349,13 +1354,13 @@ export default function QuizCenter({ onOpenReview }) {
                         textDecoration: 'underline'
                       }}
                     >
-                      {t.quiz?.clearDatesBtn || 'Bỏ chọn (Về tất cả)'}
+                      {t?.quiz?.clearDatesBtn || "Clear"}
                     </button>
                   )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{t.quiz?.pickAnyDate || 'Chọn ngày bất kỳ:'}</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{t?.quiz?.pickAnyDate || "Pick any date:"}</span>
                   <input
                     type="date"
                     value={customCalendarDate}
@@ -1374,7 +1379,7 @@ export default function QuizCenter({ onOpenReview }) {
               </div>
 
               {quizDates.length === 0 ? (
-                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t.quiz?.noDateRecords || 'Chưa có dữ liệu ngày nào.'}</p>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t?.quiz?.noDateRecords || "No dates available."}</p>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {quizDates.map(qd => {
@@ -1408,7 +1413,7 @@ export default function QuizCenter({ onOpenReview }) {
                           fontSize: '0.72rem',
                           fontWeight: 700
                         }}>
-                          {quizCategory === 'pattern' ? `${qd.patterns_count} câu` : `${qd.words_count} từ`}
+                          {quizCategory === 'pattern' ? `${qd.patterns_count} ${t?.patterns?.patternsCount || (uiLang === 'ru' ? 'фраз' : uiLang === 'vi' ? 'câu' : 'patterns')}` : `${qd.words_count} ${t?.dashboard?.cardCount || 'words'}`}
                         </span>
                         {isPicked && <span style={{ fontWeight: 900, color: '#ffffff' }}>✓</span>}
                       </button>
@@ -1425,9 +1430,9 @@ export default function QuizCenter({ onOpenReview }) {
           {quizCategory === 'vocab' ? (
             <div className="setup-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                <h3 style={{ margin: 0 }}>{t.quiz?.stepTopic || '2. Chọn Chủ Đề (Topic)'}</h3>
+                <h3 style={{ margin: 0 }}>{t?.quiz?.stepTopic || "2. Pick topic"}</h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '600' }}>
-                  {selectedTopics.includes('All') ? (t.vocab?.allTopics || 'Tất cả chủ đề') : `${selectedTopics.length} ${t.common?.tags || 'chủ đề'}`}
+                  {selectedTopics.includes('All') ? (t?.vocab?.allTopics || "All Topics") : `${selectedTopics.length} ${t?.common?.tags || "Tags"}`}
                 </span>
               </div>
                 <div className="topics-chip-grid">
@@ -1441,8 +1446,8 @@ export default function QuizCenter({ onOpenReview }) {
                         onClick={() => toggleTopic(topicKey)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <span className="topic-name">{topItem.name}</span>
-                        <span className="topic-count">{topItem.count} {t.dashboard?.cardCount || 'từ'}</span>
+                        <span className="topic-name">{getTopicName(topItem)}</span>
+                        <span className="topic-count">{topItem.count} {t?.dashboard?.cardCount || "words"}</span>
                         {isSelected && <span style={{ fontWeight: '900', color: '#10b981' }}>✓</span>}
                       </button>
                     );
@@ -1452,24 +1457,27 @@ export default function QuizCenter({ onOpenReview }) {
             ) : (
               <div className="setup-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-                  <h3 style={{ margin: 0 }}>{t.quiz?.stepPatternCategory || '2. Chọn Mục Đích / Chức Năng Diễn Đạt'}</h3>
+                  <h3 style={{ margin: 0 }}>{t?.quiz?.stepPatternCategory || "2. Pick category"}</h3>
                   <span style={{ fontSize: '0.82rem', color: '#ec4899', fontWeight: '600' }}>
-                    {t.patterns?.title || 'Phân loại theo tư duy giao tiếp & viết luận'}
+                    {t?.patterns?.title || "Pattern Hub"}
                   </span>
                 </div>
                 <div className="topics-chip-grid">
                   {[
-                    { id: 'all', name: t.patterns?.allCategories || 'Tất cả chức năng (All)' },
+                    { id: 'all', name: t?.patterns?.allCategories || "All Categories" },
                     ...(patternCategories.length > 0 ? patternCategories : [
-                      { id: 'cause_effect', name: '⚡ Nguyên nhân & Hệ quả' },
-                      { id: 'purpose', name: '🎯 Mục đích & Kết quả' },
-                      { id: 'condition', name: '⚠️ Điều kiện & Giả định' },
-                      { id: 'concession', name: '⚖️ Nhượng bộ & Đối lập' },
-                      { id: 'comparison', name: '📊 So sánh & Tương phản' },
-                      { id: 'emphasis', name: '💥 Nhấn mạnh & Đảo ngữ' }
+                      { id: 'cause_effect', name: 'Cause & Effect' },
+                      { id: 'purpose', name: 'Purpose & Goal' },
+                      { id: 'condition', name: 'Condition' },
+                      { id: 'concession', name: 'Contrast & Concession' },
+                      { id: 'comparison', name: 'Comparison' },
+                      { id: 'emphasis', name: 'Emphasis & Inversion' }
                     ])
                   ].map(catItem => {
                     const isSelected = selectedPatternCategory === catItem.id;
+                    const catTitle = catItem.id === 'all' 
+                      ? (t?.patterns?.allCategories || "All Categories")
+                      : getCategoryLabel(catItem, fluentLanguage);
                     return (
                       <button
                         key={catItem.id}
@@ -1477,7 +1485,7 @@ export default function QuizCenter({ onOpenReview }) {
                         onClick={() => setSelectedPatternCategory(catItem.id)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: isSelected ? '#ec4899' : '' }}
                       >
-                        <span className="topic-name">{catItem.name}</span>
+                        <span className="topic-name">{catTitle}</span>
                         {catItem.patterns_count !== undefined && <span className="topic-count">{catItem.patterns_count}</span>}
                         {isSelected && <span style={{ fontWeight: '900', color: '#ec4899' }}>✓</span>}
                       </button>
@@ -1490,12 +1498,12 @@ export default function QuizCenter({ onOpenReview }) {
             {/* Step 3: Difficulty & IELTS Level Tier */}
             <div className="setup-section" style={{ marginTop: '1.2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h3 style={{ margin: 0 }}>{t.quiz?.solvingDiffTitle || '3. Độ Khó Để Giải Câu Hỏi (Solving Difficulty)'}</h3>
+                <h3 style={{ margin: 0 }}>{t?.quiz?.solvingDiffTitle || "3. Select difficulty"}</h3>
                 <span style={{ fontSize: '0.82rem', color: 'var(--accent-primary)', fontWeight: '700' }}>
-                  {selectedLevel === 'all' && (t.quiz?.diffAll || '🌟 Mọi Độ Khó')}
-                  {selectedLevel === 'easy' && (t.quiz?.diffEasy || '🟢 Dễ Giải (Có gợi ý)')}
-                  {selectedLevel === 'medium' && (t.quiz?.diffMedium || '🟡 Trung Bình (Chuẩn)')}
-                  {selectedLevel === 'hard' && (t.quiz?.diffHard || '🔴 Khó (Đánh đố cao)')}
+                  {selectedLevel === 'all' && (t?.quiz?.diffAll || "All Difficulties")}
+                  {selectedLevel === 'easy' && (t?.quiz?.diffEasy || "Easy (Hints)")}
+                  {selectedLevel === 'medium' && (t?.quiz?.diffMedium || "Medium")}
+                  {selectedLevel === 'hard' && (t?.quiz?.diffHard || "Hard (Tricky)")}
                   {selectedLevel.startsWith('ielts') && `🎯 ${selectedLevel.replace('ielts_', 'Band ').replace('_', '.')}`}
                 </span>
               </div>
@@ -1503,10 +1511,10 @@ export default function QuizCenter({ onOpenReview }) {
               {/* Core 3 Difficulty Levels + All */}
               <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
                 {[
-                  { id: 'all', label: t.quiz?.diffAll || '🌟 Mọi Độ Khó', desc: t.quiz?.diffAllDesc || 'Kết hợp linh hoạt câu dễ, vừa và thử thách' },
-                  { id: 'easy', label: t.quiz?.diffEasy || '🟢 Dễ Giải (Có gợi ý)', desc: t.quiz?.diffEasyDesc || 'Kèm gợi ý trực quan, đáp án nhiễu dễ loại trừ' },
-                  { id: 'medium', label: t.quiz?.diffMedium || '🟡 Trung Bình (Chuẩn)', desc: t.quiz?.diffMediumDesc || 'Đọc hiểu ngữ cảnh câu, 4 lựa chọn cùng loại từ' },
-                  { id: 'hard', label: t.quiz?.diffHard || '🔴 Khó (Đánh đố cao)', desc: t.quiz?.diffHardDesc || 'Bẫy từ loại (Word Forms), từ đồng nghĩa & ngữ pháp' }
+                  { id: 'all', label: t?.quiz?.diffAll || "All Difficulties", desc: t?.quiz?.diffAllDesc || "Balanced mix of questions" },
+                  { id: 'easy', label: t?.quiz?.diffEasy || "Easy (Hints)", desc: t?.quiz?.diffEasyDesc || "Visual hints included" },
+                  { id: 'medium', label: t?.quiz?.diffMedium || "Medium", desc: t?.quiz?.diffMediumDesc || "Standard context questions" },
+                  { id: 'hard', label: t?.quiz?.diffHard || "Hard (Tricky)", desc: t?.quiz?.diffHardDesc || "Word forms and synonyms" }
                 ].map(lvl => (
                   <button
                     key={lvl.id}
@@ -1520,19 +1528,28 @@ export default function QuizCenter({ onOpenReview }) {
                 ))}
               </div>
 
-              {/* Granular IELTS Band Selection */}
+              {/* Granular Level Tier Selection (VSL 6 Bậc for Vietnamese vs IELTS for English) */}
               <details style={{ marginTop: '0.4rem', fontSize: '0.82rem' }}>
                 <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, padding: '4px 0' }}>
-                  {t.quiz?.ieltsOptionTitle || '🎯 Tùy chọn chi tiết theo Band điểm IELTS (Nhấn để mở rộng)'}
+                  {isVietnameseTrack 
+                    ? (uiLang === 'vi' ? "🇻🇳 Tùy chọn Khung 6 Bậc VSL" : uiLang === 'ru' ? "🇻🇳 Опции уровней VSL (1–6)" : "🇻🇳 VSL 6-Level Options")
+                    : (t?.quiz?.ieltsOptionTitle || "IELTS Band Options")}
                 </summary>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem', marginTop: '0.6rem' }}>
-                  {[
+                  {(isVietnameseTrack ? [
+                    { id: 'vsl_1', label: uiLang === 'vi' ? '🌱 VSL Bậc 1' : uiLang === 'ru' ? '🌱 VSL Ур. 1' : '🌱 VSL Level 1', desc: uiLang === 'vi' ? 'Sơ cấp 1 (A1)' : uiLang === 'ru' ? 'Базовый 1 (A1)' : 'Elementary 1 (A1)' },
+                    { id: 'vsl_2', label: uiLang === 'vi' ? '🌿 VSL Bậc 2' : uiLang === 'ru' ? '🌿 VSL Ур. 2' : '🌿 VSL Level 2', desc: uiLang === 'vi' ? 'Sơ cấp 2 (A2)' : uiLang === 'ru' ? 'Базовый 2 (A2)' : 'Elementary 2 (A2)' },
+                    { id: 'vsl_3', label: uiLang === 'vi' ? '🥉 VSL Bậc 3' : uiLang === 'ru' ? '🥉 VSL Ур. 3' : '🥉 VSL Level 3', desc: uiLang === 'vi' ? 'Trung cấp 1 (B1)' : uiLang === 'ru' ? 'Средний 1 (B1)' : 'Intermediate 1 (B1)' },
+                    { id: 'vsl_4', label: uiLang === 'vi' ? '🥈 VSL Bậc 4' : uiLang === 'ru' ? '🥈 VSL Ур. 4' : '🥈 VSL Level 4', desc: uiLang === 'vi' ? 'Trung cấp 2 (B2)' : uiLang === 'ru' ? 'Средний 2 (B2)' : 'Intermediate 2 (B2)' },
+                    { id: 'vsl_5', label: uiLang === 'vi' ? '🥇 VSL Bậc 5' : uiLang === 'ru' ? '🥇 VSL Ур. 5' : '🥇 VSL Level 5', desc: uiLang === 'vi' ? 'Cao cấp 1 (C1)' : uiLang === 'ru' ? 'Продвинутый 1 (C1)' : 'Advanced 1 (C1)' },
+                    { id: 'vsl_6', label: uiLang === 'vi' ? '👑 VSL Bậc 6' : uiLang === 'ru' ? '👑 VSL Ур. 6' : '👑 VSL Level 6', desc: uiLang === 'vi' ? 'Cao cấp 2 (C2)' : uiLang === 'ru' ? 'Владение (C2)' : 'Mastery 2 (C2)' }
+                  ] : [
                     { id: 'ielts_4_5', label: '🥉 IELTS 4.0 - 5.0', desc: 'A2 - B1' },
                     { id: 'ielts_55_60', label: '🎖️ IELTS 5.5 - 6.0', desc: 'B1 - B2' },
                     { id: 'ielts_65_70', label: '🥈 IELTS 6.5 - 7.0', desc: 'B2 - C1' },
                     { id: 'ielts_75_80', label: '🥇 IELTS 7.5 - 8.0', desc: 'C1 Mastery' },
                     { id: 'ielts_85_90', label: '👑 IELTS 8.5 - 9.0', desc: 'C2 Native' }
-                  ].map(lvl => (
+                  ]).map(lvl => (
                     <button
                       key={lvl.id}
                       className={`count-pill-btn ${selectedLevel === lvl.id ? 'active' : ''}`}
@@ -1552,25 +1569,58 @@ export default function QuizCenter({ onOpenReview }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <GraduationCap size={18} color="var(--accent-primary)" />
-                  <span>{t.quiz?.contextProficiencyTitle || '4. Trình Độ Bối Cảnh Câu Văn (Context Proficiency Level)'}</span>
-                  <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{t.quiz?.contextProficiencyNote || '• Có thể chọn nhiều trình độ'}</small>
+                  <span>{isVietnameseTrack 
+                    ? (uiLang === 'vi' ? "Bối Cảnh Khung Năng Lực VSL" : uiLang === 'ru' ? "Контекст уровней VSL" : "VSL Context Proficiency Level")
+                    : (t?.quiz?.contextProficiencyTitle || "Context Proficiency Level")}</span>
+                  <small style={{ fontWeight: 'normal', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{t?.quiz?.contextProficiencyNote || "Multiple levels selectable"}</small>
                 </h3>
                 <span style={{ fontSize: '0.82rem', color: '#0ea5e9', fontWeight: '700' }}>
                   {selectedContextLevels.includes('all')
-                    ? (t.quiz?.contextAll || '🌟 Mọi Trình Độ')
+                    ? (t?.quiz?.contextAll || "All Levels")
                     : `🎯 (${selectedContextLevels.map(l => l.toUpperCase().replace('_', '-')).join(', ')})`}
                 </span>
               </div>
 
               <div className="count-selector-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.6rem', marginBottom: '0.6rem' }}>
-                {[
-                  { id: 'all', label: t.quiz?.contextAll || '🌟 Mọi Trình Độ', desc: t.quiz?.contextAllDesc || 'Linh hoạt mọi bối cảnh từ A1 đến C2' },
-                  { id: 'a1_a2', label: t.quiz?.contextA1A2 || '🌱 A1 - A2 (Cơ Bản)', desc: t.quiz?.contextA1A2Desc || 'Giao tiếp đời thường, câu ngắn dễ hiểu' },
-                  { id: 'b1', label: t.quiz?.contextB1 || '🌿 B1 (Tiền Trung Cấp)', desc: t.quiz?.contextB1Desc || 'Công sở & Giao tiếp thực tế hàng ngày' },
-                  { id: 'b2', label: t.quiz?.contextB2 || '🚀 B2 (Trung Cấp Khá)', desc: t.quiz?.contextB2Desc || 'Chuyên nghiệp, phong phú tình huống' },
-                  { id: 'c1', label: t.quiz?.contextC1 || '💎 C1 (Cao Cấp)', desc: t.quiz?.contextC1Desc || 'Học thuật IELTS Band 7.0 - 8.0' },
-                  { id: 'c2', label: t.quiz?.contextC2 || '👑 C2 (Bản Xứ)', desc: t.quiz?.contextC2Desc || 'Bản xứ / IELTS Band 8.5 - 9.0' }
-                ].map(lvl => {
+                {(isVietnameseTrack ? [
+                  { 
+                    id: 'all', 
+                    label: uiLang === 'vi' ? 'Tất cả các bậc' : uiLang === 'ru' ? 'Все уровни VSL' : 'All VSL Levels', 
+                    desc: uiLang === 'vi' ? 'Linh hoạt Bậc 1 đến Bậc 6' : uiLang === 'ru' ? 'От Ур. 1 до Ур. 6' : 'Flexible from Level 1 to 6' 
+                  },
+                  { 
+                    id: 'a1_a2', 
+                    label: uiLang === 'vi' ? 'Bậc 1 - 2 (Sơ cấp)' : uiLang === 'ru' ? 'Ур. 1 - 2 (Базовый)' : 'Level 1 - 2 (Elementary)', 
+                    desc: uiLang === 'vi' ? 'Giao tiếp đời sống & xưng hô' : uiLang === 'ru' ? 'Повседневное общение' : 'Daily life & greetings' 
+                  },
+                  { 
+                    id: 'b1', 
+                    label: uiLang === 'vi' ? 'Bậc 3 (Trung cấp 1)' : uiLang === 'ru' ? 'Ур. 3 (Средний 1)' : 'Level 3 (Intermediate 1)', 
+                    desc: uiLang === 'vi' ? 'Công sở & liên từ quan hệ' : uiLang === 'ru' ? 'Деловое общение' : 'Workplace & connectors' 
+                  },
+                  { 
+                    id: 'b2', 
+                    label: uiLang === 'vi' ? 'Bậc 4 (Trung cấp 2)' : uiLang === 'ru' ? 'Ур. 4 (Средний 2)' : 'Level 4 (Intermediate 2)', 
+                    desc: uiLang === 'vi' ? 'Từ láy & biểu đạt ngữ cảnh' : uiLang === 'ru' ? 'Контекстные выражения' : 'Nuances & expressions' 
+                  },
+                  { 
+                    id: 'c1', 
+                    label: uiLang === 'vi' ? 'Bậc 5 (Cao cấp 1)' : uiLang === 'ru' ? 'Ур. 5 (Продвинутый 1)' : 'Level 5 (Advanced 1)', 
+                    desc: uiLang === 'vi' ? 'Từ Hán-Việt & báo chí chính luận' : uiLang === 'ru' ? 'Публицистика и Хань-Вьет' : 'Sino-Vietnamese & press' 
+                  },
+                  { 
+                    id: 'c2', 
+                    label: uiLang === 'vi' ? 'Bậc 6 (Cao cấp 2)' : uiLang === 'ru' ? 'Ур. 6 (Владение)' : 'Level 6 (Mastery 2)', 
+                    desc: uiLang === 'vi' ? 'Thành ngữ & tu từ học thuật' : uiLang === 'ru' ? 'Идиомы и стилистика' : 'Idioms & literature nuance' 
+                  }
+                ] : [
+                  { id: 'all', label: t?.quiz?.contextAll || "All Levels", desc: t?.quiz?.contextAllDesc || "Flexible from A1 to C2" },
+                  { id: 'a1_a2', label: t?.quiz?.contextA1A2 || "A1 - A2 (Basic)", desc: t?.quiz?.contextA1A2Desc || "Short daily conversations" },
+                  { id: 'b1', label: t?.quiz?.contextB1 || "B1 (Intermediate)", desc: t?.quiz?.contextB1Desc || "Workplace and everyday talk" },
+                  { id: 'b2', label: t?.quiz?.contextB2 || "B2 (Upper Intermediate)", desc: t?.quiz?.contextB2Desc || "Professional scenarios" },
+                  { id: 'c1', label: t?.quiz?.contextC1 || "C1 (Advanced)", desc: t?.quiz?.contextC1Desc || "Academic IELTS 7.0 - 8.0" },
+                  { id: 'c2', label: t?.quiz?.contextC2 || "C2 (Mastery)", desc: t?.quiz?.contextC2Desc || "Native IELTS 8.5 - 9.0" }
+                ]).map(lvl => {
                   const isPicked = selectedContextLevels.includes(lvl.id);
                   return (
                     <button
@@ -1598,14 +1648,14 @@ export default function QuizCenter({ onOpenReview }) {
 
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span>💡</span>
-                <span>{t.quiz?.contextMultiSelectTip || 'Bạn có thể chọn 1 hoặc nhiều trình độ (ví dụ: B1 + B2 để câu hỏi luân phiên theo cả 2 trình độ này).'}</span>
+                <span>{t?.quiz?.contextMultiSelectTip || "Select multiple levels at once."}</span>
               </div>
             </div>
 
             {/* Step 5 & 6: Question Count & Mode */}
             <div className="setup-grid-row">
               <div className="setup-section">
-                <h3>{t.quiz?.questionCountTitle || '5. Số Lượng Câu Hỏi'}</h3>
+                <h3>{t?.quiz?.questionCountTitle || "Question count"}</h3>
                 <div className="count-selector-row">
                   {[5, 10, 15].map(cnt => (
                     <button
@@ -1613,25 +1663,25 @@ export default function QuizCenter({ onOpenReview }) {
                       className={`count-pill-btn ${questionCount === cnt ? 'active' : ''}`}
                       onClick={() => setQuestionCount(cnt)}
                     >
-                      <b>{cnt} {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : 'câu'}</b>
+                      <b>{cnt} {t.quiz?.numQuestions ? t.quiz.numQuestions.replace(':', '').trim() : (uiLang === 'ru' ? 'вопросов' : uiLang === 'vi' ? 'câu' : 'questions')}</b>
                       <small>{cnt === 5 ? (uiLang === 'ru' ? 'Быстро (2м)' : uiLang === 'en' ? 'Quick (2m)' : 'Nhanh (2p)') : cnt === 10 ? (uiLang === 'ru' ? 'Стандарт (5м)' : uiLang === 'en' ? 'Standard (5m)' : 'Chuẩn (5p)') : (uiLang === 'ru' ? 'Глубокий (8м)' : uiLang === 'en' ? 'Deep (8m)' : 'Chuyên sâu (8p)')}</small>
                     </button>
                   ))}
                 </div>
                 <div style={{ marginTop: '0.45rem', fontSize: '0.78rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <span>🛡️</span>
-                  <span>{t.quiz?.questionUniqueNotice || 'Đảm bảo 100% câu hỏi không trùng lặp (Mỗi câu 1 từ vựng riêng biệt)'}</span>
+                  <span>{t?.quiz?.questionUniqueNotice || "100% unique words per question."}</span>
                 </div>
               </div>
 
               <div className="setup-section">
-                <h3>{t.quiz?.questionModeTitle || '6. Chế Độ Câu Hỏi'}</h3>
+                <h3>{t?.quiz?.questionModeTitle || "Question mode"}</h3>
                 <div className="mode-selector-row">
                   {[
-                    { id: 'mixed', label: t.quiz?.modeMixed || 'Hỗn Hợp (Tất cả)', icon: Shuffle },
-                    { id: 'meaning_vi', label: t.quiz?.modeMeaningVi || 'Chọn Nghĩa', icon: FileText },
-                    { id: 'cloze_blank', label: t.quiz?.modeCloze || 'Điền Vào Câu', icon: Edit3 },
-                    { id: 'listening', label: t.quiz?.modeListening || 'Luyện Nghe', icon: Headphones }
+                    { id: 'mixed', label: t?.quiz?.modeMixed || "Mixed", icon: Shuffle },
+                    { id: 'meaning_vi', label: t?.quiz?.modeMeaningVi || "Pick Meaning", icon: FileText },
+                    { id: 'cloze_blank', label: t?.quiz?.modeCloze || "Fill Blank", icon: Edit3 },
+                    { id: 'listening', label: t?.quiz?.modeListening || "Listening", icon: Headphones }
                   ].map(m => {
                     const IconComp = m.icon;
                     return (
@@ -1659,7 +1709,7 @@ export default function QuizCenter({ onOpenReview }) {
                 style={{ flex: 1, minWidth: '220px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <Zap size={18} />
-                <span>{loading ? (t.common?.loading || 'Đang chuẩn bị...') : (t.quiz?.instantQuizBtn || 'Bắt Đầu Làm Quiz')}</span>
+                <span>{loading ? (t?.common?.loading || "Loading...") : (t?.quiz?.instantQuizBtn || "Start Quiz Now")}</span>
               </button>
               <button 
                 className="btn btn-secondary start-quiz-big-btn"
@@ -1668,7 +1718,7 @@ export default function QuizCenter({ onOpenReview }) {
                 style={{ flex: 1, minWidth: '220px', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <Sparkles size={18} />
-                <span>{loading ? (t.common?.loading || 'AI đang soạn đề...') : (t.quiz?.aiQuizBtn || 'Tạo Bộ Đề Bằng AI')}</span>
+                <span>{loading ? (t?.common?.loading || "Loading...") : (t?.quiz?.aiQuizBtn || "Generate AI Quiz")}</span>
               </button>
             </div>
           </div>

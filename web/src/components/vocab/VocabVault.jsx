@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { playAudio } from '../../services/audioService';
 import { useLanguage } from '../../context/LanguageContext';
+import { getTopicDisplayName } from '../../constants/topicMeta';
+import { getDisplayLevel } from '../../constants/levelAdapter';
+import { getDisplayPos } from '../../constants/posAdapter';
 
 // Helper: Remove Vietnamese Tones for Accent-Insensitive Smart Search
 const removeVietnameseTones = (str) => {
@@ -51,7 +54,7 @@ export default function VocabVault({
   onDeleteWord, 
   onOpenTopicManager 
 }) {
-  const { uiLang, t } = useLanguage();
+  const { uiLang, t, targetLanguage, isVietnameseTrack, fluentLanguage, getWordMeaning, getTopicName } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
@@ -129,20 +132,20 @@ export default function VocabVault({
   const getStatusBadge = (status) => {
     switch (status) {
       case 'mastered':
-        return <span className="badge badge-green">{t.dashboard?.stageMastered || 'Mastered'}</span>;
+        return <span className="badge badge-green">{t?.dashboard?.stageMastered || "Mastered"}</span>;
       case 'reviewing':
-        return <span className="badge badge-blue">{t.dashboard?.stageReviewing || 'Reviewing'}</span>;
+        return <span className="badge badge-blue">{t?.dashboard?.stageReviewing || "Reviewing"}</span>;
       case 'learning':
-        return <span className="badge badge-amber">{t.dashboard?.stageLearning || 'Learning'}</span>;
+        return <span className="badge badge-amber">{t?.dashboard?.stageLearning || "Learning"}</span>;
       default:
-        return <span className="badge" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t.dashboard?.stageNew || 'New'}</span>;
+        return <span className="badge" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>{t?.dashboard?.stageNew || "New"}</span>;
     }
   };
 
   const getTopicInfo = (topicId) => {
     const found = topics.find(t => t.id === topicId);
     if (found) return found;
-    return { id: 'daily', name: 'Giao tiếp Hàng ngày', emoji: '☕', color: '#10b981' };
+    return { id: 'daily', name: uiLang === 'ru' ? 'Общение' : uiLang === 'vi' ? 'Giao tiếp' : 'Daily', emoji: '☕', color: '#10b981' };
   };
 
   const toggleTopicCollapse = (topicId) => {
@@ -179,29 +182,31 @@ export default function VocabVault({
                   onClick={() => playAudio(w.word, w.audio_url)}
                   className="btn-icon"
                   style={{ color: 'var(--accent-primary)', padding: '0.25rem' }}
-                  title={t.vocab?.pronounceStandardTooltip || "Nghe phát âm chuẩn"}
+                  title={t?.vocab?.pronounceStandardTooltip || "Listen audio"}
                 >
                   <Volume2 size={17} />
                 </button>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                {w.phonetic && (
+                {!isVietnameseTrack && w.phonetic && (
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                     {w.phonetic}
                   </span>
                 )}
                 {w.part_of_speech && (
                   <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-                    • {w.part_of_speech}
+                    • {getDisplayPos(w.part_of_speech, targetLanguage, uiLang)}
                   </span>
                 )}
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{w.level || 'B2'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>
+                  {getDisplayLevel(w.level || 'B2', targetLanguage, uiLang, true)}
+                </span>
                 {getStatusBadge(w.status)}
               </div>
               
@@ -219,19 +224,21 @@ export default function VocabVault({
                 gap: '0.25rem'
               }}>
                 <span>{topic.emoji || '📁'}</span>
-                <span>{topic.name}</span>
+                <span>{getTopicName(topic)}</span>
               </span>
             </div>
           </div>
 
-          {/* Meaning VI & EN */}
+          {/* Meaning strictly adapted to fluent language */}
           <p style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)', margin: '0.4rem 0 0.25rem 0' }}>
-            {w.meaning_vi}
+            {getWordMeaning(w)}
           </p>
 
-          {w.meaning_en && (
+          {((fluentLanguage === 'en' && w.meaning_vi && w.meaning_vi !== w.meaning_en) || 
+            (fluentLanguage === 'ru' && (w.meaning_en || w.meaning_vi) && (w.meaning_ru ? (w.meaning_en || w.meaning_vi) !== w.meaning_ru : true)) || 
+            (fluentLanguage === 'vi' && w.meaning_en && w.meaning_en !== w.meaning_vi)) && (
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.65rem 0', lineHeight: 1.4 }}>
-              {w.meaning_en}
+              {fluentLanguage === 'en' ? w.meaning_vi : fluentLanguage === 'ru' ? (w.meaning_en || w.meaning_vi) : w.meaning_en}
             </p>
           )}
 
@@ -277,14 +284,14 @@ export default function VocabVault({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             <Calendar size={13} />
-            <span>{t.vocab?.dueInLabel || t.vocab?.dueIn || 'Ôn lại:'} {w.due_date ? (w.due_date.includes('T') ? (t.vocab?.dueInTenMinutes || '< 10 phút') : w.due_date) : (t.vocab?.dueToday || 'Hôm nay')}</span>
+            <span>{t.vocab?.dueInLabel || t?.vocab?.dueIn || "Due in:"} {w.due_date ? (w.due_date.includes('T') ? (t?.vocab?.dueInTenMinutes || "< 10 min") : w.due_date) : (t?.vocab?.dueToday || "Today")}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <button
               onClick={() => onEditWord(w)}
               className="btn-icon"
-              title={t.vocab?.editWordTooltip || "Chỉnh sửa từ"}
+              title={t?.vocab?.editWordTooltip || "Edit word"}
               style={{ padding: '0.35rem' }}
             >
               <Edit3 size={15} />
@@ -292,7 +299,7 @@ export default function VocabVault({
             <button
               onClick={() => onDeleteWord(w.id)}
               className="btn-icon"
-              title={t.vocab?.deleteWordTooltip || "Xóa từ"}
+              title={t?.vocab?.deleteWordTooltip || "Delete word"}
               style={{ padding: '0.35rem', color: 'var(--accent-danger)' }}
             >
               <Trash2 size={15} />
@@ -323,7 +330,7 @@ export default function VocabVault({
             <input
               type="text"
               className="input-control"
-              placeholder={t.vocab?.searchPlaceholder || "Tìm kiếm từ vựng, nghĩa, ví dụ, collocations..."}
+              placeholder={t?.vocab?.searchPlaceholder || "Search words, meanings, topics..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ paddingLeft: '2.75rem', width: '100%' }}
@@ -349,7 +356,7 @@ export default function VocabVault({
             }}
           >
             <Plus size={19} />
-            <span>{t.vocab?.addNewWordBtn || 'Thêm Từ Mới'}</span>
+            <span>{t?.vocab?.addNewWordBtn || "Add Word"}</span>
           </button>
         </div>
 
@@ -363,11 +370,11 @@ export default function VocabVault({
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{ width: 'auto', padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
             >
-              <option value="all">{t.vocab?.allStatus || 'Tất cả trạng thái'}</option>
-              <option value="new">{t.vocab?.statusNew || 'Mới (New)'}</option>
-              <option value="learning">{t.vocab?.statusLearning || 'Đang học (Learning)'}</option>
-              <option value="reviewing">{t.vocab?.statusReviewing || 'Đang ôn tập (Reviewing)'}</option>
-              <option value="mastered">{t.vocab?.statusMastered || 'Đã nhớ tốt (Mastered)'}</option>
+              <option value="all">{t?.vocab?.allStatus || "All Status"}</option>
+              <option value="new">{t?.vocab?.statusNew || "New"}</option>
+              <option value="learning">{t?.vocab?.statusLearning || "Learning"}</option>
+              <option value="reviewing">{t?.vocab?.statusReviewing || "Reviewing"}</option>
+              <option value="mastered">{t?.vocab?.statusMastered || "Mastered"}</option>
             </select>
 
             {/* Level Filter */}
@@ -377,13 +384,26 @@ export default function VocabVault({
               onChange={(e) => setLevelFilter(e.target.value)}
               style={{ width: 'auto', padding: '0.5rem 0.85rem', fontSize: '0.85rem' }}
             >
-              <option value="all">{t.vocab?.allLevels || 'Mọi trình độ'}</option>
-              <option value="A1">{t.vocab?.levelA1 || 'A1 - Sơ cấp'}</option>
-              <option value="A2">{t.vocab?.levelA2 || 'A2 - Cơ bản'}</option>
-              <option value="B1">{t.vocab?.levelB1 || 'B1 - Trung cấp'}</option>
-              <option value="B2">{t.vocab?.levelB2 || 'B2 - Khá'}</option>
-              <option value="C1">{t.vocab?.levelC1 || 'C1 - Cao cấp'}</option>
-              <option value="C2">{t.vocab?.levelC2 || 'C2 - Bản ngữ'}</option>
+              <option value="all">{t?.vocab?.allLevels || "All Levels"}</option>
+              {isVietnameseTrack ? (
+                <>
+                  <option value="A1">{getDisplayLevel('A1', 'vi', uiLang, true)}</option>
+                  <option value="A2">{getDisplayLevel('A2', 'vi', uiLang, true)}</option>
+                  <option value="B1">{getDisplayLevel('B1', 'vi', uiLang, true)}</option>
+                  <option value="B2">{getDisplayLevel('B2', 'vi', uiLang, true)}</option>
+                  <option value="C1">{getDisplayLevel('C1', 'vi', uiLang, true)}</option>
+                  <option value="C2">{getDisplayLevel('C2', 'vi', uiLang, true)}</option>
+                </>
+              ) : (
+                <>
+                  <option value="A1">{t?.vocab?.levelA1 || "A1 - Beginner"}</option>
+                  <option value="A2">{t?.vocab?.levelA2 || "A2 - Elementary"}</option>
+                  <option value="B1">{t?.vocab?.levelB1 || "B1 - Intermediate"}</option>
+                  <option value="B2">{t?.vocab?.levelB2 || "B2 - Upper Intermediate"}</option>
+                  <option value="C1">{t?.vocab?.levelC1 || "C1 - Advanced"}</option>
+                  <option value="C2">{t?.vocab?.levelC2 || "C2 - Mastery"}</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -412,10 +432,10 @@ export default function VocabVault({
                 cursor: 'pointer',
                 boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
               }}
-              title={t.vocab?.flatViewTooltip || "Xem danh sách phẳng"}
+              title={t?.vocab?.flatViewTooltip || "Flat list"}
             >
               <LayoutGrid size={15} />
-              <span>{t.vocab?.gridMode || 'Lưới'}</span>
+              <span>{t?.vocab?.gridMode || "Grid view"}</span>
             </button>
             <button
               onClick={() => setViewMode('grouped')}
@@ -433,10 +453,10 @@ export default function VocabVault({
                 cursor: 'pointer',
                 boxShadow: viewMode === 'grouped' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
               }}
-              title={t.vocab?.groupByTopicTooltip || "Gom nhóm theo chủ đề"}
+              title={t?.vocab?.groupByTopicTooltip || "Group by topic"}
             >
               <Folder size={15} />
-              <span>{t.vocab?.topicGroupMode || 'Theo Chủ Đề'}</span>
+              <span>{t?.vocab?.topicGroupMode || "Group by topic"}</span>
             </button>
           </div>
         </div>
@@ -456,7 +476,7 @@ export default function VocabVault({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', flexShrink: 0, paddingRight: '0.2rem' }}>
           <Folder size={16} />
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.quickAdd?.topicLabel || 'Chủ đề'}:</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t?.quickAdd?.topicLabel || "Topic:"}:</span>
         </div>
 
         {/* All Topics Pill */}
@@ -477,7 +497,7 @@ export default function VocabVault({
             boxShadow: selectedTopic === 'all' ? '0 2px 8px rgba(2, 132, 199, 0.25)' : 'none'
           }}
         >
-          ✨ {t.vocab?.allTopics || 'Tất cả chủ đề'} ({words.length})
+          ✨ {t?.vocab?.allTopics || "All Topics"} ({words.length})
         </button>
 
         {/* Dynamic Topic Pills */}
@@ -507,7 +527,7 @@ export default function VocabVault({
               }}
             >
               <span>{topItem.emoji || '📁'}</span>
-              <span>{topItem.name}</span>
+              <span>{getTopicName(topItem)}</span>
               <span style={{
                 fontSize: '0.72rem',
                 opacity: isSelected ? 0.9 : 0.65,
@@ -518,30 +538,6 @@ export default function VocabVault({
             </button>
           );
         })}
-
-        {/* Manage Topics Button */}
-        <button
-          onClick={onOpenTopicManager}
-          style={{
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
-            padding: '0.4rem 0.85rem',
-            borderRadius: 'var(--radius-full)',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            border: '1px dashed var(--accent-primary)',
-            background: 'var(--accent-primary-light)',
-            color: 'var(--accent-primary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            marginLeft: 'auto'
-          }}
-        >
-          <FolderPlus size={14} />
-          <span>+ {t.vocab?.manageTopicsBtn || 'Quản Lý Chủ Đề'}</span>
-        </button>
       </div>
 
 
@@ -559,10 +555,10 @@ export default function VocabVault({
           }}>
             <Sparkles size={42} style={{ color: 'var(--accent-primary)', margin: '0 auto 0.75rem auto' }} />
             <h4 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-              {uiLang === 'ru' ? `Слово "${searchTerm.trim()}" не найдено в словаре` : uiLang === 'en' ? `Word "${searchTerm.trim()}" not found in your vault` : `Không tìm thấy từ "${searchTerm.trim()}" trong kho từ`}
+              {uiLang === 'ru' ? `"${searchTerm.trim()}" не найдено` : uiLang === 'en' ? `"${searchTerm.trim()}" not found` : `Không tìm thấy "${searchTerm.trim()}"`}
             </h4>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.35rem', marginBottom: '1.5rem', maxWidth: '500px', marginInline: 'auto' }}>
-              {uiLang === 'ru' ? 'Хотите, чтобы AI автоматически подобрал транскрипцию IPA, перевод, фразы и создал карточку?' : uiLang === 'en' ? 'Would you like AI to automatically fetch IPA phonetics, translation, collocations, and create a card now?' : 'Bạn có muốn AI tự động tra cứu phiên âm IPA, nghĩa tiếng Việt, collocations, audio và tạo thẻ từ vựng ngay không?'}
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.35rem', marginBottom: '1.25rem', maxWidth: '480px', marginInline: 'auto' }}>
+              {uiLang === 'ru' ? 'Создать карточку с IPA, переводом и аудио с помощью AI?' : uiLang === 'en' ? 'Create card with AI (IPA, meaning & audio)?' : 'Tạo thẻ tự động với AI (IPA, nghĩa & audio)?'}
             </p>
             <button 
               onClick={() => onAddWord({ word: searchTerm.trim() })} 
@@ -570,7 +566,7 @@ export default function VocabVault({
               style={{ padding: '0.65rem 1.4rem', fontSize: '0.92rem', fontWeight: 800, margin: '0 auto' }}
             >
               <Sparkles size={16} />
-              <span>{uiLang === 'ru' ? 'AI автопоиск и добавление (+10 XP)' : uiLang === 'en' ? 'AI Lookup & Add to Vault (+10 XP)' : 'Tra Cứu AI & Thêm Ngay Vào Kho (+10 XP)'}</span>
+              <span>{uiLang === 'ru' ? 'AI автопоиск (+10 XP)' : uiLang === 'en' ? 'AI Lookup & Add (+10 XP)' : 'Tra cứu AI (+10 XP)'}</span>
             </button>
           </div>
         ) : (
@@ -582,13 +578,13 @@ export default function VocabVault({
             border: '1px solid var(--border-color)'
           }}>
             <Layers size={48} style={{ color: 'var(--text-muted)', margin: '0 auto 1rem auto', opacity: 0.6 }} />
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{t.vocab?.emptySearch || 'Không tìm thấy từ vựng nào trong chủ đề này'}</h4>
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{t?.vocab?.emptySearch || "No words matched search"}</h4>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: '1.5rem' }}>
-              {uiLang === 'ru' ? 'Попробуйте выбрать другую тему или нажмите кнопку ниже, чтобы добавить новое слово.' : uiLang === 'en' ? 'Try selecting another topic or click the button below to add a new word to this topic.' : 'Hãy thử chọn chủ đề khác hoặc bấm nút dưới đây để thêm từ mới vào chủ đề này.'}
+              {t?.vocab?.tryOtherTopic || "Pick another topic"}
             </p>
             <button onClick={onAddWord} className="btn-primary">
               <Plus size={18} />
-              <span>{t.vocab?.addNewWordBtn || 'Thêm Từ Mới'}</span>
+              <span>{t?.vocab?.addNewWordBtn || "Add Word"}</span>
             </button>
           </div>
         )
@@ -629,7 +625,7 @@ export default function VocabVault({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                          {tItem.name}
+                          {getTopicName(tItem)}
                         </h3>
                         <span style={{
                           fontSize: '0.72rem',
@@ -639,7 +635,7 @@ export default function VocabVault({
                           backgroundColor: `${tItem.color || '#0284c7'}20`,
                           color: tItem.color || '#0284c7'
                         }}>
-                          {topicWords.length} {t.vocab?.wordsCountUnit || 'từ'}
+                          {topicWords.length} {t?.vocab?.wordsCountUnit || "words"}
                         </span>
                       </div>
                       {tItem.description ? (
@@ -660,7 +656,7 @@ export default function VocabVault({
                   <div style={{ padding: '1.25rem' }}>
                     {topicWords.length === 0 ? (
                       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        {t.vocab?.emptyTopicWordsNotice || 'Chưa có từ vựng nào được gán vào chủ đề này.'}
+                        {t?.vocab?.emptyTopicWordsNotice || "No words in this topic yet"}
                       </p>
                     ) : (
                       <div className="vocab-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '1rem' }}>

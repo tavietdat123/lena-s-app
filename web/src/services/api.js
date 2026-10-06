@@ -143,9 +143,10 @@ export const api = {
   },
 
   // Topics & Categories
-  getTopics: async () => {
+  getTopics: async (params = {}) => {
     try {
-      const res = await authFetch(`${API_BASE}/topics`);
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/topics${query ? `?${query}` : ''}`);
       return await res.json();
     } catch (e) {
       return { success: false, data: [] };
@@ -282,9 +283,10 @@ export const api = {
   },
 
   // SRS Spaced Repetition
-  getDueItems: async () => {
+  getDueItems: async (params = {}) => {
     try {
-      const res = await authFetch(`${API_BASE}/srs/due`);
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/srs/due${query ? `?${query}` : ''}`);
       return await res.json();
     } catch (e) {
       return { success: false, data: { words: [], patterns: [] } };
@@ -309,58 +311,64 @@ export const api = {
   },
 
   // AI Service
-  translateInContextAI: async ({ text, contextSentence = '', articleTitle = '', articleTopic = 'General' }) => {
+  translateInContextAI: async ({ text, contextSentence = '', articleTitle = '', articleTopic = 'General', target_language, fluent_language }) => {
     const res = await authFetch(`${API_BASE}/ai/translate-in-context`, {
       method: 'POST',
-      body: JSON.stringify({ text, contextSentence, articleTitle, articleTopic })
+      body: JSON.stringify({ text, contextSentence, articleTitle, articleTopic, target_language, fluent_language })
     });
     return res.json();
   },
 
-  parseSentenceAI: async (sentence) => {
+  parseSentenceAI: async (sentence, langOpts = {}) => {
+    const payload = typeof sentence === 'object' ? sentence : { sentence, ...langOpts };
     const res = await authFetch(`${API_BASE}/ai/parse-sentence`, {
       method: 'POST',
-      body: JSON.stringify({ sentence })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
 
-  checkSentenceAI: async (targetItem, userSentence) => {
+  checkSentenceAI: async (targetItem, userSentence, langOpts = {}) => {
+    const payload = typeof targetItem === 'object' ? targetItem : { targetItem, userSentence, ...langOpts };
     const res = await authFetch(`${API_BASE}/ai/check-sentence`, {
       method: 'POST',
-      body: JSON.stringify({ targetItem, userSentence })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
 
-  generateStoryAI: async (words = []) => {
+  generateStoryAI: async (words = [], langOpts = {}) => {
+    const payload = Array.isArray(words) ? { words, ...langOpts } : words;
     const res = await authFetch(`${API_BASE}/ai/generate-story`, {
       method: 'POST',
-      body: JSON.stringify({ words })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
 
-  paraphraseSentenceAI: async (sentence, tone = 'business') => {
+  paraphraseSentenceAI: async (sentence, tone = 'business', langOpts = {}) => {
+    const payload = typeof sentence === 'object' ? sentence : { sentence, tone, ...langOpts };
     const res = await authFetch(`${API_BASE}/ai/paraphrase`, {
       method: 'POST',
-      body: JSON.stringify({ sentence, tone })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
 
-  exploreCollocationsAI: async (word) => {
+  exploreCollocationsAI: async (word, langOpts = {}) => {
+    const payload = typeof word === 'object' ? word : { word, ...langOpts };
     const res = await authFetch(`${API_BASE}/ai/collocations`, {
       method: 'POST',
-      body: JSON.stringify({ word })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
 
-  generateDialogueAI: async (scenario, userWords = []) => {
+  generateDialogueAI: async (scenario, userWords = [], langOpts = {}) => {
+    const payload = typeof scenario === 'object' ? scenario : { scenario, userWords, ...langOpts };
     const res = await authFetch(`${API_BASE}/ai/dialogue`, {
       method: 'POST',
-      body: JSON.stringify({ scenario, userWords })
+      body: JSON.stringify(payload)
     });
     return res.json();
   },
@@ -392,7 +400,7 @@ export const api = {
     const res = await authFetch(`${API_BASE}/backup/export`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Lỗi tải file sao lưu (${res.status})`);
+      throw new Error(err.error || `Backup export failed (${res.status})`);
     }
     return res.blob();
   },
@@ -407,10 +415,10 @@ export const api = {
     try {
       json = JSON.parse(text);
     } catch (e) {
-      throw new Error(`Máy chủ phản hồi không đúng chuẩn (${res.status}): ${text.slice(0, 100)}`);
+      throw new Error(`Invalid server response (${res.status}): ${text.slice(0, 100)}`);
     }
     if (!res.ok) {
-      throw new Error(json.error || `Lỗi máy chủ (${res.status})`);
+      throw new Error(json.error || `Server error (${res.status})`);
     }
     return json;
   },
@@ -632,18 +640,20 @@ export const api = {
   },
 
   // Quiz Hub
-  getQuizTopics: async () => {
+  getQuizTopics: async (params = {}) => {
     try {
-      const res = await authFetch(`${API_BASE}/quiz/topics`);
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/quiz/topics${query ? `?${query}` : ''}`);
       return await res.json();
     } catch (e) {
       return { success: false, data: [] };
     }
   },
 
-  getQuizDates: async () => {
+  getQuizDates: async (params = {}) => {
     try {
-      const res = await authFetch(`${API_BASE}/quiz/dates`);
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/quiz/dates${query ? `?${query}` : ''}`);
       return await res.json();
     } catch (e) {
       return { success: false, data: [] };
@@ -768,12 +778,13 @@ export const api = {
   },
 
   // AI Speaking Lab & Pronunciation Assessment
-  getSpeakingPrompts: async (category = null, targetLang = null) => {
+  getSpeakingPrompts: async (category = null, targetLang = null, fluentLang = null) => {
     try {
       let url = `${API_BASE}/speaking/prompts`;
       const params = new URLSearchParams();
       if (category) params.set('category', category);
       if (targetLang) params.set('target_language', targetLang);
+      if (fluentLang) params.set('fluent_language', fluentLang);
       const q = params.toString();
       if (q) url += `?${q}`;
       const res = await authFetch(url);
@@ -821,9 +832,14 @@ export const api = {
     }
   },
 
-  getAIMasteryReport: async () => {
-    const res = await authFetch(`${API_BASE}/ai/mastery-report`);
-    return await res.json();
+  getAIMasteryReport: async (params = {}) => {
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await authFetch(`${API_BASE}/ai/mastery-report${query ? `?${query}` : ''}`);
+      return await res.json();
+    } catch (e) {
+      return { success: false, data: null };
+    }
   },
 
   // 11. OS-Level Continuous System Alarm Control

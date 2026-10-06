@@ -82,7 +82,8 @@ export const quizController = {
   getTopics: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
-      const topics = quizService.getTopics(userId);
+      const targetLanguage = req.query.target_language || null;
+      const topics = quizService.getTopics(userId, targetLanguage);
       res.json({ success: true, data: topics });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -93,7 +94,8 @@ export const quizController = {
   getDates: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
-      const dates = quizService.getDates(userId);
+      const targetLanguage = req.query.target_language || null;
+      const dates = quizService.getDates(userId, targetLanguage);
       res.json({ success: true, data: dates });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -104,12 +106,37 @@ export const quizController = {
   generateQuiz: async (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
+      let userTargetLang = req.body?.target_language;
+      let userNativeLang = req.body?.fluent_language || req.body?.native_language;
+      if ((!userTargetLang || !userNativeLang) && req.user?.id) {
+        const u = db.prepare('SELECT target_language, native_language FROM users WHERE id = ?').get(req.user.id);
+        if (u) {
+          if (!userTargetLang) userTargetLang = u.target_language;
+          if (!userNativeLang) userNativeLang = u.native_language;
+        }
+      }
+      userTargetLang = userTargetLang || 'en';
+      userNativeLang = userNativeLang || (userTargetLang === 'vi' ? 'en' : 'vi');
+
       const { topic = 'All', count = 5, mode = 'mixed', use_ai = false, level = 'all', context_levels = null, date_scope = 'all', date = null, start_date = null, end_date = null } = req.body;
       const topicLabel = Array.isArray(topic) ? topic.join(', ') : String(topic || 'All');
       const dateTag = formatDateTag(date_scope, date, start_date, end_date);
 
       if (use_ai) {
-        const quiz = await generateAIQuiz({ topic, count: parseInt(count, 10) || 5, level, context_levels, mode, date_scope, date, start_date, end_date });
+        const quiz = await generateAIQuiz({
+          topic,
+          count: parseInt(count, 10) || 5,
+          level,
+          context_levels,
+          mode,
+          date_scope,
+          date,
+          start_date,
+          end_date,
+          userId,
+          target_language: userTargetLang,
+          native_language: userNativeLang
+        });
         const finalTopic = quiz.topic || `${topicLabel}${dateTag}`;
         const historyId = autoSaveQuizToHistory({
           title: `✨ Đề AI Từ Vựng: ${finalTopic} (${quiz.questions?.length || count} câu)`,
@@ -123,7 +150,7 @@ export const quizController = {
         });
         return res.json({ success: true, data: { ...quiz, history_id: historyId, date_scope, date, start_date, end_date } });
       }
-      const quiz = quizService.generateQuiz({ topic, count: parseInt(count, 10) || 5, mode, level, context_levels, date_scope, date, start_date, end_date, userId });
+      const quiz = quizService.generateQuiz({ topic, count: parseInt(count, 10) || 5, mode, level, context_levels, date_scope, date, start_date, end_date, userId, target_language: userTargetLang });
       const finalTopic = quiz.topic || `${topicLabel}${dateTag}`;
       const historyId = autoSaveQuizToHistory({
         title: `🎯 Đề Từ Vựng: ${finalTopic} (${quiz.questions?.length || count} câu)`,
@@ -146,13 +173,39 @@ export const quizController = {
   generateAIQuiz: async (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
+      let userTargetLang = req.body?.target_language;
+      let userNativeLang = req.body?.fluent_language || req.body?.native_language;
+      if ((!userTargetLang || !userNativeLang) && req.user?.id) {
+        const u = db.prepare('SELECT target_language, native_language FROM users WHERE id = ?').get(req.user.id);
+        if (u) {
+          if (!userTargetLang) userTargetLang = u.target_language;
+          if (!userNativeLang) userNativeLang = u.native_language;
+        }
+      }
+      userTargetLang = userTargetLang || 'en';
+      userNativeLang = userNativeLang || (userTargetLang === 'vi' ? 'en' : 'vi');
+
       const { topic = 'All', count = 5, words = [], level = 'all', context_levels = null, mode = 'mixed', date_scope = 'all', date = null, start_date = null, end_date = null } = req.body;
       let quiz;
       try {
-        quiz = await generateAIQuiz({ topic, count: parseInt(count, 10) || 5, words, level, context_levels, mode, date_scope, date, start_date, end_date });
+        quiz = await generateAIQuiz({
+          topic,
+          count: parseInt(count, 10) || 5,
+          words,
+          level,
+          context_levels,
+          mode,
+          date_scope,
+          date,
+          start_date,
+          end_date,
+          userId,
+          target_language: userTargetLang,
+          native_language: userNativeLang
+        });
       } catch (aiErr) {
         console.warn('[AI Quiz Fallback] Gemini call failed, using high-quality local generator:', aiErr.message);
-        quiz = quizService.generateQuiz({ topic, count: parseInt(count, 10) || 5, mode, level, context_levels, date_scope, date, start_date, end_date, userId });
+        quiz = quizService.generateQuiz({ topic, count: parseInt(count, 10) || 5, mode, level, context_levels, date_scope, date, start_date, end_date, userId, target_language: userTargetLang });
       }
 
       const dateTag = formatDateTag(date_scope, date, start_date, end_date);
@@ -178,8 +231,13 @@ export const quizController = {
   generatePatternQuiz: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
+      let userTargetLang = req.body?.target_language;
+      if (!userTargetLang && req.user?.id) {
+        const u = db.prepare('SELECT target_language FROM users WHERE id = ?').get(req.user.id);
+        if (u) userTargetLang = u.target_language;
+      }
       const { category = 'all', tone = 'all', count = 5, mode = 'mixed', level = 'all', date_scope = 'all', date = null, start_date = null, end_date = null } = req.body;
-      const quiz = quizService.generatePatternQuiz({ category, tone, count: parseInt(count, 10) || 5, mode, level, date_scope, date, start_date, end_date, userId });
+      const quiz = quizService.generatePatternQuiz({ category, tone, count: parseInt(count, 10) || 5, mode, level, date_scope, date, start_date, end_date, userId, target_language: userTargetLang || 'en' });
       const dateTag = formatDateTag(date_scope, date, start_date, end_date);
       const categoryLabel = Array.isArray(category) ? category.join(', ') : `${String(category || 'Tất cả')}${dateTag}`;
       const historyId = autoSaveQuizToHistory({
@@ -203,13 +261,38 @@ export const quizController = {
   generateAIPatternQuiz: async (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
+      let userTargetLang = req.body?.target_language;
+      let userNativeLang = req.body?.fluent_language || req.body?.native_language;
+      if ((!userTargetLang || !userNativeLang) && req.user?.id) {
+        const u = db.prepare('SELECT target_language, native_language FROM users WHERE id = ?').get(req.user.id);
+        if (u) {
+          if (!userTargetLang) userTargetLang = u.target_language;
+          if (!userNativeLang) userNativeLang = u.native_language;
+        }
+      }
+      userTargetLang = userTargetLang || 'en';
+      userNativeLang = userNativeLang || (userTargetLang === 'vi' ? 'en' : 'vi');
+
       const { category = 'all', tone = 'all', count = 5, level = 'all', mode = 'mixed', date_scope = 'all', date = null, start_date = null, end_date = null } = req.body;
       let quiz;
       try {
-        quiz = await generateAIPatternQuiz({ category, tone, count: parseInt(count, 10) || 5, level, mode, date_scope, date, start_date, end_date });
+        quiz = await generateAIPatternQuiz({
+          category,
+          tone,
+          count: parseInt(count, 10) || 5,
+          level,
+          mode,
+          date_scope,
+          date,
+          start_date,
+          end_date,
+          userId,
+          target_language: userTargetLang,
+          native_language: userNativeLang
+        });
       } catch (aiErr) {
         console.warn('[AI Pattern Quiz Fallback] Gemini call failed, using high-quality local generator:', aiErr.message);
-        quiz = quizService.generatePatternQuiz({ category, tone, count: parseInt(count, 10) || 5, mode, level, date_scope, date, start_date, end_date });
+        quiz = quizService.generatePatternQuiz({ category, tone, count: parseInt(count, 10) || 5, mode, level, date_scope, date, start_date, end_date, userId, target_language: userTargetLang });
       }
 
       const dateTag = formatDateTag(date_scope, date, start_date, end_date);

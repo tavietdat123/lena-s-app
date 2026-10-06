@@ -68,37 +68,37 @@ export default function CommandPalette({
   const actions = [
     {
       id: 'add-word',
-      title: t.commandPalette?.quickAddWord || 'Thêm nhanh từ vựng mới (1-Click Auto-Fill)',
+      title: t?.commandPalette?.quickAddWord || "Quick Add Word",
       icon: Plus,
       action: () => { onClose(); onOpenQuickAdd(); }
     },
     {
       id: 'start-review',
-      title: t.commandPalette?.startReview || 'Bắt đầu ôn tập Spaced Repetition hôm nay',
+      title: t?.commandPalette?.startReview || "Start SRS Review",
       icon: Sparkles,
       action: () => { onClose(); onNavigate('review'); }
     },
     {
       id: 'ai-lab',
-      title: t.commandPalette?.openAiLab || 'Mở AI English Lab (Bóc tách câu & Sửa lỗi)',
+      title: t?.commandPalette?.openAiLab || "Open AI Lab",
       icon: BrainCircuit,
       action: () => { onClose(); onNavigate('ai-lab'); }
     },
     {
       id: 'study-timer',
-      title: t.commandPalette?.openTimer || 'Bấm giờ học chủ động & Xem bảng thống kê thời gian',
+      title: t?.commandPalette?.openTimer || "Open Timer",
       icon: Timer,
       action: () => { onClose(); onNavigate('timer'); }
     },
     {
       id: 'toggle-theme',
-      title: isDark ? (t.header?.themeLight || 'Chuyển sang Giao diện Sáng') : (t.header?.themeDark || 'Chuyển sang Giao diện Tối'),
+      title: isDark ? (t?.header?.themeLight || "Light Theme") : (t?.header?.themeDark || "Dark Theme"),
       icon: isDark ? Sun : Moon,
       action: () => { onToggleTheme(); }
     },
     {
       id: 'export-backup',
-      title: t.settings?.exportBtn || 'Sao lưu toàn bộ dữ liệu ra file JSON',
+      title: t?.settings?.backupBtn || "Backup (.json)",
       icon: Download,
       action: () => { onClose(); onExportBackup(); }
     }
@@ -127,7 +127,7 @@ export default function CommandPalette({
           <Search size={20} style={{ color: 'var(--accent-primary)' }} />
           <input
             type="text"
-            placeholder={t.commandPalette?.placeholder || "Tìm từ vựng, mẫu câu, bài đọc hoặc lệnh hành động... (Esc để đóng)"}
+            placeholder={t?.commandPalette?.placeholder || "Search words, patterns, articles... (Esc to close)"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -150,7 +150,7 @@ export default function CommandPalette({
           {filteredActions.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                {t.commandPalette?.actionsTitle || 'Hành Động Nhanh'}
+                {t?.commandPalette?.actionsTitle || "Quick Actions"}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredActions.map(a => {
@@ -188,7 +188,7 @@ export default function CommandPalette({
           {filteredWords.length > 0 && (
             <div style={{ marginBottom: '1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                {t.nav?.vocab || 'Từ Vựng'}
+                {t?.nav?.vocab || "Vocab"}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredWords.map(w => (
@@ -224,7 +224,7 @@ export default function CommandPalette({
           {filteredPatterns.length > 0 && (
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0 0.5rem' }}>
-                {t.nav?.patterns || 'Mẫu Câu'}
+                {t?.nav?.patterns || "Patterns"}
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.35rem' }}>
                 {filteredPatterns.map(p => (
@@ -268,7 +268,7 @@ export default function CommandPalette({
           fontSize: '0.75rem',
           color: 'var(--text-muted)'
         }}>
-          <span>{t.commandPalette?.shortcutTip || 'Mẹo: Nhấn ⌘ + K (hoặc Ctrl + K) bất cứ lúc nào để tìm kiếm'}</span>
+          <span>{t?.commandPalette?.shortcutTip || "Tip: Press ⌘+K or Ctrl+K anytime for quick search"}</span>
           <span>LinguaVault Pro Max</span>
         </div>
       </div>

@@ -14,6 +14,15 @@ function slugify(text) {
     .slice(0, 32);
 }
 
+export const SYSTEM_CATEGORY_IDS = new Set([
+  'cause_effect', 'purpose', 'condition', 'concession', 'contrast',
+  'comparison', 'exception', 'emphasis', 'advice', 'speculation',
+  'opinion', 'addition', 'example', 'clarification', 'transition',
+  'sequence', 'conclusion', 'request', 'definition', 'counter_argument',
+  'agreement', 'disagreement', 'problem_solution', 'evaluation',
+  'degree_extent'
+]);
+
 export const patternCategoryController = {
   // 1. Get all pattern categories with dynamic patterns count
   getAllCategories: (req, res) => {
@@ -39,6 +48,7 @@ export const patternCategoryController = {
 
       const enriched = (categories || []).map(c => ({
         ...c,
+        is_system: SYSTEM_CATEGORY_IDS.has(c.id),
         patterns_count: countMap[c.id] || 0
       }));
 
@@ -48,7 +58,7 @@ export const patternCategoryController = {
       // Resilient fallback: return default categories with 0 count rather than breaking the UI
       res.json({
         success: true,
-        data: defaultPatternCategories.map(c => ({ ...c, patterns_count: 0 }))
+        data: defaultPatternCategories.map(c => ({ ...c, is_system: true, patterns_count: 0 }))
       });
     }
   },
@@ -103,6 +113,10 @@ export const patternCategoryController = {
       const { id } = req.params;
       const { name, emoji, color, description } = req.body;
 
+      if (SYSTEM_CATEGORY_IDS.has(id)) {
+        return res.status(403).json({ success: false, error: "Chức năng câu hệ thống được cố định, không thể chỉnh sửa" });
+      }
+
       const category = db.prepare("SELECT * FROM pattern_categories WHERE id = ?").get(id);
       if (!category) {
         return res.status(404).json({ success: false, error: "Không tìm thấy chức năng" });
@@ -148,6 +162,10 @@ export const patternCategoryController = {
   deleteCategory: (req, res) => {
     try {
       const { id } = req.params;
+
+      if (SYSTEM_CATEGORY_IDS.has(id)) {
+        return res.status(403).json({ success: false, error: "Chức năng câu hệ thống được cố định, không thể xóa" });
+      }
 
       const category = db.prepare("SELECT * FROM pattern_categories WHERE id = ?").get(id);
       if (!category) {

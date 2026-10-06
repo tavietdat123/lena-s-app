@@ -164,7 +164,7 @@ export default function UserProfileDropdown({
             }}>
               <span style={{ color: 'var(--text-muted)' }}>{t.userMenu.routeLabel}</span>
               <span style={{ fontWeight: 800, color: 'var(--accent-primary)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                {nativeLabel} ➔ {targetLabel} <span title="Lộ trình học đã cố định" style={{ fontSize: '0.65rem' }}>🔒</span>
+                {nativeLabel} ➔ {targetLabel} <span title={t?.profileModal?.targetLockedNote || "Track is locked to account"} style={{ fontSize: '0.65rem' }}>🔒</span>
               </span>
             </div>
 
@@ -180,7 +180,7 @@ export default function UserProfileDropdown({
               border: '1px solid var(--border-color)'
             }}>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                {uiLang === 'ru' ? 'Язык app:' : uiLang === 'en' ? 'App Lang:' : 'Ngôn ngữ app:'}
+                {t?.userMenu?.appLang || "App Language:"}
               </span>
               <div style={{ display: 'flex', gap: '3px' }}>
                 {[

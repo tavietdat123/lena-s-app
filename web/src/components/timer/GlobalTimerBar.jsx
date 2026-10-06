@@ -34,9 +34,9 @@ export default function GlobalTimerBar() {
   const isBreak = timerPhase === 'break';
   const meta = getActivityMeta(selectedActivity, customActivityTitle);
   const badgeLabel = isPomodoroCompleted
-    ? (t.timer?.autoSaved || 'Đã tự động lưu')
+    ? (t?.timer?.autoSaved || "Pomodoro session auto-saved")
     : (isBreak 
-        ? (scheduleCycle ? `Nghỉ (Hiệp ${scheduleCycle.currentCycle})` : (t.timer?.breakBadge || 'Nghỉ giữa giờ')) 
+        ? (scheduleCycle ? `${t?.timer?.breakBadge || "Break"} (${t?.timer?.cycleWord || "Round"} ${scheduleCycle.currentCycle})` : (t?.timer?.breakBadge || "Break")) 
         : (customActivityTitle?.trim() || meta.label));
   const badgeEmoji = isPomodoroCompleted ? '✅' : (isBreak ? '☕' : meta.emoji);
   const badgeColor = isPomodoroCompleted ? '#16a34a' : (isBreak ? '#10b981' : meta.color);
@@ -123,7 +123,7 @@ export default function GlobalTimerBar() {
             onClick={handleTogglePlay}
             className="btn-icon"
             style={{ width: '28px', height: '28px', background: 'var(--bg-tertiary)', borderRadius: '50%' }}
-            title={isRunning ? 'Tạm dừng' : 'Tiếp tục'}
+            title={isRunning ? (t?.timer?.pauseBtn || "Pause") : (t?.timer?.resumeBtn || "Resume")}
           >
             {isRunning ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
           </button>
@@ -134,7 +134,7 @@ export default function GlobalTimerBar() {
           onClick={() => navigate('/timer')}
           className="btn-icon"
           style={{ width: '28px', height: '28px', background: 'var(--bg-tertiary)', borderRadius: '50%' }}
-          title="Mở đồng hồ bấm giờ"
+          title={t?.timer?.title || "Study Timer Hub"}
         >
           <Maximize2 size={13} />
         </button>
@@ -144,7 +144,7 @@ export default function GlobalTimerBar() {
           onClick={() => setIsMinimized(true)}
           className="btn-icon"
           style={{ width: '24px', height: '24px', color: 'var(--text-muted)' }}
-          title="Ẩn thanh bấm giờ"
+          title={t?.common?.close || "Close"}
         >
           <X size={12} />
         </button>

@@ -106,20 +106,26 @@ export default function ActivityHistoryChart({
   const maxReviews = Math.max(10, ...days.map(d => d.reviews_count || 0));
 
   const formatHoursAndMins = (minutes) => {
-    if (!minutes || minutes <= 0) return '0 phút';
+    if (!minutes || minutes <= 0) return uiLang === 'ru' ? '0 мин' : uiLang === 'vi' ? '0p' : '0m';
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
-    if (h > 0) {
-      return `${h} giờ ${m > 0 ? `${m} phút` : ''}`.trim();
+    if (uiLang === 'ru') {
+      if (h > 0) return `${h} ч ${m > 0 ? `${m} мин` : ''}`.trim();
+      return `${m} мин`;
     }
-    return `${m} phút`;
+    if (uiLang === 'vi') {
+      if (h > 0) return `${h}h ${m > 0 ? `${m}p` : ''}`.trim();
+      return `${m}p`;
+    }
+    if (h > 0) return `${h}h ${m > 0 ? `${m}m` : ''}`.trim();
+    return `${m}m`;
   };
 
   const periodOptions = [
-    { key: 'week', label: t.activityChart?.thisWeek || 'Tuần Này', badge: t.activityChart?.thisWeekBadge || '7 ngày', icon: CalendarDays },
-    { key: 'month', label: t.activityChart?.thisMonth || 'Tháng Này', badge: t.activityChart?.thisMonthBadge || 'Tháng hiện tại', icon: Calendar },
-    { key: 'last30', label: t.activityChart?.last30Days || '30 Ngày Qua', badge: t.activityChart?.last30Badge || '30 ngày', icon: TrendingUp },
-    { key: 'all', label: t.activityChart?.allTime || 'Tổng Thời Gian', badge: t.activityChart?.allTimeBadge || 'Từ trước đến giờ', icon: Flame }
+    { key: 'week', label: t?.activityChart?.thisWeek || "This Week", badge: t?.activityChart?.thisWeekBadge || "7 days", icon: CalendarDays },
+    { key: 'month', label: t?.activityChart?.thisMonth || "This Month", badge: t?.activityChart?.thisMonthBadge || "Current", icon: Calendar },
+    { key: 'last30', label: t?.activityChart?.last30Days || "Last 30 Days", badge: t?.activityChart?.last30Badge || "30 days", icon: TrendingUp },
+    { key: 'all', label: t?.activityChart?.allTime || "All Time", badge: t?.activityChart?.allTimeBadge || "Lifetime", icon: Flame }
   ];
 
   return (
@@ -157,7 +163,7 @@ export default function ActivityHistoryChart({
               <BarChart3 size={20} />
             </div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-              {title || t.activityChart?.title || 'Biểu Đồ Hoạt Động & Thời Gian Học'}
+              {title || t?.activityChart?.title || "Activity Chart"}
             </h3>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.35rem', margin: 0 }}>
@@ -257,7 +263,7 @@ export default function ActivityHistoryChart({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              TỔNG THỜI LƯỢNG
+              {t.activityChart?.totalDuration || 'TOTAL DURATION'}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2 }}>
               {formatHoursAndMins(summary.total_minutes || 0)}
@@ -290,10 +296,10 @@ export default function ActivityHistoryChart({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              NGÀY HOẠT ĐỘNG
+              {t.activityChart?.activeDays || 'ACTIVE DAYS'}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f59e0b', lineHeight: 1.2 }}>
-              {summary.active_days || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>/ {summary.total_days || days.length} ngày</span>
+              {summary.active_days || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>/ {summary.total_days || days.length} {t.common?.days || 'days'}</span>
             </div>
           </div>
         </div>
@@ -323,10 +329,10 @@ export default function ActivityHistoryChart({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              TRUNG BÌNH MỖI NGÀY
+              {t.activityChart?.dailyAvg || 'DAILY AVERAGE'}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', lineHeight: 1.2 }}>
-              {summary.avg_minutes || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>phút / ngày</span>
+              {summary.avg_minutes || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>{t.timer?.minutesUnit || 'm'} / {t.common?.day || 'day'}</span>
             </div>
           </div>
         </div>
@@ -356,10 +362,10 @@ export default function ActivityHistoryChart({
           </div>
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              ÔN TẬP & PHIÊN HỌC
+              {t.activityChart?.reviewsAndSessions || 'REVIEWS & SESSIONS'}
             </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#8b5cf6', lineHeight: 1.2 }}>
-              {summary.reviews_count || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>lượt ({summary.sessions_count || 0} phiên)</span>
+              {summary.reviews_count || 0} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>({summary.sessions_count || 0} {t.timer?.sessionsUnit || 'sessions'})</span>
             </div>
           </div>
         </div>
@@ -390,10 +396,10 @@ export default function ActivityHistoryChart({
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                NGÀY KỶ LỤC ({summary.peak_day.shortDate})
+                {t.activityChart?.peakDay || 'PEAK DAY'} ({summary.peak_day.shortDate})
               </div>
               <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ec4899', lineHeight: 1.2 }}>
-                {summary.peak_day.minutes > 0 ? `${summary.peak_day.minutes} phút` : `${summary.peak_day.reviews} lượt ôn`}
+                {summary.peak_day.minutes > 0 ? `${summary.peak_day.minutes} ${t.timer?.minutesUnit || 'm'}` : `${summary.peak_day.reviews} ${t.review?.card || 'cards'}`}
               </div>
             </div>
           </div>
@@ -413,7 +419,7 @@ export default function ActivityHistoryChart({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
             <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
-            <span>Hiển thị cột biểu đồ theo:</span>
+            <span>{t.activityChart?.metricToggle || 'Show chart by:'}</span>
           </div>
 
           <div style={{

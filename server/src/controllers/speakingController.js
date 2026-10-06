@@ -11,12 +11,24 @@ export const speakingController = {
   // GET /api/speaking/prompts
   getPrompts: async (req, res) => {
     try {
-      const { category, target_language } = req.query;
+      const { category, target_language, fluent_language } = req.query;
       const targetLang = target_language || req.user?.target_language || 'en';
+      const fluentLang = fluent_language || req.user?.native_language || (targetLang === 'vi' ? 'en' : 'vi');
+
       let data = SPEAKING_PROMPTS.filter(p => (p.target_language || 'en') === targetLang);
       if (category) {
         data = data.filter(p => p.category === category);
       }
+
+      const isEnFluent = fluentLang === 'en';
+      data = data.map(p => ({
+        ...p,
+        title: isEnFluent ? (p.title_en || p.title) : (p.title_vi || p.title),
+        topic: isEnFluent ? (p.topic_en || p.topic) : (p.topic_vi || p.topic),
+        tips: isEnFluent ? (p.tips_en || p.tips) : (p.tips_vi || p.tips),
+        sampleAudioHint: isEnFluent ? (p.sampleAudioHint_en || p.sampleAudioHint) : (p.sampleAudioHint_vi || p.sampleAudioHint)
+      }));
+
       res.json({ success: true, data });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -26,8 +38,10 @@ export const speakingController = {
   // POST /api/speaking/analyze-read-aloud
   analyzeReadAloud: async (req, res) => {
     try {
-      const { targetText, spokenText, audioData, duration } = req.body;
-      const result = await analyzeReadAloud({ targetText, spokenText, audioData, duration });
+      const { targetText, spokenText, audioData, duration, target_language, fluent_language } = req.body;
+      const targetLang = target_language || req.user?.target_language || 'en';
+      const fluentLang = fluent_language || req.user?.native_language || (targetLang === 'vi' ? 'en' : 'vi');
+      const result = await analyzeReadAloud({ targetText, spokenText, audioData, duration, targetLang, fluentLang });
       const userId = req.user?.id || 'admin_master_user_id';
       
       // Save to speaking_history
@@ -56,8 +70,10 @@ export const speakingController = {
   // POST /api/speaking/analyze-qa
   analyzeQA: async (req, res) => {
     try {
-      const { question, topic, spokenText, audioData } = req.body;
-      const result = await analyzeQASpeaking({ question, topic, spokenText, audioData });
+      const { question, topic, spokenText, audioData, target_language, fluent_language } = req.body;
+      const targetLang = target_language || req.user?.target_language || 'en';
+      const fluentLang = fluent_language || req.user?.native_language || (targetLang === 'vi' ? 'en' : 'vi');
+      const result = await analyzeQASpeaking({ question, topic, spokenText, audioData, targetLang, fluentLang });
       const userId = req.user?.id || 'admin_master_user_id';
 
       // Save to speaking_history

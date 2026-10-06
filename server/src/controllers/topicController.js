@@ -1,26 +1,60 @@
 import { db } from '../db/database.js';
 import crypto from 'node:crypto';
 
+export const SYSTEM_TOPIC_IDS = new Set([
+  'daily', 'social', 'food', 'travel', 'work', 'education', 'health', 'art',
+  'sports', 'shopping', 'business', 'finance', 'nature', 'science', 'tech',
+  'mindset', 'society', 'ielts',
+  'vsl_tones', 'vsl_pronouns', 'vsl_cuisine', 'vsl_bargaining',
+  'vsl_workplace', 'vsl_reduplication', 'vsl_sino_vietnamese', 'vsl_idioms'
+]);
+
 export const topicController = {
   // 1. Get all topics with live words count
   getAllTopics: (req, res) => {
     try {
-      const topics = db.prepare('SELECT * FROM topics ORDER BY created_at ASC').all();
+      const targetLang = req.query.target_language;
+      let topicsQuery = 'SELECT * FROM topics';
+      const topicsParams = [];
+      if (targetLang && targetLang !== 'all') {
+        topicsQuery += " WHERE (target_language = ? OR target_language = 'all' OR target_language IS NULL)";
+        topicsParams.push(targetLang);
+      }
+      topicsQuery += ' ORDER BY created_at ASC';
+      const topics = db.prepare(topicsQuery).all(...topicsParams);
       
       // Calculate word count for each topic
-      const wordsCountStmt = db.prepare(`
-        SELECT topic_id, COUNT(*) as count 
-        FROM words 
-        GROUP BY topic_id
-      `);
-      const counts = wordsCountStmt.all();
+      let countQuery = 'SELECT topic_id, COUNT(*) as count FROM words';
+      const countParams = [];
+      if (targetLang && targetLang !== 'all') {
+        if (targetLang === 'vi') {
+          countQuery += ' WHERE target_language = ?';
+          countParams.push('vi');
+        } else if (targetLang === 'en') {
+          countQuery += ' WHERE (target_language = ? OR target_language IS NULL)';
+          countParams.push('en');
+        }
+      }
+      countQuery += ' GROUP BY topic_id';
+      const counts = db.prepare(countQuery).all(...countParams);
       const countMap = {};
       counts.forEach(c => {
         if (c.topic_id) countMap[c.topic_id] = c.count;
       });
 
       // Also count words matched by tag name for backward compatibility
-      const allWords = db.prepare('SELECT id, topic_id, tags FROM words').all();
+      let allWordsQuery = 'SELECT id, topic_id, tags FROM words';
+      const allWordsParams = [];
+      if (targetLang && targetLang !== 'all') {
+        if (targetLang === 'vi') {
+          allWordsQuery += ' WHERE target_language = ?';
+          allWordsParams.push('vi');
+        } else if (targetLang === 'en') {
+          allWordsQuery += ' WHERE (target_language = ? OR target_language IS NULL)';
+          allWordsParams.push('en');
+        }
+      }
+      const allWords = db.prepare(allWordsQuery).all(...allWordsParams);
 
       const enrichedTopics = topics.map(t => {
         let directCount = countMap[t.id] || 0;
@@ -38,6 +72,7 @@ export const topicController = {
 
         return {
           ...t,
+          is_system: SYSTEM_TOPIC_IDS.has(t.id),
           words_count: Math.max(directCount, tagMatchedWords.length)
         };
       });
@@ -89,6 +124,10 @@ export const topicController = {
       const { id } = req.params;
       const { name, emoji, color, description } = req.body;
 
+      if (SYSTEM_TOPIC_IDS.has(id)) {
+        return res.status(403).json({ success: false, error: 'Chủ đề hệ thống được cố định, không thể chỉnh sửa' });
+      }
+
       const topic = db.prepare('SELECT * FROM topics WHERE id = ?').get(id);
       if (!topic) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy chủ đề' });
@@ -129,6 +168,10 @@ export const topicController = {
     try {
       const { id } = req.params;
       
+      if (SYSTEM_TOPIC_IDS.has(id)) {
+        return res.status(403).json({ success: false, error: 'Chủ đề hệ thống được cố định, không thể xóa' });
+      }
+
       const topic = db.prepare('SELECT * FROM topics WHERE id = ?').get(id);
       if (!topic) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy chủ đề' });

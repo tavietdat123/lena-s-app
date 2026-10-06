@@ -185,3 +185,5 @@ Dự án đã tích hợp sẵn GitHub Actions CI/CD để tự động build fi
 
 ## 📄 Bản Quyền & Giấy Phép
 Dự án được xây dựng và phát triển dưới giấy phép **MIT License**. Mọi quyền riêng tư dữ liệu thuộc về người sử dụng cục bộ.
+
+# lena-s-app

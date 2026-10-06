@@ -6,12 +6,22 @@ export const noteController = {
   getAllNotes: (req, res) => {
     try {
       const userId = req.user?.id || 'admin_master_user_id';
-      const { search, topic } = req.query;
+      const { search, topic, target_language } = req.query;
       let query = `
         SELECT * FROM notes 
         WHERE (user_id = ? OR user_id IS NULL OR user_id = 'admin_master_user_id')
       `;
       const params = [userId];
+
+      if (target_language) {
+        if (target_language === 'en') {
+          query += ' AND (target_language = ? OR target_language IS NULL)';
+          params.push('en');
+        } else {
+          query += ' AND target_language = ?';
+          params.push(target_language);
+        }
+      }
 
       if (search) {
         query += ' AND (title LIKE ? OR content LIKE ?)';
@@ -74,7 +84,8 @@ export const noteController = {
         content,
         topic = 'General',
         tags = [],
-        linked_words = []
+        linked_words = [],
+        target_language = 'en'
       } = req.body;
 
       if (!title || !content) {
@@ -86,9 +97,9 @@ export const noteController = {
 
       const stmt = db.prepare(`
         INSERT INTO notes (
-          id, title, content, topic, tags, linked_words, created_at, updated_at, user_id
+          id, title, content, topic, tags, linked_words, created_at, updated_at, user_id, target_language
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `);
 
@@ -101,10 +112,11 @@ export const noteController = {
         JSON.stringify(linked_words),
         now,
         now,
-        userId
+        userId,
+        target_language
       );
 
-      res.status(201).json({ success: true, data: { id, title, topic } });
+      res.status(201).json({ success: true, data: { id, title, topic, target_language } });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -115,12 +127,14 @@ export const noteController = {
     try {
       const { id } = req.params;
       const userId = req.user?.id || 'admin_master_user_id';
-      const { title, content, topic, tags = [], linked_words = [] } = req.body;
+      const { title, content, topic, tags = [], linked_words = [], target_language } = req.body;
       const now = new Date().toISOString();
 
       const stmt = db.prepare(`
         UPDATE notes SET
-          title = ?, content = ?, topic = ?, tags = ?, linked_words = ?, updated_at = ?
+          title = ?, content = ?, topic = ?, tags = ?, linked_words = ?,
+          target_language = COALESCE(?, target_language, 'en'),
+          updated_at = ?
         WHERE id = ? AND (user_id = ? OR user_id IS NULL OR ? = 'admin_master_user_id')
       `);
 
@@ -130,6 +144,7 @@ export const noteController = {
         topic || 'General',
         JSON.stringify(tags),
         JSON.stringify(linked_words),
+        target_language || null,
         now,
         id,
         userId,
