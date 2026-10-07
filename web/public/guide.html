@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Руководство пользователя — LinguaVault</title>
+  <title>Полное руководство пользователя — LinguaVault V2</title>
   <style>
     :root {
       --primary: #0284c7;
@@ -40,7 +40,7 @@
     }
 
     .container {
-      max-width: 860px;
+      max-width: 900px;
       margin: 0 auto;
       padding: 2.5rem 1.25rem 5rem 1.25rem;
     }
@@ -65,7 +65,7 @@
     .header-banner p {
       font-size: 1.1rem;
       opacity: 0.92;
-      max-width: 650px;
+      max-width: 700px;
       line-height: 1.5;
     }
 
@@ -90,29 +90,32 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 1.5rem 2rem;
+      padding: 1.75rem 2rem;
       margin-bottom: 2.5rem;
       box-shadow: var(--shadow);
     }
 
     .toc h2 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 1.25rem;
       color: var(--primary);
     }
 
-    .toc ol {
-      padding-left: 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 0.75rem 1.5rem;
     }
 
     .toc a {
       color: var(--text-main);
       text-decoration: none;
       font-weight: 500;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
       transition: color 0.15s;
     }
     .toc a:hover { color: var(--primary); text-decoration: underline; }
@@ -136,10 +139,17 @@
       color: var(--text-main);
     }
 
+    .section h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 1.25rem 0 0.65rem 0;
+      color: var(--primary);
+    }
+
     .section p {
       font-size: 1rem;
       color: var(--text-main);
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
     }
 
     .section ul, .section ol {
@@ -147,7 +157,21 @@
       margin-bottom: 1.25rem;
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
+      gap: 0.5rem;
+    }
+
+    .sub-item-card {
+      background: var(--bg-page);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .sub-item-card strong {
+      color: var(--primary);
+      display: block;
+      margin-bottom: 0.2rem;
     }
 
     .screenshot-box {
@@ -163,21 +187,6 @@
       width: 100%;
       height: auto;
       display: block;
-      transition: transform 0.25s ease;
-    }
-
-    .badge-step {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #ffffff;
-      font-size: 0.9rem;
-      font-weight: 700;
-      flex-shrink: 0;
     }
 
     .tip-box {
@@ -228,200 +237,223 @@
 <body>
 
   <div class="container">
-    <!-- Header -->
     <div class="header-banner">
       <button class="print-btn" onclick="window.print()">🖨️ Распечатать / В PDF</button>
-      <h1>🌸 LinguaVault</h1>
-      <p>Простая и наглядная инструкция: как учить иностранный язык легко, естественно и без зубрёжки.</p>
+      <h1>🌸 LinguaVault V2</h1>
+      <p>Полное интерактивное руководство: все 15 разделов и подробное описание каждой подвкладки.</p>
     </div>
 
     <!-- Table of Contents -->
     <div class="toc">
-      <h2>Содержание руководства</h2>
-      <ol>
-        <li><a href="#step1">1. Как войти в приложение и выбрать русский язык</a></li>
-        <li><a href="#step2">2. Главная страница — твой план на сегодня</a></li>
-        <li><a href="#step3">3. Как учить и повторять слова по карточкам</a></li>
-        <li><a href="#step4">4. Как замедлить или настроить скорость звука</a></li>
-        <li><a href="#step5">5. Словарь — твоя личная копилка знаний</a></li>
-        <li><a href="#step6">6. Умное чтение — чтение статей с переводом</a></li>
-        <li><a href="#step7">7. Лаборатория речи — тренировка произношения</a></li>
-        <li><a href="#step8">8. AI Истории — запоминание слов через сказки</a></li>
-        <li><a href="#step9">9. Золотые правила для лёгкого обучения (10 мин в день)</a></li>
-      </ol>
+      <h2>Содержание всех 15 модулей</h2>
+      <div class="toc-grid">
+        <a href="#m1">📊 1. Главная панель (Dashboard)</a>
+        <a href="#m2">📚 2. Словарь (Vocab Vault)</a>
+        <a href="#m3">🧩 3. Грамматика (Patterns)</a>
+        <a href="#m4">🧠 4. Повторение (SRS Review)</a>
+        <a href="#m5">🎯 5. Тестирование (Quiz Center)</a>
+        <a href="#m6">🎙️ 6. Лаборатория речи (Speaking)</a>
+        <a href="#m7">📖 7. Умное чтение (Smart Reader)</a>
+        <a href="#m8">🤖 8. AI Лаборатория (AI Lab)</a>
+        <a href="#m9">⏱️ 9. Таймер обучения (Timer)</a>
+        <a href="#m10">🔀 10. Двойной трек (CEFR ⇄ VSL)</a>
+        <a href="#m11">🔊 11. Скорость аудио (Audio Popover)</a>
+        <a href="#m12">👤 12. Профиль и геймификация</a>
+        <a href="#m13">👁️ 13. Портал куратора (Supervisor)</a>
+        <a href="#m14">⌨️ 14. Быстрый поиск (⌘K)</a>
+        <a href="#m15">💾 15. Резервные копии (Backup)</a>
+      </div>
     </div>
 
-    <!-- 1. Вход -->
-    <section id="step1" class="section">
-      <h2><span class="badge-step">1</span> Вход в приложение и русский язык</h2>
-      <p>Когда ты открываешь приложение, перед тобой появится окно входа:</p>
-      
+    <!-- 1. Dashboard -->
+    <section id="m1" class="section">
+      <h2>📊 1. Главная панель (Dashboard)</h2>
+      <p>Ориентир твоего ежедневного учебного плана.</p>
       <div class="screenshot-box">
-        <img src="docs/images/01_auth_ru.png" alt="Вход в приложение">
+        <img src="docs/images/02_dashboard_ru.png" alt="Главная панель">
       </div>
-
-      <ul>
-        <li><strong>Выбор языка:</strong> В правом верхнем углу нажми <strong>🇷🇺 Русский</strong>. Все кнопки сразу переведутся на русский язык.</li>
-        <li><strong>Вход:</strong>
-          <ul>
-            <li>Логин: <code>admin</code> (или твой логин)</li>
-            <li>Пароль: <code>123456</code></li>
-          </ul>
-        </li>
-        <li>Нажми синюю кнопку <strong>«Войти»</strong>.</li>
-      </ul>
-      <div class="tip-box">
-        💡 <strong>Совет:</strong> Нажми «Сохранить пароль» в браузере, чтобы в следующий раз заходить сразу в один клик!
+      <h3>Все подблоки экрана:</h3>
+      <div class="sub-item-card">
+        <strong>🔥 Серия дней (Streak):</strong> Счётчик дней непрерывных занятий без пропусков.
+      </div>
+      <div class="sub-item-card">
+        <strong>📚 К повторению сегодня (Due Today):</strong> Количество карточек, готовых к тренировке прямо сейчас.
+      </div>
+      <div class="sub-item-card">
+        <strong>🏆 Освоено (Mastered):</strong> Слова, перешедшие в долговременную память.
+      </div>
+      <div class="sub-item-card">
+        <strong>⭐ Опыт и уровень (XP Level):</strong> Прогресс-бар твоего текущего статуса (например, <em>Lv.4 Vocab Explorer</em>).
+      </div>
+      <div class="sub-item-card">
+        <strong>📈 График активности (Activity Chart):</strong> История занятий и минут по дням недели.
+      </div>
+      <div class="sub-item-card">
+        <strong>📝 Недавние слова (Recent Words):</strong> Список последних слов с кнопками быстрой озвучки.
       </div>
     </section>
 
-    <!-- 2. Главная -->
-    <section id="step2" class="section">
-      <h2><span class="badge-step">2</span> Главная страница — твой план на день</h2>
-      <p>После входа откроется главная панель с твоими успехами:</p>
-      
-      <div class="screenshot-box">
-        <img src="docs/images/02_dashboard_ru.png" alt="Главная страница Dashboard">
-      </div>
-
-      <ul>
-        <li><strong>🔥 Серия дней (Streak):</strong> Показывает, сколько дней подряд ты занимаешься. Старайся заходить каждый день хотя бы на 5 минут, чтобы огонёк не угас!</li>
-        <li><strong>📚 К повторению сегодня (Due):</strong> Количество карточек, готовых к повторению прямо сейчас.</li>
-        <li><strong>🚀 Кнопка «Начать повторение»:</strong> Нажми на неё, чтобы сразу перейти к быстрой тренировке слов.</li>
-      </ul>
-    </section>
-
-    <!-- 3. Карточки -->
-    <section id="step3" class="section">
-      <h2><span class="badge-step">3</span> Как учить слова по карточкам</h2>
-      <p>Приложение использует умный алгоритм памяти: простые слова появляются редко, а сложные — чаще, пока не запомнятся навсегда.</p>
-      
-      <div class="screenshot-box">
-        <img src="docs/images/07_srs_review_ru.png" alt="Карточки повторения">
-      </div>
-
-      <ol>
-        <li>Посмотри на слово на карточке и вспомни его значение про себя.</li>
-        <li>Нажми <strong>«Показать ответ»</strong> — карточка перевернется с переводом и озвучкой.</li>
-        <li>Честно нажми одну из 4 кнопок оценки:</li>
-      </ol>
-
-      <div class="btn-rating-grid">
-        <div class="rating-card rating-again">
-          <span>🔴 Снова</span>
-          <small>Совсем забыла. Слово вернется в этой же тренировке.</small>
-        </div>
-        <div class="rating-card rating-hard">
-          <span>🟠 Трудно</span>
-          <small>Вспомнила с трудом. Повторится чуть раньше.</small>
-        </div>
-        <div class="rating-card rating-good">
-          <span>🟢 Хорошо</span>
-          <small>Вспомнила уверенно! Самая частая кнопка.</small>
-        </div>
-        <div class="rating-card rating-easy">
-          <span>🔵 Легко</span>
-          <small>Знаешь идеально. Отложится на долгий срок.</small>
-        </div>
-      </div>
-
-      <div class="tip-box">
-        🌟 <strong>Главное правило:</strong> Не бойся нажимать кнопку «Снова» — ошибки помогают мозгу выстроить самую надежную память!
-      </div>
-    </section>
-
-    <!-- 4. Скорость аудио -->
-    <section id="step4" class="section">
-      <h2><span class="badge-step">4</span> Настройка скорости и акцента диктора</h2>
-      <p>Если диктор говорит слишком быстро, речь можно замедлить до комфортного темпа:</p>
-      
-      <div class="screenshot-box">
-        <img src="docs/images/03_audio_speed_ru.png" alt="Скорость звука">
-      </div>
-
-      <ul>
-        <li>Внизу бокового меню нажми на значок <strong>1x</strong>.</li>
-        <li>Выбери кнопку <strong>0.75x</strong> или передвинь ползунок (для начинающих идеальна скорость <code>0.8x</code>).</li>
-        <li>Выбери акцент (🇺🇸 Американский или 🇬🇧 Британский).</li>
-        <li>Нажми синюю круглую кнопку, чтобы сразу проверить звучание тестовой фразы!</li>
-      </ul>
-    </section>
-
-    <!-- 5. Словарь -->
-    <section id="step5" class="section">
-      <h2><span class="badge-step">5</span> Словарь (Vocab Vault) — копилка слов</h2>
-      <p>В этом разделе хранятся все изученные слова:</p>
-      
+    <!-- 2. Vocab Vault -->
+    <section id="m2" class="section">
+      <h2>📚 2. Словарь (Vocab Vault) — все фильтры и подвкладки</h2>
+      <p>Центральная база всех твоих слов.</p>
       <div class="screenshot-box">
         <img src="docs/images/04_vocab_vault_ru.png" alt="Словарь">
       </div>
-
+      <h3>Подвкладки фильтрации:</h3>
       <ul>
-        <li><strong>Поиск:</strong> Введи слово на русском или английском, чтобы найти его.</li>
-        <li><strong>Темы:</strong> Фильтруй слова по темам (Семья, Путешествия, Еда, Работа).</li>
-        <li><strong>Динамик 🔊:</strong> Нажимай на значок звука, чтобы слушать правильное произношение.</li>
-        <li><strong>Кнопка «+»:</strong> Нажми синюю кнопку, чтобы добавить новое интересное слово.</li>
+        <li><strong>Все слова (All):</strong> Полный список слов.</li>
+        <li><strong>Требуют повторения (Due):</strong> Только карточки, готовые к тренировке.</li>
+        <li><strong>В процессе (Learning):</strong> Слова на этапе активного освоения.</li>
+        <li><strong>Освоены (Mastered):</strong> Слова, закрепленные на долгий срок.</li>
+        <li><strong>Избранное (Starred):</strong> Отмеченные тобой звёздочкой.</li>
       </ul>
-    </section>
-
-    <!-- 6. Чтение -->
-    <section id="step6" class="section">
-      <h2><span class="badge-step">6</span> Умное чтение (Smart Reader)</h2>
-      <p>Читай короткие интересные тексты с мгновенным переводом:</p>
-      
-      <div class="screenshot-box">
-        <img src="docs/images/05_smart_reader_ru.png" alt="Чтение текстов">
+      <h3>Фильтры:</h3>
+      <p>Выпадающие списки тем (<em>Семья, Путешествия, Еда, Работа, Здоровье</em>) и частей речи (<em>Существительные, Глаголы, Прилагательные, Фразы</em>).</p>
+      <h3>Всплывающее окно добавления слова (Quick Add):</h3>
+      <div class="sub-item-card">
+        <strong>Вкладка «Лицевая сторона» (Front):</strong> Ввод слова, автоматическая транскрипция IPA, аудио и тема.
       </div>
-
-      <ul>
-        <li><strong>Перевод по клику:</strong> Не знаешь слово? Просто нажми на него — сверху появится перевод!</li>
-        <li><strong>Слушание:</strong> Нажми на динамик рядом с любым предложением, чтобы диктор прочитал его вслух.</li>
-      </ul>
-    </section>
-
-    <!-- 7. Говорение -->
-    <section id="step7" class="section">
-      <h2><span class="badge-step">7</span> Лаборатория речи (Speaking Lab)</h2>
-      <p>Тренируйся говорить красиво и уверенно:</p>
-      
-      <div class="screenshot-box">
-        <img src="docs/images/06_speaking_lab_ru.png" alt="Тренировка речи">
+      <div class="sub-item-card">
+        <strong>Вкладка «Оборотная сторона» (Back):</strong> Перевод (русский/вьетнамский/английский), контекстный пример и заметки.
       </div>
+    </section>
 
+    <!-- 3. Sentence Patterns -->
+    <section id="m3" class="section">
+      <h2>🧩 3. Грамматические конструкции (Sentence Patterns)</h2>
+      <p>Изучение грамматики через готовые речевые блоки и формулы.</p>
+      <h3>Категории грамматических подвкладок:</h3>
+      <div class="sub-item-card"><strong>⚡ Причина и следствие (Cause & Effect):</strong> Due to, Because of, As a result.</div>
+      <div class="sub-item-card"><strong>⚖️ Контраст и уступка (Contrast & Concession):</strong> Although, Despite, In contrast.</div>
+      <div class="sub-item-card"><strong>❓ Условие и гипотеза (Condition):</strong> Unless, Provided that, In case.</div>
+      <div class="sub-item-card"><strong>🎯 Цель (Purpose & Goal):</strong> In order to, So that, With a view to.</div>
+      <div class="sub-item-card"><strong>⏳ Время и последовательность (Time & Sequence):</strong> Prior to, Subsequently.</div>
+    </section>
+
+    <!-- 4. SRS Review -->
+    <section id="m4" class="section">
+      <h2>🧠 4. Центр интервального повторения (SRS Review)</h2>
+      <p>Научный алгоритм SuperMemo SM-2 для сохранения слов навсегда.</p>
+      <div class="screenshot-box">
+        <img src="docs/images/07_srs_review_ru.png" alt="SRS Review">
+      </div>
+      <h3>4 кнопки оценки памяти:</h3>
+      <div class="btn-rating-grid">
+        <div class="rating-card rating-again"><span>🔴 Снова</span><small>Забыла. Появится в этой же сессии.</small></div>
+        <div class="rating-card rating-hard"><span>🟠 Трудно</span><small>Вспомнила с трудом. Повторится раньше.</small></div>
+        <div class="rating-card rating-good"><span>🟢 Хорошо</span><small>Уверенный ответ! Самый частый выбор.</small></div>
+        <div class="rating-card rating-easy"><span>🔵 Легко</span><small>Знаешь идеально. Отложится надолго.</small></div>
+      </div>
+    </section>
+
+    <!-- 5. Quiz Center -->
+    <section id="m5" class="section">
+      <h2>🎯 5. Центр тестирования (Quiz Center) — 5 режимов</h2>
+      <div class="sub-item-card"><strong>1. Множественный выбор (Multiple Choice):</strong> Выбор перевода из 4 вариантов.</div>
+      <div class="sub-item-card"><strong>2. Заполнение пропусков (Fill in the Blank):</strong> Вставка слова в предложение.</div>
+      <div class="sub-item-card"><strong>3. Аудирование (Listening Challenge):</strong> Определение слова на слух.</div>
+      <div class="sub-item-card"><strong>4. Подбор контекста (Context Matching):</strong> Сопоставление слова с ситуацией.</div>
+      <div class="sub-item-card"><strong>5. Адаптивный AI Квиз:</strong> Индивидуальный тест ИИ по твоим сложным словам.</div>
+    </section>
+
+    <!-- 6. Speaking Lab -->
+    <section id="m6" class="section">
+      <h2>🎙️ 6. Лаборатория речи (Speaking Lab) — 3 режима</h2>
+      <div class="screenshot-box">
+        <img src="docs/images/06_speaking_lab_ru.png" alt="Speaking Lab">
+      </div>
+      <div class="sub-item-card"><strong>1. Чтение вслух (Read Aloud):</strong> Текст + подсказки по произношению (Pronunciation Tips) на русском + запись голоса.</div>
+      <div class="sub-item-card"><strong>2. Вопрос и ответ (Q&A):</strong> Разговорные вопросы с подсказками идей (Ideas hint).</div>
+      <div class="sub-item-card"><strong>3. Свободная практика (Custom):</strong> Ввод любого своего предложения для отработки.</div>
+    </section>
+
+    <!-- 7. Smart Reader -->
+    <section id="m7" class="section">
+      <h2>📖 7. Умное чтение (Smart Reader)</h2>
+      <div class="screenshot-box">
+        <img src="docs/images/05_smart_reader_ru.png" alt="Smart Reader">
+      </div>
       <ul>
-        <li><strong>Подсказки 💡:</strong> Читай советы по произношению на русском языке — они подскажут, где сделать ударение и как поставить язык.</li>
-        <li><strong>Микрофон 🎙️:</strong> Нажми на микрофон, произнеси фразу вслух и нажми стоп — система оценит твой результат!</li>
+        <li><strong>Интерактивный перевод:</strong> Нажми на любое слово в тексте для всплывающего перевода.</li>
+        <li><strong>Озвучка предложений:</strong> Диктор читает каждое предложение с чистым звуком.</li>
+        <li><strong>Подсветка слов:</strong> Слова из твоего словаря выделены прямо в тексте.</li>
       </ul>
     </section>
 
-    <!-- 8. AI Истории -->
-    <section id="step8" class="section">
-      <h2><span class="badge-step">8</span> Запоминание через сказки и истории (AI Lab)</h2>
-      <p>Искусственный интеллект помогает запомнить даже самые капризные слова:</p>
-      
+    <!-- 8. AI Lab -->
+    <section id="m8" class="section">
+      <h2>🤖 8. AI Лаборатория (AI Lab) — 2 подвкладки</h2>
       <div class="screenshot-box">
         <img src="docs/images/08_ai_lab_ru.png" alt="AI Lab">
       </div>
+      <div class="sub-item-card"><strong>Вкладка 1 — Spaced Memory Story:</strong> ИИ сочиняет короткий художественный рассказ, объединяющий изучаемые слова в увлекательный сюжет.</div>
+      <div class="sub-item-card"><strong>Вкладка 2 — Memory Weaver:</strong> Создание рифм, ярких ассоциаций и мнемонических образов для трудных слов.</div>
+    </section>
 
+    <!-- 9. Study Timer Hub -->
+    <section id="m9" class="section">
+      <h2>⏱️ 9. Таймер обучения (Study Timer Hub) — 4 подвкладки</h2>
+      <div class="sub-item-card"><strong>1. Вкладка Pomodoro:</strong> 25 минут фокуса + 5 минут отдыха.</div>
+      <div class="sub-item-card"><strong>2. Вкладка Секундомер:</strong> Свободный хронометраж времени учебы.</div>
+      <div class="sub-item-card"><strong>3. Вкладка Расписание и будильник:</strong> Напоминания и защита серии дней (Streak Saver).</div>
+      <div class="sub-item-card"><strong>4. Вкладка Журнал занятий:</strong> Точный отчет часов за неделю и месяц.</div>
+    </section>
+
+    <!-- 10. Dual Track -->
+    <section id="m10" class="section">
+      <h2>🔀 10. Двойной трек (CEFR Английский ⇄ VSL Вьетнамский)</h2>
+      <div class="screenshot-box">
+        <img src="docs/images/09_track_toggle_ru.png" alt="Track Switcher">
+      </div>
+      <p>Переключатель в верхнем заголовке (Header) мгновенно меняет образовательную программу:</p>
       <ul>
-        <li>Нажми <strong>«Сгенерировать историю»</strong>.</li>
-        <li>ИИ придумает увлекательный рассказ, в который искусно вплетены слова, которые ты учишь.</li>
-        <li>Историю можно прочитать и послушать в озвучке!</li>
+        <li>🇬🇧 <strong>CEFR Track:</strong> Английский язык (уровни A1, A2, B1, B2, C1, C2).</li>
+        <li>🇻🇳 <strong>VSL Track:</strong> Вьетнамский язык (Bậc 1, 2, 3, 4, 5, 6).</li>
       </ul>
     </section>
 
-    <!-- 9. Советы -->
-    <section id="step9" class="section">
-      <h2><span class="badge-step">9</span> Три секрета лёгкого обучения</h2>
+    <!-- 11. Audio Popover -->
+    <section id="m11" class="section">
+      <h2>🔊 11. Панель настройки скорости аудио (Audio Popover)</h2>
+      <div class="screenshot-box">
+        <img src="docs/images/03_audio_speed_ru.png" alt="Audio Speed">
+      </div>
       <ul>
-        <li><strong>10 минут каждый день лучше, чем 2 часа раз в неделю:</strong> Память любит короткие ежедневные касания.</li>
-        <li><strong>Занимайся в удовольствие:</strong> Повтори 15 карточек утром за чаем или в дороге.</li>
-        <li><strong>Радуйся успехам:</strong> Смотри на растущую серию дней (Streak) и свой уровень опыта!</li>
+        <li><strong>Плавная скорость:</strong> от 0.5x до 1.5x (рекомендуется 0.8x для новичков).</li>
+        <li><strong>Акценты:</strong> Американский (en-US), Британский (en-GB), Вьетнамский (vi-VN).</li>
+        <li><strong>Проверка звука:</strong> Тестовая кнопка прослушивания.</li>
       </ul>
+    </section>
+
+    <!-- 12. Profile -->
+    <section id="m12" class="section">
+      <h2>👤 12. Профиль и геймификация</h2>
+      <div class="sub-item-card"><strong>Вкладка «Профиль»:</strong> Аватарка, имя, сменяемые никнеймы.</div>
+      <div class="sub-item-card"><strong>Вкладка «Языки»:</strong> Выбор родного языка (Русский) и целевого языка.</div>
+      <div class="sub-item-card"><strong>AI Mastery Report:</strong> Оценка уровня словарного запаса от ИИ.</div>
+    </section>
+
+    <!-- 13. Supervisor -->
+    <section id="m13" class="section">
+      <h2>👁️ 13. Портал куратора (Supervisor / Public Stats)</h2>
+      <p>Публичная ссылка (<code>/giam-sat</code> или <code>/public/stats</code>), по которой куратор или друзья могут смотреть твои успехи без авторизации.</p>
+    </section>
+
+    <!-- 14. Command Palette -->
+    <section id="m14" class="section">
+      <h2>⌨️ 14. Быстрый поиск (Command Palette ⌘K)</h2>
+      <p>Нажми <code>Ctrl+K</code> или <code>Cmd+K</code> для мгновенного перехода в любой раздел или переключения темы (Светлая / Тёмная).</p>
+    </section>
+
+    <!-- 15. Settings & Backup -->
+    <section id="m15" class="section">
+      <h2>💾 15. Настройки и резервное копирование</h2>
+      <p>Скачивай файл резервной копии <code>lingua_vault_backup.json</code> и восстанавливай словарь на любом устройстве в один клик!</p>
     </section>
 
     <footer>
-      <p>С любовью создано для лёгкого и вдохновляющего изучения языка • LinguaVault 🌸</p>
+      <p>🌸 С заботой о лёгком обучении • LinguaVault V2</p>
     </footer>
   </div>
 
