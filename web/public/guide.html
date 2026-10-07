@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Руководство пользователя — LinguaVault</title>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --primary-light: rgba(2, 132, 199, 0.08);
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-page: #0b0f19;
+        --bg-card: #131b2e;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #1e293b;
+        --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.65;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 5rem 1.25rem;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+      color: #ffffff;
+      padding: 3rem 2rem;
+      border-radius: 24px;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 15px 35px rgba(2, 132, 199, 0.25);
+      position: relative;
+    }
+
+    .header-banner h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .header-banner p {
+      font-size: 1.1rem;
+      opacity: 0.92;
+      max-width: 650px;
+      line-height: 1.5;
+    }
+
+    .print-btn {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .print-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+    .toc {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .toc h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+
+    .toc ol {
+      padding-left: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toc a {
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .toc a:hover { color: var(--primary); text-decoration: underline; }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.25rem 2rem;
+      margin-bottom: 2.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .section h2 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--text-main);
+    }
+
+    .section p {
+      font-size: 1rem;
+      color: var(--text-main);
+      margin-bottom: 1.25rem;
+    }
+
+    .section ul, .section ol {
+      padding-left: 1.4rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .screenshot-box {
+      margin: 1.5rem 0;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+      background: #000000;
+    }
+
+    .screenshot-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+
+    .badge-step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .tip-box {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 1rem 1.25rem;
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      margin: 1.25rem 0;
+      font-size: 0.95rem;
+    }
+
+    .btn-rating-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .rating-card {
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .rating-again { background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .rating-hard { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .rating-good { background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .rating-easy { background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 3rem;
+    }
+
+    @media print {
+      body { background: #ffffff; color: #000000; }
+      .print-btn, .toc { display: none; }
+      .section { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+      .header-banner { background: #0284c7; color: #ffffff; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header-banner">
+      <button class="print-btn" onclick="window.print()">🖨️ Распечатать / В PDF</button>
+      <h1>🌸 LinguaVault</h1>
+      <p>Простая и наглядная инструкция: как учить иностранный язык легко, естественно и без зубрёжки.</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+      <h2>Содержание руководства</h2>
+      <ol>
+        <li><a href="#step1">1. Как войти в приложение и выбрать русский язык</a></li>
+        <li><a href="#step2">2. Главная страница — твой план на сегодня</a></li>
+        <li><a href="#step3">3. Как учить и повторять слова по карточкам</a></li>
+        <li><a href="#step4">4. Как замедлить или настроить скорость звука</a></li>
+        <li><a href="#step5">5. Словарь — твоя личная копилка знаний</a></li>
+        <li><a href="#step6">6. Умное чтение — чтение статей с переводом</a></li>
+        <li><a href="#step7">7. Лаборатория речи — тренировка произношения</a></li>
+        <li><a href="#step8">8. AI Истории — запоминание слов через сказки</a></li>
+        <li><a href="#step9">9. Золотые правила для лёгкого обучения (10 мин в день)</a></li>
+      </ol>
+    </div>
+
+    <!-- 1. Вход -->
+    <section id="step1" class="section">
+      <h2><span class="badge-step">1</span> Вход в приложение и русский язык</h2>
+      <p>Когда ты открываешь приложение, перед тобой появится окно входа:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/01_auth_ru.png" alt="Вход в приложение">
+      </div>
+
+      <ul>
+        <li><strong>Выбор языка:</strong> В правом верхнем углу нажми <strong>🇷🇺 Русский</strong>. Все кнопки сразу переведутся на русский язык.</li>
+        <li><strong>Вход:</strong>
+          <ul>
+            <li>Логин: <code>admin</code> (или твой логин)</li>
+            <li>Пароль: <code>123456</code></li>
+          </ul>
+        </li>
+        <li>Нажми синюю кнопку <strong>«Войти»</strong>.</li>
+      </ul>
+      <div class="tip-box">
+        💡 <strong>Совет:</strong> Нажми «Сохранить пароль» в браузере, чтобы в следующий раз заходить сразу в один клик!
+      </div>
+    </section>
+
+    <!-- 2. Главная -->
+    <section id="step2" class="section">
+      <h2><span class="badge-step">2</span> Главная страница — твой план на день</h2>
+      <p>После входа откроется главная панель с твоими успехами:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/02_dashboard_ru.png" alt="Главная страница Dashboard">
+      </div>
+
+      <ul>
+        <li><strong>🔥 Серия дней (Streak):</strong> Показывает, сколько дней подряд ты занимаешься. Старайся заходить каждый день хотя бы на 5 минут, чтобы огонёк не угас!</li>
+        <li><strong>📚 К повторению сегодня (Due):</strong> Количество карточек, готовых к повторению прямо сейчас.</li>
+        <li><strong>🚀 Кнопка «Начать повторение»:</strong> Нажми на неё, чтобы сразу перейти к быстрой тренировке слов.</li>
+      </ul>
+    </section>
+
+    <!-- 3. Карточки -->
+    <section id="step3" class="section">
+      <h2><span class="badge-step">3</span> Как учить слова по карточкам</h2>
+      <p>Приложение использует умный алгоритм памяти: простые слова появляются редко, а сложные — чаще, пока не запомнятся навсегда.</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/07_srs_review_ru.png" alt="Карточки повторения">
+      </div>
+
+      <ol>
+        <li>Посмотри на слово на карточке и вспомни его значение про себя.</li>
+        <li>Нажми <strong>«Показать ответ»</strong> — карточка перевернется с переводом и озвучкой.</li>
+        <li>Честно нажми одну из 4 кнопок оценки:</li>
+      </ol>
+
+      <div class="btn-rating-grid">
+        <div class="rating-card rating-again">
+          <span>🔴 Снова</span>
+          <small>Совсем забыла. Слово вернется в этой же тренировке.</small>
+        </div>
+        <div class="rating-card rating-hard">
+          <span>🟠 Трудно</span>
+          <small>Вспомнила с трудом. Повторится чуть раньше.</small>
+        </div>
+        <div class="rating-card rating-good">
+          <span>🟢 Хорошо</span>
+          <small>Вспомнила уверенно! Самая частая кнопка.</small>
+        </div>
+        <div class="rating-card rating-easy">
+          <span>🔵 Легко</span>
+          <small>Знаешь идеально. Отложится на долгий срок.</small>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        🌟 <strong>Главное правило:</strong> Не бойся нажимать кнопку «Снова» — ошибки помогают мозгу выстроить самую надежную память!
+      </div>
+    </section>
+
+    <!-- 4. Скорость аудио -->
+    <section id="step4" class="section">
+      <h2><span class="badge-step">4</span> Настройка скорости и акцента диктора</h2>
+      <p>Если диктор говорит слишком быстро, речь можно замедлить до комфортного темпа:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/03_audio_speed_ru.png" alt="Скорость звука">
+      </div>
+
+      <ul>
+        <li>Внизу бокового меню нажми на значок <strong>1x</strong>.</li>
+        <li>Выбери кнопку <strong>0.75x</strong> или передвинь ползунок (для начинающих идеальна скорость <code>0.8x</code>).</li>
+        <li>Выбери акцент (🇺🇸 Американский или 🇬🇧 Британский).</li>
+        <li>Нажми синюю круглую кнопку, чтобы сразу проверить звучание тестовой фразы!</li>
+      </ul>
+    </section>
+
+    <!-- 5. Словарь -->
+    <section id="step5" class="section">
+      <h2><span class="badge-step">5</span> Словарь (Vocab Vault) — копилка слов</h2>
+      <p>В этом разделе хранятся все изученные слова:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/04_vocab_vault_ru.png" alt="Словарь">
+      </div>
+
+      <ul>
+        <li><strong>Поиск:</strong> Введи слово на русском или английском, чтобы найти его.</li>
+        <li><strong>Темы:</strong> Фильтруй слова по темам (Семья, Путешествия, Еда, Работа).</li>
+        <li><strong>Динамик 🔊:</strong> Нажимай на значок звука, чтобы слушать правильное произношение.</li>
+        <li><strong>Кнопка «+»:</strong> Нажми синюю кнопку, чтобы добавить новое интересное слово.</li>
+      </ul>
+    </section>
+
+    <!-- 6. Чтение -->
+    <section id="step6" class="section">
+      <h2><span class="badge-step">6</span> Умное чтение (Smart Reader)</h2>
+      <p>Читай короткие интересные тексты с мгновенным переводом:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/05_smart_reader_ru.png" alt="Чтение текстов">
+      </div>
+
+      <ul>
+        <li><strong>Перевод по клику:</strong> Не знаешь слово? Просто нажми на него — сверху появится перевод!</li>
+        <li><strong>Слушание:</strong> Нажми на динамик рядом с любым предложением, чтобы диктор прочитал его вслух.</li>
+      </ul>
+    </section>
+
+    <!-- 7. Говорение -->
+    <section id="step7" class="section">
+      <h2><span class="badge-step">7</span> Лаборатория речи (Speaking Lab)</h2>
+      <p>Тренируйся говорить красиво и уверенно:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/06_speaking_lab_ru.png" alt="Тренировка речи">
+      </div>
+
+      <ul>
+        <li><strong>Подсказки 💡:</strong> Читай советы по произношению на русском языке — они подскажут, где сделать ударение и как поставить язык.</li>
+        <li><strong>Микрофон 🎙️:</strong> Нажми на микрофон, произнеси фразу вслух и нажми стоп — система оценит твой результат!</li>
+      </ul>
+    </section>
+
+    <!-- 8. AI Истории -->
+    <section id="step8" class="section">
+      <h2><span class="badge-step">8</span> Запоминание через сказки и истории (AI Lab)</h2>
+      <p>Искусственный интеллект помогает запомнить даже самые капризные слова:</p>
+      
+      <div class="screenshot-box">
+        <img src="docs/images/08_ai_lab_ru.png" alt="AI Lab">
+      </div>
+
+      <ul>
+        <li>Нажми <strong>«Сгенерировать историю»</strong>.</li>
+        <li>ИИ придумает увлекательный рассказ, в который искусно вплетены слова, которые ты учишь.</li>
+        <li>Историю можно прочитать и послушать в озвучке!</li>
+      </ul>
+    </section>
+
+    <!-- 9. Советы -->
+    <section id="step9" class="section">
+      <h2><span class="badge-step">9</span> Три секрета лёгкого обучения</h2>
+      <ul>
+        <li><strong>10 минут каждый день лучше, чем 2 часа раз в неделю:</strong> Память любит короткие ежедневные касания.</li>
+        <li><strong>Занимайся в удовольствие:</strong> Повтори 15 карточек утром за чаем или в дороге.</li>
+        <li><strong>Радуйся успехам:</strong> Смотри на растущую серию дней (Streak) и свой уровень опыта!</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>С любовью создано для лёгкого и вдохновляющего изучения языка • LinguaVault 🌸</p>
+    </footer>
+  </div>
+
+</body>
+</html>
