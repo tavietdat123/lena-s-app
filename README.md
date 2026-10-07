@@ -1,6 +1,11 @@
 # 🏛️ LinguaVault - Personal English Knowledge & SRS Ecosystem
 
-> **LinguaVault** là hệ sinh thái học tập tiếng Anh cá nhân hóa toàn diện, giải quyết triệt để **đường cong lãng quên (Ebbinghaus Forgetting Curve)** bằng thuật toán **Lặp lại ngắt quãng (Spaced Repetition System / SuperMemo SM-2)** kết hợp cùng **Trợ lý Trí tuệ Nhân tạo (Google Gemini AI)**, **Phát âm Native Siri Apple**, và **Hệ thống Telegram AI Copilot hai chiều**.
+> **LinguaVault** là hệ sinh thái học tập tiếng Anh & tiếng Việt cá nhân hóa toàn diện, giải quyết triệt để **đường cong lãng quên (Ebbinghaus Forgetting Curve)** bằng thuật toán **Lặp lại ngắt quãng (Spaced Repetition System / SuperMemo SM-2)** kết hợp cùng **Trợ lý Trí tuệ Nhân tạo (Google Gemini AI)**, **Phát âm Native**, và **Hệ thống Lộ trình kép (CEFR ⇄ VSL)**.
+
+### 📖 Cẩm Nang Hướng Dẫn Sử Dụng / User Manuals / Руководство пользователя:
+* 🇻🇳 **[Hướng Dẫn Sử Dụng Chi Tiết (Bản Tiếng Việt)](HUONG_DAN_SU_DUNG.md)**
+* 🇷🇺 **[Полная инструкция для пользователя (На русском языке)](USER_GUIDE_RU.md)**
+* 🌐 **[Trang Web Cẩm Nang Trực Tuyến (In PDF / Đọc trên điện thoại)](web/public/guide.html)**
 
 [![Node.js Version](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
 [![Database](https://img.shields.io/badge/Database-SQLite3%20(better--sqlite3)-blue.svg)](https://www.sqlite.org/)
